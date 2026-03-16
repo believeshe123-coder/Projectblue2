@@ -1,39 +1,39 @@
-export function mountFileMenu({ container, store, canvas }) {
-  const wrap = document.createElement('div');
-  wrap.className = 'file-menu';
-
+export function mountFileMenu({ container }) {
   const button = document.createElement('button');
   button.className = 'menu-trigger';
   button.type = 'button';
   button.textContent = 'File';
-  button.setAttribute('aria-expanded', 'false');
 
-  const panel = document.createElement('div');
-  panel.className = 'menu-panel file-panel';
-  panel.hidden = true;
-  panel.innerHTML = `
-    <div class="menu-panel-header">
-      <h3>File</h3>
+  button.addEventListener('click', () => {
+    window.location.hash = '#file';
+  });
+
+  container.appendChild(button);
+
+  return () => {
+    const isActive = window.location.hash === '#file';
+    button.setAttribute('aria-current', isActive ? 'page' : 'false');
+  };
+}
+
+export function renderFilePage({ container, store, canvas }) {
+  container.innerHTML = `
+    <div class="route-card">
+      <h2>File</h2>
+      <p>Manage your blueprint file actions from this page.</p>
+      <div class="button-row">
+        <button class="menu-item" data-file-action="save" type="button">Save Blueprint</button>
+        <button class="menu-item" data-file-action="load" type="button">Load Blueprint</button>
+        <button class="menu-item" data-file-action="export" type="button">Export PNG</button>
+      </div>
+      <input data-file-input type="file" accept="application/json" hidden />
+      <div class="button-row">
+        <button class="menu-trigger" data-file-action="home" type="button">Back to Home</button>
+      </div>
     </div>
-    <button class="menu-item" data-file-action="save" type="button">Save Blueprint</button>
-    <button class="menu-item" data-file-action="load" type="button">Load Blueprint</button>
-    <button class="menu-item" data-file-action="export" type="button">Export PNG</button>
-    <input data-file-input type="file" accept="application/json" hidden />
   `;
 
-  wrap.appendChild(button);
-  wrap.appendChild(panel);
-  container.appendChild(wrap);
-
-  function closePanel() {
-    panel.hidden = true;
-    button.setAttribute('aria-expanded', 'false');
-  }
-
-  function togglePanel() {
-    panel.hidden = !panel.hidden;
-    button.setAttribute('aria-expanded', String(!panel.hidden));
-  }
+  const fileInput = container.querySelector('[data-file-input]');
 
   function download(name, text, type = 'application/json') {
     const blob = new Blob([text], { type });
@@ -45,32 +45,21 @@ export function mountFileMenu({ container, store, canvas }) {
     URL.revokeObjectURL(url);
   }
 
-  button.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    togglePanel();
-  });
-
-  panel.addEventListener('click', (event) => {
-    const closeButton = event.target instanceof Element
-      ? event.target.closest('[data-action="close-file-menu"]')
-      : null;
-
-    if (closeButton && panel.contains(closeButton)) {
-      closePanel();
-      return;
-    }
-
+  container.addEventListener('click', (event) => {
     const actionButton = event.target instanceof Element
       ? event.target.closest('[data-file-action]')
       : null;
     const action = actionButton?.dataset?.fileAction;
     if (!action) return;
 
-    if (action === 'save') download('blueprint.json', JSON.stringify(store.documentData, null, 2));
+    if (action === 'save') {
+      download('blueprint.json', JSON.stringify(store.documentData, null, 2));
+      return;
+    }
 
     if (action === 'load') {
-      panel.querySelector('[data-file-input]').click();
+      fileInput.click();
+      return;
     }
 
     if (action === 'export') {
@@ -78,12 +67,15 @@ export function mountFileMenu({ container, store, canvas }) {
       anchor.href = canvas.toDataURL('image/png');
       anchor.download = 'blueprint.png';
       anchor.click();
+      return;
     }
 
-    closePanel();
+    if (action === 'home') {
+      window.location.hash = '#home';
+    }
   });
 
-  panel.querySelector('[data-file-input]').addEventListener('change', async (event) => {
+  fileInput.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const content = await file.text();
@@ -91,16 +83,5 @@ export function mountFileMenu({ container, store, canvas }) {
     Object.assign(store.documentData, parsed);
     store.notify();
     event.target.value = '';
-    closePanel();
   });
-
-  document.addEventListener('pointerdown', (event) => {
-    if (!wrap.contains(event.target)) closePanel();
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closePanel();
-  });
-
-  return () => {};
 }
