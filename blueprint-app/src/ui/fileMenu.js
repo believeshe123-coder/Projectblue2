@@ -14,7 +14,6 @@ export function mountFileMenu({ container, store, canvas }) {
   panel.innerHTML = `
     <div class="menu-panel-header">
       <h3>File</h3>
-      <button type="button" data-action="close-file-menu" class="menu-close">Close</button>
     </div>
     <button class="menu-item" data-file-action="save" type="button">Save Blueprint</button>
     <button class="menu-item" data-file-action="load" type="button">Load Blueprint</button>
