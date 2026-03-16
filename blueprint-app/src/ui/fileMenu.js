@@ -52,6 +52,15 @@ export function mountFileMenu({ container, store, canvas }) {
   });
 
   panel.addEventListener('click', (event) => {
+    const closeButton = event.target instanceof Element
+      ? event.target.closest('[data-action="close-file-menu"]')
+      : null;
+
+    if (closeButton && panel.contains(closeButton)) {
+      closePanel();
+      return;
+    }
+
     const actionButton = event.target instanceof Element
       ? event.target.closest('[data-file-action]')
       : null;

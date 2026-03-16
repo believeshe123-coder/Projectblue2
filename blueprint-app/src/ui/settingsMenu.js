@@ -34,10 +34,14 @@ export function mountSettingsMenu({ container, store, previewCanvas }) {
     button.setAttribute('aria-expanded', String(!panel.hidden));
   }
 
-  button.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    togglePanel();
+  button.addEventListener('click', togglePanel);
+
+  panel.addEventListener('click', (event) => {
+    const closeButton = event.target instanceof Element
+      ? event.target.closest('[data-action="close-settings"]')
+      : null;
+
+    if (closeButton && panel.contains(closeButton)) closePanel();
   });
 
   document.addEventListener('keydown', (event) => {
