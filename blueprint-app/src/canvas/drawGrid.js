@@ -1,4 +1,6 @@
 export function drawGrid(ctx, canvas, documentData, appState) {
+  if (!documentData.settings.showGrid) return;
+
   const grid = documentData.settings.gridSize;
   const step = grid * appState.zoom;
   if (step < 8) return;

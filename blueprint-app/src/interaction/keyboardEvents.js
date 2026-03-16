@@ -1,3 +1,4 @@
+import { deleteSelectedShapes } from '../app/actions.js';
 import { getTool } from '../tools/toolRegistry.js';
 import { undo, redo } from '../app/history.js';
 
@@ -9,6 +10,11 @@ export function bindKeyboardEvents({ store }) {
         Object.assign(store.documentData, snapshot);
         store.notify();
       }
+      return;
+    }
+
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      deleteSelectedShapes();
       return;
     }
 
