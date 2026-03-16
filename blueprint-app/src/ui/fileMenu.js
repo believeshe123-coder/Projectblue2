@@ -49,12 +49,19 @@ export function mountFileMenu({ container, store, canvas }) {
   button.addEventListener('click', togglePanel);
 
   panel.addEventListener('click', (event) => {
-    if (event.target?.dataset?.action === 'close-file-menu') {
+    const closeButton = event.target instanceof Element
+      ? event.target.closest('[data-action="close-file-menu"]')
+      : null;
+
+    if (closeButton && panel.contains(closeButton)) {
       closePanel();
       return;
     }
 
-    const action = event.target?.dataset?.fileAction;
+    const actionButton = event.target instanceof Element
+      ? event.target.closest('[data-file-action]')
+      : null;
+    const action = actionButton?.dataset?.fileAction;
     if (!action) return;
 
     if (action === 'save') download('blueprint.json', JSON.stringify(store.documentData, null, 2));
