@@ -31,17 +31,9 @@ export function mountFileMenu({ container, store, canvas }) {
     button.setAttribute('aria-expanded', 'false');
   }
 
-  function openPanel() {
-    panel.hidden = false;
-    button.setAttribute('aria-expanded', 'true');
-  }
-
   function togglePanel() {
-    if (panel.hidden) {
-      openPanel();
-      return;
-    }
-    closePanel();
+    panel.hidden = !panel.hidden;
+    button.setAttribute('aria-expanded', String(!panel.hidden));
   }
 
   function download(name, text, type = 'application/json') {
@@ -54,20 +46,15 @@ export function mountFileMenu({ container, store, canvas }) {
     URL.revokeObjectURL(url);
   }
 
-  button.addEventListener('click', (event) => {
-    event.stopPropagation();
-    togglePanel();
-  });
+  button.addEventListener('click', togglePanel);
 
   panel.addEventListener('click', (event) => {
-    const closeButton = event.target?.closest?.('[data-action="close-file-menu"]');
-    if (closeButton) {
+    if (event.target?.dataset?.action === 'close-file-menu') {
       closePanel();
       return;
     }
 
-    const actionButton = event.target?.closest?.('[data-file-action]');
-    const action = actionButton?.dataset?.fileAction;
+    const action = event.target?.dataset?.fileAction;
     if (!action) return;
 
     if (action === 'save') download('blueprint.json', JSON.stringify(store.documentData, null, 2));
@@ -97,7 +84,7 @@ export function mountFileMenu({ container, store, canvas }) {
     closePanel();
   });
 
-  document.addEventListener('pointerdown', (event) => {
+  document.addEventListener('click', (event) => {
     if (!wrap.contains(event.target)) closePanel();
   });
 

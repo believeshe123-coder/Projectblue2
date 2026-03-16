@@ -29,26 +29,15 @@ export function mountSettingsMenu({ container, store, previewCanvas }) {
     button.setAttribute('aria-expanded', 'false');
   }
 
-  function openPanel() {
-    panel.hidden = false;
-    button.setAttribute('aria-expanded', 'true');
-  }
-
   function togglePanel() {
-    if (panel.hidden) {
-      openPanel();
-      return;
-    }
-    closePanel();
+    panel.hidden = !panel.hidden;
+    button.setAttribute('aria-expanded', String(!panel.hidden));
   }
 
-  button.addEventListener('click', (event) => {
-    event.stopPropagation();
-    togglePanel();
-  });
+  button.addEventListener('click', togglePanel);
 
   panel.addEventListener('click', (event) => {
-    if (event.target?.closest?.('[data-action="close-settings"]')) closePanel();
+    if (event.target?.dataset?.action === 'close-settings') closePanel();
   });
 
   document.addEventListener('keydown', (event) => {
