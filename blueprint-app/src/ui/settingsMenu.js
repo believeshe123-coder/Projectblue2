@@ -44,7 +44,7 @@ export function mountSettingsMenu({ container, store, previewCanvas }) {
     if (event.key === 'Escape') closePanel();
   });
 
-  document.addEventListener('click', (event) => {
+  document.addEventListener('pointerdown', (event) => {
     if (!wrap.contains(event.target)) closePanel();
   });
 

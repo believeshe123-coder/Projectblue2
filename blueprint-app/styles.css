@@ -111,6 +111,8 @@ body {
   background: #fff;
   color: var(--text);
   padding: 0.4rem 0.65rem;
+  min-width: 112px;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -118,7 +120,7 @@ body {
   position: absolute;
   top: calc(100% + 0.35rem);
   right: 0;
-  width: 240px;
+  width: 320px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fff;
