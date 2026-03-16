@@ -45,7 +45,11 @@ export function mountFileMenu({ container, store, canvas }) {
     URL.revokeObjectURL(url);
   }
 
-  button.addEventListener('click', togglePanel);
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    togglePanel();
+  });
 
   panel.addEventListener('click', (event) => {
     const closeButton = event.target instanceof Element
@@ -90,7 +94,7 @@ export function mountFileMenu({ container, store, canvas }) {
     closePanel();
   });
 
-  document.addEventListener('click', (event) => {
+  document.addEventListener('pointerdown', (event) => {
     if (!wrap.contains(event.target)) closePanel();
   });
 
