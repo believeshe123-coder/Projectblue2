@@ -10,6 +10,8 @@ export function createDocumentModel() {
       snap: true,
       axisSnap: true,
       units: 'ft',
+      showMeasurements: true,
+      showCursorPreview: true,
     },
     layers: [],
     shapes: [],

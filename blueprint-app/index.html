@@ -10,10 +10,16 @@
     <div class="app-shell">
       <header class="app-header">
         <h1>Blueprint Editor</h1>
+        <div id="header-controls"></div>
       </header>
 
       <main class="app-main">
-        <aside class="left-sidebar" id="toolbar"></aside>
+        <aside class="left-sidebar">
+          <section id="toolbar"></section>
+          <section class="cursor-preview-dock" aria-label="Cursor preview">
+            <canvas id="cursor-preview" width="132" height="132"></canvas>
+          </section>
+        </aside>
 
         <section class="canvas-panel">
           <canvas id="blueprint-canvas" width="1100" height="700"></canvas>
