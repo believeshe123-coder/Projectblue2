@@ -1,7 +1,4 @@
-import { setZoom, updateDocumentSettings, updateSelectedStyles } from '../app/actions.js';
-
-const GRID_MIN = 5;
-const GRID_MAX = 200;
+import { setZoom, updateSelectedStyles } from '../app/actions.js';
 
 function firstSelectedShape(store) {
   const id = store.appState.selectedIds[0];
@@ -24,19 +21,6 @@ export function mountPropertiesPanel({ container, store }) {
 
   panel.addEventListener('change', (event) => {
     const target = event.target;
-
-    if (target.id === 'toggle-grid') updateDocumentSettings({ showGrid: target.checked });
-    if (target.id === 'toggle-snap') updateDocumentSettings({ snap: target.checked });
-    if (target.id === 'toggle-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
-    if (target.id === 'toggle-measurements') updateDocumentSettings({ showMeasurements: target.checked });
-
-    if (target.id === 'grid-size') {
-      const parsed = Number.parseInt(target.value, 10);
-      if (Number.isFinite(parsed)) {
-        const clamped = Math.min(GRID_MAX, Math.max(GRID_MIN, parsed));
-        updateDocumentSettings({ gridSize: clamped });
-      }
-    }
 
     if (target.id === 'style-stroke') updateSelectedStyles({ stroke: target.value });
     if (target.id === 'style-fill') updateSelectedStyles({ fill: target.value });
@@ -67,15 +51,6 @@ export function mountPropertiesPanel({ container, store }) {
           <button data-action="zoom-reset" type="button">Reset</button>
         </div>
         <small>Zoom: ${(store.appState.zoom * 100).toFixed(0)}% • Pan with Shift+drag, right-drag, or middle-drag.</small>
-      </div>
-
-      <div class="property-group">
-        <h3>Grid & Snap</h3>
-        <label><input id="toggle-grid" type="checkbox" ${store.documentData.settings.showGrid ? 'checked' : ''} /> Show grid</label>
-        <label>Grid size <input id="grid-size" type="number" min="${GRID_MIN}" max="${GRID_MAX}" value="${store.documentData.settings.gridSize}" /></label>
-        <label><input id="toggle-snap" type="checkbox" ${store.documentData.settings.snap ? 'checked' : ''} /> Snap to grid</label>
-        <label><input id="toggle-axis-snap" type="checkbox" ${store.documentData.settings.axisSnap ? 'checked' : ''} /> Snap lines to up/down/left/right</label>
-        <label><input id="toggle-measurements" type="checkbox" ${store.documentData.settings.showMeasurements !== false ? 'checked' : ''} /> Debug: show line measurements</label>
       </div>
 
       <div class="property-group">

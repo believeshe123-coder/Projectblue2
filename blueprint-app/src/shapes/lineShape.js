@@ -1,10 +1,7 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
+import { formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
 
-function formatMeasurement(length, units = 'ft') {
-  return `${length.toFixed(1)} ${units}`;
-}
-
-function drawLineMeasurement(ctx, shape, units) {
+function drawLineMeasurement(ctx, shape, settings) {
   const dx = shape.end.x - shape.start.x;
   const dy = shape.end.y - shape.start.y;
   const length = Math.hypot(dx, dy);
@@ -12,7 +9,7 @@ function drawLineMeasurement(ctx, shape, units) {
 
   const midX = (shape.start.x + shape.end.x) / 2;
   const midY = (shape.start.y + shape.end.y) / 2;
-  const label = formatMeasurement(length, units);
+  const label = formatMeasurement(length, settings);
 
   ctx.save();
   ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
@@ -44,9 +41,8 @@ export const lineShape = {
     ctx.stroke();
     ctx.restore();
 
-    const showMeasurements = options.settings?.showMeasurements ?? true;
-    if (showMeasurements) {
-      drawLineMeasurement(ctx, shape, options.settings?.units);
+    if (shouldRenderPersistedMeasurements(options.settings)) {
+      drawLineMeasurement(ctx, shape, options.settings);
     }
   },
 
