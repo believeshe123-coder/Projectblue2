@@ -1,7 +1,40 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
 
+function formatMeasurement(length, units = 'ft') {
+  return `${length.toFixed(1)} ${units}`;
+}
+
+function drawLineMeasurement(ctx, shape, units) {
+  const dx = shape.end.x - shape.start.x;
+  const dy = shape.end.y - shape.start.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 0.01) return;
+
+  const midX = (shape.start.x + shape.end.x) / 2;
+  const midY = (shape.start.y + shape.end.y) / 2;
+  const label = formatMeasurement(length, units);
+
+  ctx.save();
+  ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const metrics = ctx.measureText(label);
+  const width = metrics.width + 12;
+  const height = 18;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#0f4c81';
+  ctx.lineWidth = 1;
+  ctx.fillRect(midX - width / 2, midY - height / 2, width, height);
+  ctx.strokeRect(midX - width / 2, midY - height / 2, width, height);
+
+  ctx.fillStyle = '#0f4c81';
+  ctx.fillText(label, midX, midY);
+  ctx.restore();
+}
+
 export const lineShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
     ctx.save();
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
@@ -10,6 +43,11 @@ export const lineShape = {
     ctx.lineTo(shape.end.x, shape.end.y);
     ctx.stroke();
     ctx.restore();
+
+    const showMeasurements = options.settings?.showMeasurements ?? true;
+    if (showMeasurements) {
+      drawLineMeasurement(ctx, shape, options.settings?.units);
+    }
   },
 
   hitTest(shape, point) {

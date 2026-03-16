@@ -5,10 +5,12 @@ import { renderCanvas } from './canvas/renderer.js';
 import { mountToolbar } from './ui/toolbar.js';
 import { mountPropertiesPanel } from './ui/propertiesPanel.js';
 import { mountLayersPanel } from './ui/layersPanel.js';
+import { mountSettingsMenu } from './ui/settingsMenu.js';
 import { getTool } from './tools/toolRegistry.js';
 
 const canvas = document.getElementById('blueprint-canvas');
 const ctx = canvas.getContext('2d');
+const previewCanvas = document.getElementById('cursor-preview');
 
 const toolbarRefresh = mountToolbar({
   container: document.getElementById('toolbar'),
@@ -28,8 +30,17 @@ const layersRefresh = mountLayersPanel({
   canvas,
 });
 
+
+const settingsRefresh = mountSettingsMenu({
+  container: document.getElementById('header-controls'),
+  store,
+  previewCanvas,
+});
+
 const ephemeral = {
   preview: null,
+  cursorScreen: null,
+  cursorWorld: null,
 };
 
 bindPointerEvents({ canvas, store, ephemeral });
@@ -43,12 +54,13 @@ function draw() {
     documentData: store.documentData,
     appState: store.appState,
     activeTool,
-    interactionContext: { ctx, canvas, store, ephemeral },
+    interactionContext: { ctx, canvas, previewCanvas, store, ephemeral },
   });
 
   toolbarRefresh();
   propsRefresh();
   layersRefresh();
+  settingsRefresh();
 }
 
 store.subscribe(draw);

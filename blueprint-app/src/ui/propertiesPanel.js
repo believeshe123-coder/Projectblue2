@@ -28,6 +28,7 @@ export function mountPropertiesPanel({ container, store }) {
     if (target.id === 'toggle-grid') updateDocumentSettings({ showGrid: target.checked });
     if (target.id === 'toggle-snap') updateDocumentSettings({ snap: target.checked });
     if (target.id === 'toggle-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
+    if (target.id === 'toggle-measurements') updateDocumentSettings({ showMeasurements: target.checked });
 
     if (target.id === 'grid-size') {
       const parsed = Number.parseInt(target.value, 10);
@@ -74,6 +75,7 @@ export function mountPropertiesPanel({ container, store }) {
         <label>Grid size <input id="grid-size" type="number" min="${GRID_MIN}" max="${GRID_MAX}" value="${store.documentData.settings.gridSize}" /></label>
         <label><input id="toggle-snap" type="checkbox" ${store.documentData.settings.snap ? 'checked' : ''} /> Snap to grid</label>
         <label><input id="toggle-axis-snap" type="checkbox" ${store.documentData.settings.axisSnap ? 'checked' : ''} /> Snap lines to up/down/left/right</label>
+        <label><input id="toggle-measurements" type="checkbox" ${store.documentData.settings.showMeasurements !== false ? 'checked' : ''} /> Debug: show line measurements</label>
       </div>
 
       <div class="property-group">

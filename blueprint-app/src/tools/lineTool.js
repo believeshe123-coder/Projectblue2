@@ -1,6 +1,32 @@
 import { createLineShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
 
+function drawPreviewMeasurement(ctx, start, end, units = 'ft') {
+  const length = Math.hypot(end.x - start.x, end.y - start.y);
+  if (length < 0.01) return;
+
+  const midX = (start.x + end.x) / 2;
+  const midY = (start.y + end.y) / 2;
+  const label = `${length.toFixed(1)} ${units}`;
+
+  ctx.save();
+  ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const width = ctx.measureText(label).width + 12;
+  const height = 18;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#0f4c81';
+  ctx.lineWidth = 1;
+  ctx.fillRect(midX - width / 2, midY - height / 2, width, height);
+  ctx.strokeRect(midX - width / 2, midY - height / 2, width, height);
+
+  ctx.fillStyle = '#0f4c81';
+  ctx.fillText(label, midX, midY);
+  ctx.restore();
+}
+
 export const lineTool = {
   id: 'line',
 
@@ -45,5 +71,7 @@ export const lineTool = {
     ctx.lineTo(preview.end.x, preview.end.y);
     ctx.stroke();
     ctx.restore();
+
+    drawPreviewMeasurement(ctx, preview.start, preview.end, context.store.documentData.settings?.units);
   },
 };

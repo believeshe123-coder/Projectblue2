@@ -97,7 +97,17 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
     const world = screenToWorld(screen, store.appState);
     const point = applyDrawingSnap(world, store, activeTool);
 
+    ephemeral.cursorScreen = screen;
+    ephemeral.cursorWorld = point;
+
     activeTool?.onPointerMove?.({ canvas, ctx: canvas.getContext('2d'), store, ephemeral }, point, event);
+    store.notify();
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    ephemeral.cursorScreen = null;
+    ephemeral.cursorWorld = null;
+    store.notify();
   });
 
   window.addEventListener('pointerup', (event) => {

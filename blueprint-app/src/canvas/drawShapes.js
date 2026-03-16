@@ -5,6 +5,6 @@ export function drawShapes(ctx, documentData) {
     if (!shape.visible) continue;
     const behavior = getShapeBehavior(shape.type);
     if (!behavior?.draw) continue;
-    behavior.draw(ctx, shape);
+    behavior.draw(ctx, shape, { settings: documentData.settings });
   }
 }
