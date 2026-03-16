@@ -6,6 +6,85 @@ const GRID_MAX = 200;
 const UNITS_PER_GRID_MIN = 0.1;
 const UNITS_PER_GRID_MAX = 1000;
 
+const SETTING_DEFINITIONS = [
+  {
+    id: 'settings-show-grid',
+    key: 'showGrid',
+    type: 'boolean',
+    section: 'Canvas',
+    label: 'Show grid',
+    description: 'Draw the grid in the workspace.',
+  },
+  {
+    id: 'settings-grid-size',
+    key: 'gridSize',
+    type: 'number',
+    section: 'Canvas',
+    label: 'Grid size',
+    description: 'Set grid spacing in pixels.',
+    min: GRID_MIN,
+    max: GRID_MAX,
+    step: 1,
+  },
+  {
+    id: 'settings-snap',
+    key: 'snap',
+    type: 'boolean',
+    section: 'Snapping',
+    label: 'Snap to grid',
+    description: 'Snap points to the nearest grid intersection.',
+  },
+  {
+    id: 'settings-axis-snap',
+    key: 'axisSnap',
+    type: 'boolean',
+    section: 'Snapping',
+    label: 'Axis snap',
+    description: 'Constrain drawing to horizontal/vertical directions while dragging.',
+  },
+  {
+    id: 'settings-units-per-grid',
+    key: 'unitsPerGrid',
+    type: 'number',
+    section: 'Measurements',
+    label: 'Units per grid box',
+    description: 'How many units each grid box represents.',
+    min: UNITS_PER_GRID_MIN,
+    max: UNITS_PER_GRID_MAX,
+    step: 0.1,
+  },
+  {
+    id: 'settings-units',
+    key: 'units',
+    type: 'text',
+    section: 'Measurements',
+    label: 'Unit label',
+    description: 'Label used when displaying dimensions.',
+    maxLength: 12,
+  },
+  {
+    id: 'settings-measurement-mode',
+    key: 'measurementMode',
+    type: 'select',
+    section: 'Measurements',
+    label: 'Measurement visibility',
+    description: 'Control when measurements are shown.',
+    options: [
+      { value: 'always', label: 'At all times' },
+      { value: 'drawing', label: 'Only while drawing' },
+      { value: 'off', label: 'Off' },
+    ],
+  },
+  {
+    id: 'settings-cursor-preview',
+    key: 'showCursorPreview',
+    type: 'boolean',
+    section: 'View',
+    label: 'Cursor preview',
+    description: 'Show live cursor preview in the sidebar.',
+  },
+];
+
 export function mountSettingsMenu({ container }) {
   const button = document.createElement('button');
   button.className = 'settings-trigger';
@@ -24,32 +103,116 @@ export function mountSettingsMenu({ container }) {
   };
 }
 
+function renderSettingField(definition, settings, measurementMode) {
+  if (definition.type === 'boolean') {
+    const isChecked = definition.key === 'showCursorPreview'
+      ? settings.showCursorPreview !== false
+      : Boolean(settings[definition.key]);
+
+    return `
+      <label class="settings-toggle" for="${definition.id}">
+        <input id="${definition.id}" type="checkbox" ${isChecked ? 'checked' : ''} />
+        <span>${definition.label}</span>
+      </label>
+    `;
+  }
+
+  if (definition.type === 'number') {
+    const value = settings[definition.key] ?? '';
+    return `
+      <label for="${definition.id}" class="settings-field-label">${definition.label}</label>
+      <input
+        id="${definition.id}"
+        type="number"
+        min="${definition.min}"
+        max="${definition.max}"
+        step="${definition.step ?? 1}"
+        value="${value}"
+      />
+    `;
+  }
+
+  if (definition.type === 'text') {
+    const value = settings[definition.key] ?? 'ft';
+    return `
+      <label for="${definition.id}" class="settings-field-label">${definition.label}</label>
+      <input id="${definition.id}" type="text" maxlength="${definition.maxLength ?? 32}" value="${value}" />
+    `;
+  }
+
+  const selectedValue = definition.key === 'measurementMode'
+    ? measurementMode
+    : settings[definition.key];
+
+  return `
+    <label for="${definition.id}" class="settings-field-label">${definition.label}</label>
+    <select id="${definition.id}">
+      ${definition.options.map((option) => `
+        <option value="${option.value}" ${selectedValue === option.value ? 'selected' : ''}>${option.label}</option>
+      `).join('')}
+    </select>
+  `;
+}
+
+function renderSettingGroup(sectionName, settings, measurementMode) {
+  const settingRows = SETTING_DEFINITIONS
+    .filter((definition) => definition.section === sectionName)
+    .map((definition) => `
+      <article
+        class="settings-row"
+        data-setting-id="${definition.id}"
+        data-search="${[definition.label, definition.description, definition.section].join(' ').toLowerCase()}"
+      >
+        <div class="settings-row-main">
+          ${renderSettingField(definition, settings, measurementMode)}
+        </div>
+        <p class="settings-row-description">${definition.description}</p>
+      </article>
+    `)
+    .join('');
+
+  return `
+    <section class="settings-group" data-section="${sectionName.toLowerCase()}">
+      <h3>${sectionName}</h3>
+      ${settingRows}
+    </section>
+  `;
+}
+
 export function renderSettingsPage({ container, store, previewCanvas }) {
   const settings = store.documentData.settings;
   const measurementMode = resolveMeasurementMode(settings);
+  const sections = [...new Set(SETTING_DEFINITIONS.map((definition) => definition.section))];
 
   container.innerHTML = `
-    <div class="route-card">
+    <div class="route-card settings-page-card">
       <h2>Settings</h2>
-      <label><input id="settings-show-grid" type="checkbox" ${settings.showGrid ? 'checked' : ''} /> Show grid</label>
-      <label>Grid size <input id="settings-grid-size" type="number" min="${GRID_MIN}" max="${GRID_MAX}" value="${settings.gridSize}" /></label>
-      <label><input id="settings-snap" type="checkbox" ${settings.snap ? 'checked' : ''} /> Snap to grid</label>
-      <label><input id="settings-axis-snap" type="checkbox" ${settings.axisSnap ? 'checked' : ''} /> Axis snap</label>
-      <label>Each grid box = <input id="settings-units-per-grid" type="number" step="0.1" min="${UNITS_PER_GRID_MIN}" max="${UNITS_PER_GRID_MAX}" value="${settings.unitsPerGrid ?? 1}" /></label>
-      <label>Unit label <input id="settings-units" type="text" value="${settings.units ?? 'ft'}" maxlength="12" /></label>
-      <label>Measurements
-        <select id="settings-measurement-mode">
-          <option value="always" ${measurementMode === 'always' ? 'selected' : ''}>At all times</option>
-          <option value="drawing" ${measurementMode === 'drawing' ? 'selected' : ''}>Only while drawing</option>
-          <option value="off" ${measurementMode === 'off' ? 'selected' : ''}>Off</option>
-        </select>
+      <p class="settings-page-subtitle">All application settings are available here.</p>
+      <label class="settings-search" for="settings-search-input">
+        <span>Search settings</span>
+        <input id="settings-search-input" type="search" placeholder="Search by name, area, or description" />
       </label>
-      <label><input id="settings-cursor-preview" type="checkbox" ${settings.showCursorPreview !== false ? 'checked' : ''} /> View: cursor preview</label>
-      <div class="button-row">
-        <button class="settings-trigger" data-action="home" type="button">Back to Home</button>
-      </div>
+      ${sections.map((sectionName) => renderSettingGroup(sectionName, settings, measurementMode)).join('')}
     </div>
   `;
+
+  const searchInput = container.querySelector('#settings-search-input');
+  const rows = [...container.querySelectorAll('.settings-row')];
+  const groups = [...container.querySelectorAll('.settings-group')];
+
+  searchInput?.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+
+    rows.forEach((row) => {
+      const terms = row.getAttribute('data-search') ?? '';
+      row.hidden = query.length > 0 && !terms.includes(query);
+    });
+
+    groups.forEach((group) => {
+      const visibleRows = group.querySelectorAll('.settings-row:not([hidden])').length;
+      group.hidden = visibleRows === 0;
+    });
+  });
 
   container.addEventListener('change', (event) => {
     const target = event.target;
@@ -82,16 +245,6 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
 
     if (target.id === 'settings-measurement-mode') {
       updateDocumentSettings({ measurementMode: target.value });
-    }
-  });
-
-  container.addEventListener('click', (event) => {
-    const homeButton = event.target instanceof Element
-      ? event.target.closest('[data-action="home"]')
-      : null;
-
-    if (homeButton && container.contains(homeButton)) {
-      window.location.hash = '#home';
     }
   });
 

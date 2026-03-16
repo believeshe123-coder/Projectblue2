@@ -5,14 +5,43 @@ import { renderCanvas } from './canvas/renderer.js';
 import { mountToolbar } from './ui/toolbar.js';
 import { mountPropertiesPanel } from './ui/propertiesPanel.js';
 import { mountLayersPanel } from './ui/layersPanel.js';
-import { mountSettingsMenu, renderSettingsPage } from './ui/settingsMenu.js';
-import { mountFileMenu, renderFilePage } from './ui/fileMenu.js';
+import { renderSettingsPage } from './ui/settingsMenu.js';
+import { renderFilePage } from './ui/fileMenu.js';
 import { getTool } from './tools/toolRegistry.js';
+
+function mountTopNavigation({ container }) {
+  const routes = [
+    { label: 'Home', route: 'home' },
+    { label: 'Settings', route: 'settings' },
+    { label: 'File', route: 'file' },
+  ];
+
+  const buttons = routes.map(({ label, route }) => {
+    const button = document.createElement('button');
+    button.className = 'menu-trigger';
+    button.type = 'button';
+    button.textContent = label;
+
+    button.addEventListener('click', () => {
+      window.location.hash = `#${route}`;
+    });
+
+    container.appendChild(button);
+    return { route, button };
+  });
+
+  return (activeRoute) => {
+    buttons.forEach(({ route, button }) => {
+      button.setAttribute('aria-current', activeRoute === route ? 'page' : 'false');
+    });
+  };
+}
 
 const canvas = document.getElementById('blueprint-canvas');
 const ctx = canvas.getContext('2d');
 const previewCanvas = document.getElementById('cursor-preview');
 const appMain = document.querySelector('.app-main');
+const appShell = document.querySelector('.app-shell');
 
 const routeContainer = document.createElement('section');
 routeContainer.className = 'route-page';
@@ -36,11 +65,7 @@ const layersRefresh = mountLayersPanel({
   canvas,
 });
 
-const fileRefresh = mountFileMenu({
-  container: document.getElementById('header-controls'),
-});
-
-const settingsRefresh = mountSettingsMenu({
+const navRefresh = mountTopNavigation({
   container: document.getElementById('header-controls'),
 });
 
@@ -73,12 +98,20 @@ function renderRoutePage(route) {
   }
 }
 
+
+function setPageVisibility({ showingHome }) {
+  appMain.hidden = !showingHome;
+  routeContainer.hidden = showingHome;
+  appMain.style.display = showingHome ? 'grid' : 'none';
+  routeContainer.style.display = showingHome ? 'none' : 'block';
+  appShell.dataset.activeRoute = showingHome ? 'home' : 'route';
+}
+
 function draw() {
   const route = getRoute();
   const showingHome = route === 'home';
 
-  appMain.hidden = !showingHome;
-  routeContainer.hidden = showingHome;
+  setPageVisibility({ showingHome });
 
   if (showingHome) {
     const activeTool = getTool(store.appState.activeTool);
@@ -97,8 +130,7 @@ function draw() {
   toolbarRefresh();
   propsRefresh();
   layersRefresh();
-  fileRefresh();
-  settingsRefresh();
+  navRefresh(route);
 }
 
 window.addEventListener('hashchange', () => {
