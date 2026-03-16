@@ -1,0 +1,102 @@
+:root {
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --border: #d5dbe5;
+  --text: #1f2a37;
+  --accent: #0f4c81;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Tahoma, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.app-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 170px 1fr 240px;
+  min-height: 0;
+}
+
+.left-sidebar,
+.right-sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 0.75rem;
+}
+
+.right-sidebar {
+  border-right: none;
+  border-left: 1px solid var(--border);
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.canvas-panel {
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+#blueprint-canvas {
+  border: 1px solid var(--border);
+  background: #fff;
+  width: 100%;
+  height: calc(100vh - 130px);
+  display: block;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.65rem;
+  background: #fff;
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.92rem;
+}
+
+.toolbar-buttons {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.toolbar-button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toolbar-button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #f0f7ff;
+}
