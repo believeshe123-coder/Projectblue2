@@ -6,6 +6,7 @@ import { mountToolbar } from './ui/toolbar.js';
 import { mountPropertiesPanel } from './ui/propertiesPanel.js';
 import { mountLayersPanel } from './ui/layersPanel.js';
 import { mountSettingsMenu } from './ui/settingsMenu.js';
+import { mountFileMenu } from './ui/fileMenu.js';
 import { getTool } from './tools/toolRegistry.js';
 
 const canvas = document.getElementById('blueprint-canvas');
@@ -15,7 +16,6 @@ const previewCanvas = document.getElementById('cursor-preview');
 const toolbarRefresh = mountToolbar({
   container: document.getElementById('toolbar'),
   store,
-  canvas,
 });
 
 const propsRefresh = mountPropertiesPanel({
@@ -30,6 +30,12 @@ const layersRefresh = mountLayersPanel({
   canvas,
 });
 
+
+const fileRefresh = mountFileMenu({
+  container: document.getElementById('header-controls'),
+  store,
+  canvas,
+});
 
 const settingsRefresh = mountSettingsMenu({
   container: document.getElementById('header-controls'),
@@ -60,6 +66,7 @@ function draw() {
   toolbarRefresh();
   propsRefresh();
   layersRefresh();
+  fileRefresh();
   settingsRefresh();
 }
 

@@ -1,13 +1,14 @@
 import { createLineShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
+import { formatMeasurement, shouldRenderDrawingMeasurements } from '../utils/measurement.js';
 
-function drawPreviewMeasurement(ctx, start, end, units = 'ft') {
+function drawPreviewMeasurement(ctx, start, end, settings = {}) {
   const length = Math.hypot(end.x - start.x, end.y - start.y);
   if (length < 0.01) return;
 
   const midX = (start.x + end.x) / 2;
   const midY = (start.y + end.y) / 2;
-  const label = `${length.toFixed(1)} ${units}`;
+  const label = formatMeasurement(length, settings);
 
   ctx.save();
   ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
@@ -72,6 +73,8 @@ export const lineTool = {
     ctx.stroke();
     ctx.restore();
 
-    drawPreviewMeasurement(ctx, preview.start, preview.end, context.store.documentData.settings?.units);
+    if (shouldRenderDrawingMeasurements(context.store.documentData.settings)) {
+      drawPreviewMeasurement(ctx, preview.start, preview.end, context.store.documentData.settings);
+    }
   },
 };

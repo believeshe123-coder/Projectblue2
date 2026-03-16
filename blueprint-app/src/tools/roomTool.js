@@ -1,6 +1,8 @@
 import { createRoomShape } from '../document/shapeFactory.js';
 import { normalizeRect } from '../utils/geometry.js';
+import { shouldRenderDrawingMeasurements } from '../utils/measurement.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
+import { drawRoomMeasurements } from '../shapes/roomShape.js';
 
 export const roomTool = {
   id: 'room',
@@ -47,5 +49,9 @@ export const roomTool = {
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
     ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
     ctx.restore();
+
+    if (shouldRenderDrawingMeasurements(context.store.documentData.settings)) {
+      drawRoomMeasurements(ctx, rect, context.store.documentData.settings);
+    }
   },
 };
