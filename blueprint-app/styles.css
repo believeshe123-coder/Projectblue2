@@ -325,3 +325,91 @@ body {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.settings-page-card {
+  background: #fff;
+}
+
+.settings-page-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.settings-search {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.settings-search input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.45rem;
+  font-size: 0.9rem;
+}
+
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+  background: #fff;
+}
+
+.settings-group h3 {
+  margin: 0;
+}
+
+.settings-row {
+  display: grid;
+  gap: 0.35rem;
+  border-top: 1px solid #eef1f5;
+  padding-top: 0.55rem;
+}
+
+.settings-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.settings-row-main {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.settings-field-label {
+  font-weight: 600;
+  font-size: 0.87rem;
+}
+
+.settings-row-main input[type='number'],
+.settings-row-main input[type='text'],
+.settings-row-main select {
+  width: 100%;
+  max-width: 260px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem;
+}
+
+.settings-row-description {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #4a5565;
+}
+
+.app-shell[data-active-route='route'] .app-main {
+  display: none !important;
+}
+
+.app-shell[data-active-route='home'] .route-page {
+  display: none !important;
+}
