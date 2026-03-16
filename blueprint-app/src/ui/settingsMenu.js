@@ -36,6 +36,14 @@ export function mountSettingsMenu({ container, store, previewCanvas }) {
 
   button.addEventListener('click', togglePanel);
 
+  panel.addEventListener('click', (event) => {
+    const closeButton = event.target instanceof Element
+      ? event.target.closest('[data-action="close-settings"]')
+      : null;
+
+    if (closeButton && panel.contains(closeButton)) closePanel();
+  });
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closePanel();
   });
