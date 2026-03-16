@@ -34,10 +34,10 @@ export function mountSettingsMenu({ container, store, previewCanvas }) {
     button.setAttribute('aria-expanded', String(!panel.hidden));
   }
 
-  button.addEventListener('click', togglePanel);
-
-  panel.addEventListener('click', (event) => {
-    if (event.target?.dataset?.action === 'close-settings') closePanel();
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    togglePanel();
   });
 
   document.addEventListener('keydown', (event) => {
@@ -89,7 +89,6 @@ export function mountSettingsMenu({ container, store, previewCanvas }) {
     panel.innerHTML = `
       <div class="settings-panel-header">
         <h3>Settings</h3>
-        <button type="button" data-action="close-settings" class="settings-close">Close</button>
       </div>
       <label><input id="settings-show-grid" type="checkbox" ${settings.showGrid ? 'checked' : ''} /> Show grid</label>
       <label>Grid size <input id="settings-grid-size" type="number" min="${GRID_MIN}" max="${GRID_MAX}" value="${settings.gridSize}" /></label>
