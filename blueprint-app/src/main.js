@@ -13,16 +13,19 @@ const ctx = canvas.getContext('2d');
 const toolbarRefresh = mountToolbar({
   container: document.getElementById('toolbar'),
   store,
+  canvas,
 });
 
 const propsRefresh = mountPropertiesPanel({
   container: document.getElementById('properties-panel'),
   store,
+  canvas,
 });
 
 const layersRefresh = mountLayersPanel({
   container: document.getElementById('layers-panel'),
   store,
+  canvas,
 });
 
 const ephemeral = {

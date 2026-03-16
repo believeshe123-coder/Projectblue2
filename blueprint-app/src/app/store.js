@@ -1,8 +1,10 @@
 import { createDocumentModel } from '../document/documentModel.js';
 import { createLayer } from '../document/layerModel.js';
+import { pushHistory } from './history.js';
 
 const documentData = createDocumentModel();
 documentData.layers.push(createLayer());
+pushHistory(documentData);
 
 const appState = {
   activeTool: 'select',

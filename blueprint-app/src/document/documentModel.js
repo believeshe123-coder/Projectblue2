@@ -6,7 +6,9 @@ export function createDocumentModel() {
     version: 1,
     settings: {
       gridSize: 25,
+      showGrid: true,
       snap: true,
+      axisSnap: true,
       units: 'ft',
     },
     layers: [],

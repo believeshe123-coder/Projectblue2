@@ -4,6 +4,7 @@ const defaultStyle = {
   stroke: '#1f2937',
   strokeWidth: 2,
   fill: 'rgba(15, 76, 129, 0.12)',
+  textSize: 14,
 };
 
 export function createLineShape({ layerId, start, end }) {
@@ -13,6 +14,20 @@ export function createLineShape({ layerId, start, end }) {
     layerId,
     start,
     end,
+    style: { ...defaultStyle },
+    visible: true,
+    locked: false,
+  };
+}
+
+export function createCurveShape({ layerId, start, end, control }) {
+  return {
+    id: generateId('shape'),
+    type: 'curve',
+    layerId,
+    start,
+    end,
+    control,
     style: { ...defaultStyle },
     visible: true,
     locked: false,

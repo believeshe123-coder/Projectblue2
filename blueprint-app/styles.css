@@ -100,3 +100,41 @@ body {
   color: var(--accent);
   background: #f0f7ff;
 }
+
+.property-group {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.property-group h3 {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.property-group label {
+  font-size: 0.82rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.property-group input[type='number'] {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.button-row button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
