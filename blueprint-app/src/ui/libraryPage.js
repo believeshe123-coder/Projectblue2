@@ -2,11 +2,26 @@ import { patchState, upsertLibraryShape, upsertLibraryTexture } from '../app/act
 import { generateId } from '../utils/idGenerator.js';
 import { cloneShapeGrid, cloneTextureGrid } from '../app/libraryStore.js';
 
-function createEmptyGrid() {
-  return Array.from({ length: 10 }, () => Array.from({ length: 10 }, () => 0));
+const DEFAULT_GRID_SIZE = 10;
+const TEXTURE_TILE_SIZE = 2;
+const TEXTURE_PREVIEW_SIZE = 10;
+
+function createEmptyGrid(size = DEFAULT_GRID_SIZE) {
+  return Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
 }
 
-function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), onSave, includeUpload = false, initialDataUrl = '' }) {
+function normalizeGridSize(grid, size) {
+  if (!Array.isArray(grid) || !grid.length) return createEmptyGrid(size);
+  const normalized = createEmptyGrid(size);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      normalized[y][x] = grid?.[y]?.[x] ? 1 : 0;
+    }
+  }
+  return normalized;
+}
+
+function gridEditor({ title, store, initialName = '', initialGrid = null, onSave, includeUpload = false, initialDataUrl = '' }) {
   const overlay = document.createElement('div');
   overlay.className = 'library-editor-overlay';
   overlay.innerHTML = `
@@ -14,13 +29,23 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
       <h3>${title}</h3>
       <label>Name <input id="lib-name" type="text" value="${initialName}" /></label>
       ${includeUpload ? '<label>Upload image <input id="lib-image" type="file" accept="image/*" /></label><div class="texture-upload-preview-wrap"><img id="texture-upload-preview" alt="texture upload preview" /></div>' : ''}
-      <div class="library-tools">
-        <button type="button" data-tool="pen">Pen</button>
-        <button type="button" data-tool="line">Line</button>
-        <button type="button" data-tool="rect">Rectangle</button>
-        <button type="button" data-tool="erase">Erase</button>
+      <div class="library-editor-layout">
+        <div class="library-tools" aria-label="Editor tools">
+          <button type="button" data-tool="select">Select</button>
+          <button type="button" data-tool="pen">Pen</button>
+          <button type="button" data-tool="line">Line</button>
+          <button type="button" data-tool="room">Room</button>
+          <button type="button" data-tool="curve">Curve</button>
+          <button type="button" data-tool="label">Label</button>
+          <button type="button" data-tool="tape">Measure</button>
+          <button type="button" data-tool="fill">Fill</button>
+          <button type="button" data-tool="erase">Erase</button>
+          <button type="button" data-tool="place-shape">Place Shape</button>
+        </div>
+        <canvas id="lib-grid" width="240" height="240"></canvas>
+        ${includeUpload ? '<div class="texture-repeat-preview"><h4>Repeat Preview (10x10)</h4><canvas id="lib-texture-repeat-preview" width="240" height="240"></canvas></div>' : ''}
       </div>
-      <canvas id="lib-grid" width="240" height="240"></canvas>
+      <p class="library-tool-hint" id="lib-tool-hint"></p>
       <div class="button-row">
         <button id="lib-save" type="button">Save</button>
         <button id="lib-cancel" type="button">Cancel</button>
@@ -30,17 +55,83 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
 
   const canvas = overlay.querySelector('#lib-grid');
   const ctx = canvas.getContext('2d');
-  const size = 10;
+  const repeatPreviewCanvas = overlay.querySelector('#lib-texture-repeat-preview');
+  const repeatPreviewCtx = repeatPreviewCanvas?.getContext('2d');
+  const hint = overlay.querySelector('#lib-tool-hint');
+  const size = includeUpload ? TEXTURE_TILE_SIZE : DEFAULT_GRID_SIZE;
+  const previewSize = includeUpload ? TEXTURE_PREVIEW_SIZE : size;
   const cell = canvas.width / size;
+
+  const grid = normalizeGridSize(initialGrid, size);
+
   let tool = 'pen';
   let drawing = false;
+  let dragCell = null;
   let lineStart = null;
-  const grid = initialGrid.map((row) => row.map((v) => (v ? 1 : 0)));
+  let roomStart = null;
+  let curveStart = null;
+  let curveControl = null;
+  let hoverCell = null;
+  let penTrail = [];
   let dataUrl = initialDataUrl;
+  let repeatImage = null;
+  let repeatImageUrl = '';
+
+  const TOOL_HINTS = {
+    select: 'Select: inspect only (no drawing).',
+    pen: 'Pen: drag to draw freehand.',
+    line: 'Line: click once to start, click again to finish.',
+    room: 'Room: drag to draw a filled rectangle.',
+    curve: 'Curve: click start, click control, click end.',
+    label: 'Label: click to place one pixel.',
+    tape: 'Measure: preview only in this editor.',
+    fill: 'Fill: click a cell to flood-fill connected area.',
+    erase: 'Erase: drag to erase freehand.',
+    'place-shape': 'Place Shape: pick a saved shape and click to stamp it.',
+  };
 
   const imageInput = overlay.querySelector('#lib-image');
   const imgPreview = overlay.querySelector('#texture-upload-preview');
   if (imgPreview && dataUrl) imgPreview.src = dataUrl;
+
+  function setHint() {
+    hint.textContent = TOOL_HINTS[tool] ?? '';
+  }
+
+  function drawTextureRepeatPreview() {
+    if (!repeatPreviewCanvas || !repeatPreviewCtx) return;
+
+    repeatPreviewCtx.clearRect(0, 0, repeatPreviewCanvas.width, repeatPreviewCanvas.height);
+
+    if (dataUrl) {
+      if (repeatImageUrl !== dataUrl) {
+        repeatImage = new Image();
+        repeatImageUrl = dataUrl;
+        repeatImage.onload = () => drawTextureRepeatPreview();
+        repeatImage.src = dataUrl;
+        return;
+      }
+
+      if (repeatImage?.complete) {
+        const pattern = repeatPreviewCtx.createPattern(repeatImage, 'repeat');
+        if (!pattern) return;
+        repeatPreviewCtx.fillStyle = pattern;
+        repeatPreviewCtx.fillRect(0, 0, repeatPreviewCanvas.width, repeatPreviewCanvas.height);
+      }
+      return;
+    }
+
+    const previewCell = repeatPreviewCanvas.width / previewSize;
+    for (let y = 0; y < previewSize; y += 1) {
+      for (let x = 0; x < previewSize; x += 1) {
+        const value = grid[y % size][x % size];
+        repeatPreviewCtx.fillStyle = value ? '#0f4c81' : '#ffffff';
+        repeatPreviewCtx.fillRect(x * previewCell, y * previewCell, previewCell, previewCell);
+        repeatPreviewCtx.strokeStyle = '#d5dbe5';
+        repeatPreviewCtx.strokeRect(x * previewCell, y * previewCell, previewCell, previewCell);
+      }
+    }
+  }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -52,6 +143,67 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
         ctx.strokeRect(x * cell, y * cell, cell, cell);
       }
     }
+
+    drawToolPreview();
+
+    drawTextureRepeatPreview();
+  }
+
+  function cellCenter(point) {
+    return {
+      x: (point.x * cell) + (cell / 2),
+      y: (point.y * cell) + (cell / 2),
+    };
+  }
+
+  function drawToolPreview() {
+    if (!hoverCell) return;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(15, 76, 129, 0.85)';
+    ctx.lineWidth = 2;
+
+    if (tool === 'line' && lineStart) {
+      const start = cellCenter(lineStart);
+      const end = cellCenter(hoverCell);
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+    }
+
+    if (tool === 'room' && roomStart) {
+      const minX = Math.min(roomStart.x, hoverCell.x) * cell;
+      const minY = Math.min(roomStart.y, hoverCell.y) * cell;
+      const width = (Math.abs(hoverCell.x - roomStart.x) + 1) * cell;
+      const height = (Math.abs(hoverCell.y - roomStart.y) + 1) * cell;
+      ctx.strokeRect(minX, minY, width, height);
+    }
+
+    if (tool === 'curve' && curveStart) {
+      const start = cellCenter(curveStart);
+      const control = cellCenter(curveControl ?? hoverCell);
+      const end = cellCenter(hoverCell);
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+      ctx.stroke();
+    }
+
+    if ((tool === 'pen' || tool === 'erase') && penTrail.length > 1) {
+      ctx.strokeStyle = tool === 'erase' ? 'rgba(220, 38, 38, 0.8)' : 'rgba(15, 76, 129, 0.9)';
+      ctx.lineWidth = Math.max(2, cell * 0.12);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(penTrail[0].x, penTrail[0].y);
+      for (let index = 1; index < penTrail.length; index += 1) {
+        ctx.lineTo(penTrail[index].x, penTrail[index].y);
+      }
+      ctx.stroke();
+    }
+
+    ctx.restore();
   }
 
   function setCell(x, y, value) {
@@ -64,6 +216,14 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
     return {
       x: Math.floor((event.clientX - rect.left) / cell),
       y: Math.floor((event.clientY - rect.top) / cell),
+    };
+  }
+
+  function canvasPoint(event) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(canvas.width, event.clientX - rect.left)),
+      y: Math.max(0, Math.min(canvas.height, event.clientY - rect.top)),
     };
   }
 
@@ -80,60 +240,216 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
       setCell(x, y, value);
       if (x === b.x && y === b.y) break;
       const e2 = 2 * err;
-      if (e2 > -dy) { err -= dy; x += sx; }
-      if (e2 < dx) { err += dx; y += sy; }
+      if (e2 > -dy) {
+        err -= dy;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y += sy;
+      }
     }
+  }
+
+  function drawRect(a, b, value) {
+    const minX = Math.min(a.x, b.x);
+    const maxX = Math.max(a.x, b.x);
+    const minY = Math.min(a.y, b.y);
+    const maxY = Math.max(a.y, b.y);
+    for (let y = minY; y <= maxY; y += 1) {
+      for (let x = minX; x <= maxX; x += 1) {
+        setCell(x, y, value);
+      }
+    }
+  }
+
+  function drawCurve(a, c, b, value) {
+    const steps = 40;
+    let previous = a;
+    for (let index = 1; index <= steps; index += 1) {
+      const t = index / steps;
+      const mt = 1 - t;
+      const point = {
+        x: Math.round((mt * mt * a.x) + (2 * mt * t * c.x) + (t * t * b.x)),
+        y: Math.round((mt * mt * a.y) + (2 * mt * t * c.y) + (t * t * b.y)),
+      };
+      drawLine(previous, point, value);
+      previous = point;
+    }
+  }
+
+  function floodFill(originX, originY, value) {
+    if (originX < 0 || originY < 0 || originX >= size || originY >= size) return;
+    const target = grid[originY][originX];
+    if (target === value) return;
+
+    const queue = [{ x: originX, y: originY }];
+    while (queue.length) {
+      const point = queue.pop();
+      if (point.x < 0 || point.y < 0 || point.x >= size || point.y >= size) continue;
+      if (grid[point.y][point.x] !== target) continue;
+      grid[point.y][point.x] = value;
+      queue.push({ x: point.x + 1, y: point.y });
+      queue.push({ x: point.x - 1, y: point.y });
+      queue.push({ x: point.x, y: point.y + 1 });
+      queue.push({ x: point.x, y: point.y - 1 });
+    }
+  }
+
+  function stampShape(pos) {
+    if (!store?.library?.shapes?.length) {
+      window.alert('No saved shapes yet. Create one first.');
+      return;
+    }
+
+    const options = store.library.shapes.map((shape, index) => `${index + 1}. ${shape.name}`).join('\n');
+    const choice = window.prompt(`Pick shape number to stamp:
+${options}`);
+    const selectedIndex = Number.parseInt(choice, 10) - 1;
+    const selected = store.library.shapes[selectedIndex];
+    if (!selected) return;
+
+    const shapeSize = selected.grid?.length || 0;
+    const anchorOffset = Math.floor(shapeSize / 2);
+    selected.grid.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (!value) return;
+        setCell(pos.x + x - anchorOffset, pos.y + y - anchorOffset, 1);
+      });
+    });
+  }
+
+  function resetToolState() {
+    drawing = false;
+    dragCell = null;
+    lineStart = null;
+    roomStart = null;
+    curveStart = null;
+    curveControl = null;
+    penTrail = [];
   }
 
   overlay.querySelectorAll('[data-tool]').forEach((button) => {
     button.addEventListener('click', () => {
       tool = button.dataset.tool;
-      overlay.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('active', b === button));
+      resetToolState();
+      overlay.querySelectorAll('[data-tool]').forEach((candidate) => candidate.classList.toggle('active', candidate === button));
+      setHint();
+      draw();
     });
   });
   overlay.querySelector('[data-tool="pen"]').classList.add('active');
+  setHint();
 
   canvas.addEventListener('pointerdown', (event) => {
-    drawing = true;
     const pos = canvasCell(event);
-    if (tool === 'line' || tool === 'rect') {
-      lineStart = pos;
+    drawing = true;
+
+    if (tool === 'select' || tool === 'tape') return;
+
+    if (tool === 'line') {
+      if (lineStart) {
+        drawLine(lineStart, pos, 1);
+        lineStart = null;
+      } else {
+        lineStart = pos;
+      }
+      draw();
       return;
     }
+
+    if (tool === 'curve') {
+      if (!curveStart) {
+        curveStart = pos;
+      } else if (!curveControl) {
+        curveControl = pos;
+      } else {
+        drawCurve(curveStart, curveControl, pos, 1);
+        curveStart = null;
+        curveControl = null;
+      }
+      draw();
+      return;
+    }
+
+    if (tool === 'room') {
+      roomStart = pos;
+      dragCell = pos;
+      return;
+    }
+
+    if (tool === 'fill') {
+      floodFill(pos.x, pos.y, 1);
+      draw();
+      return;
+    }
+
+    if (tool === 'place-shape') {
+      stampShape(pos);
+      draw();
+      return;
+    }
+
+    if (tool === 'label') {
+      setCell(pos.x, pos.y, 1);
+      draw();
+      return;
+    }
+
+    dragCell = pos;
+    penTrail = [canvasPoint(event)];
     setCell(pos.x, pos.y, tool === 'erase' ? 0 : 1);
     draw();
   });
 
   canvas.addEventListener('pointermove', (event) => {
-    if (!drawing || tool === 'line' || tool === 'rect') return;
     const pos = canvasCell(event);
-    setCell(pos.x, pos.y, tool === 'erase' ? 0 : 1);
+    hoverCell = pos;
+
+    if (!drawing) {
+      draw();
+      return;
+    }
+
+    if (tool === 'pen' || tool === 'erase') {
+      penTrail.push(canvasPoint(event));
+      if (dragCell) {
+        drawLine(dragCell, pos, tool === 'erase' ? 0 : 1);
+      } else {
+        setCell(pos.x, pos.y, tool === 'erase' ? 0 : 1);
+      }
+      dragCell = pos;
+      draw();
+      return;
+    }
+
+    if (tool === 'line' || tool === 'room' || tool === 'curve') {
+      draw();
+    }
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    hoverCell = null;
+    if (!drawing) penTrail = [];
     draw();
   });
 
-  window.addEventListener('pointerup', (event) => {
+  function onPointerUp(event) {
     if (!drawing) return;
     drawing = false;
-    if (!lineStart) return;
-
     const pos = canvasCell(event);
-    if (tool === 'line') {
-      drawLine(lineStart, pos, 1);
+
+    if (tool === 'room' && roomStart) {
+      drawRect(roomStart, pos, 1);
+      roomStart = null;
+      draw();
     }
 
-    if (tool === 'rect') {
-      const minX = Math.min(lineStart.x, pos.x);
-      const maxX = Math.max(lineStart.x, pos.x);
-      const minY = Math.min(lineStart.y, pos.y);
-      const maxY = Math.max(lineStart.y, pos.y);
-      for (let y = minY; y <= maxY; y += 1) {
-        for (let x = minX; x <= maxX; x += 1) setCell(x, y, 1);
-      }
-    }
+    dragCell = null;
+    penTrail = [];
+  }
 
-    lineStart = null;
-    draw();
-  });
+  window.addEventListener('pointerup', onPointerUp);
 
   imageInput?.addEventListener('change', (event) => {
     const file = event.target.files?.[0];
@@ -141,18 +457,26 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
     const reader = new FileReader();
     reader.onload = () => {
       dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      repeatImage = null;
+      repeatImageUrl = '';
       if (imgPreview) imgPreview.src = dataUrl;
+      drawTextureRepeatPreview();
     };
     reader.readAsDataURL(file);
   });
 
+  function closeEditor() {
+    window.removeEventListener('pointerup', onPointerUp);
+    overlay.remove();
+  }
+
   overlay.querySelector('#lib-save').addEventListener('click', () => {
     const name = overlay.querySelector('#lib-name').value.trim() || title;
     onSave({ name, grid, dataUrl });
-    overlay.remove();
+    closeEditor();
   });
 
-  overlay.querySelector('#lib-cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#lib-cancel').addEventListener('click', closeEditor);
 
   draw();
   document.body.appendChild(overlay);
@@ -160,7 +484,7 @@ function gridEditor({ title, initialName = '', initialGrid = createEmptyGrid(), 
 
 function drawGridPreview(canvas, grid) {
   const ctx = canvas.getContext('2d');
-  const size = 10;
+  const size = Math.max(1, Array.isArray(grid) ? grid.length : DEFAULT_GRID_SIZE);
   const cell = canvas.width / size;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let y = 0; y < size; y += 1) {
@@ -254,6 +578,7 @@ export function renderLibraryPage({ container, store }) {
         if (!entry) return;
         gridEditor({
           title: 'Edit Shape',
+          store,
           initialName: entry.name,
           initialGrid: cloneShapeGrid(entry.grid),
           onSave: ({ name, grid }) => {
@@ -276,6 +601,7 @@ export function renderLibraryPage({ container, store }) {
         if (!entry) return;
         gridEditor({
           title: 'Edit Texture',
+          store,
           initialName: entry.name,
           initialGrid: cloneTextureGrid(entry.grid),
           includeUpload: true,
@@ -298,6 +624,7 @@ export function renderLibraryPage({ container, store }) {
   container.querySelector('#new-shape').addEventListener('click', () => {
     gridEditor({
       title: 'New Shape',
+      store,
       onSave: ({ name, grid }) => {
         upsertLibraryShape({ id: generateId('lib-shape'), name, grid: cloneShapeGrid(grid), updatedAt: Date.now() });
       },
@@ -307,6 +634,7 @@ export function renderLibraryPage({ container, store }) {
   container.querySelector('#new-texture').addEventListener('click', () => {
     gridEditor({
       title: 'New Texture',
+      store,
       includeUpload: true,
       onSave: ({ name, grid, dataUrl }) => {
         upsertLibraryTexture({
