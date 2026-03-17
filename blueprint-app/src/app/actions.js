@@ -155,6 +155,19 @@ export function rotateSelectedShapes(angleDeg = 15) {
   store.notify();
 }
 
+
+export function unlockAllShapes() {
+  const lockedShapes = store.documentData.shapes.filter((shape) => shape.locked);
+  if (!lockedShapes.length) return;
+
+  for (const shape of lockedShapes) {
+    shape.locked = false;
+  }
+
+  pushDocumentHistory();
+  store.notify();
+}
+
 export function setSelection(ids) {
   store.appState.selectedIds = ids;
   store.notify();

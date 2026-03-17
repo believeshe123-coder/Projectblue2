@@ -4,6 +4,7 @@ import {
   updateSelectedShapes,
   updateSelectedStyles,
   updateSelectedRoomsFilled,
+  unlockAllShapes,
 } from '../app/actions.js';
 
 const FALLBACK_STROKE = '#1f2937';
@@ -122,6 +123,7 @@ export function mountPropertiesPanel({ container, store }) {
 
     if (target.id === 'selection-group') updateSelectedShapes({ groupId: `group-${Date.now()}` });
     if (target.id === 'selection-ungroup') updateSelectedShapes({ groupId: null });
+    if (target.id === 'selection-unlock-all') unlockAllShapes();
   });
 
   panel.addEventListener('input', (event) => {
@@ -150,6 +152,7 @@ export function mountPropertiesPanel({ container, store }) {
     const selectedRooms = selectedRoomShapes(store);
     const allSelectedLocked = count > 0 && selectedShapes(store).every((shape) => shape.locked);
     const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
+    const anyLockedShapes = store.documentData.shapes.some((shape) => shape.locked);
     const selectionKey = store.appState.selectedIds.join(',');
     if (selectionKey !== lastSelectionKey) {
       rotationValue = 0;
@@ -180,6 +183,7 @@ export function mountPropertiesPanel({ container, store }) {
           <div class="button-row">
             <button id="selection-group" ${count ? '' : 'disabled'}>Group</button>
             <button id="selection-ungroup" ${count ? '' : 'disabled'}>Ungroup</button>
+            <button id="selection-unlock-all" ${anyLockedShapes ? '' : 'disabled'}>Unlock all</button>
           </div>
           <label>Rotate <input id="selection-rotate-slider" type="range" min="-270" max="270" step="1" value="${rotationValue}" ${count ? '' : 'disabled'} /> <span id="selection-rotate-value">${Math.round(rotationValue)}°</span></label>
           <label class="property-toggle"><input id="shape-locked" type="checkbox" ${allSelectedLocked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
