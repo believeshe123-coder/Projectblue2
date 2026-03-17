@@ -5,6 +5,7 @@ import {
   updateSelectedStyles,
   updateSelectedRoomsFilled,
   unlockAllShapes,
+  patchState,
 } from '../app/actions.js';
 
 const FALLBACK_STROKE = '#1f2937';
@@ -15,14 +16,17 @@ const FONT_OPTIONS = [
   'Georgia, Times New Roman, serif',
   'Courier New, Courier, monospace',
 ];
+const COLOR_HISTORY_LIMIT = 5;
+const STROKE_HISTORY_KEY = 'blueprint.colorHistory.stroke';
+const FILL_HISTORY_KEY = 'blueprint.colorHistory.fill';
 
 function toColorInputValue(color, fallback) {
   if (typeof color !== 'string' || color.trim().length === 0) return fallback;
 
   const normalized = color.trim();
-  if (/^#[\da-f]{6}$/i.test(normalized)) return normalized;
+  if (/^#[\da-f]{6}$/i.test(normalized)) return normalized.toLowerCase();
   if (/^#[\da-f]{3}$/i.test(normalized)) {
-    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`;
+    return `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`.toLowerCase();
   }
 
   const parser = document.createElement('canvas').getContext('2d');
@@ -38,6 +42,76 @@ function toColorInputValue(color, fallback) {
 
   const [, r, g, b] = rgbMatch;
   return `#${[r, g, b].map((value) => Number(value).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function colorHistoryStorageKey(kind) {
+  return kind === 'stroke' ? STROKE_HISTORY_KEY : FILL_HISTORY_KEY;
+}
+
+function loadColorHistory(kind) {
+  try {
+    const raw = localStorage.getItem(colorHistoryStorageKey(kind));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((color) => typeof color === 'string' && /^#[\da-f]{6}$/i.test(color)).slice(0, COLOR_HISTORY_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function saveColorHistory(kind, colors) {
+  try {
+    localStorage.setItem(colorHistoryStorageKey(kind), JSON.stringify(colors.slice(0, COLOR_HISTORY_LIMIT)));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function rememberColor(kind, color) {
+  const fallback = kind === 'stroke' ? FALLBACK_STROKE : FALLBACK_FILL;
+  const normalized = toColorInputValue(color, fallback);
+  const existing = loadColorHistory(kind).filter((entry) => entry !== normalized);
+  saveColorHistory(kind, [normalized, ...existing]);
+}
+
+function renderColorHistory(kind, targetId, disabled) {
+  const colors = loadColorHistory(kind);
+  if (!colors.length) return '';
+
+  return `
+    <div class="color-history" aria-label="Recent ${kind === 'stroke' ? 'line' : 'fill'} colors">
+      ${colors.map((color) => `
+        <button
+          type="button"
+          class="color-history-swatch"
+          data-color-history-kind="${kind}"
+          data-color-history-value="${color}"
+          data-color-target="${targetId}"
+          title="${color}"
+          style="--swatch-color:${color}"
+          ${disabled ? 'disabled' : ''}
+        ></button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderColorField({ label, inputId, value, disabled, historyKind }) {
+  return `
+    <label>${label}</label>
+    <div class="color-field-row">
+      <input id="${inputId}" type="color" value="${value}" ${disabled ? 'disabled' : ''} />
+      <button
+        type="button"
+        class="color-save-button"
+        data-save-color-kind="${historyKind}"
+        data-save-color-target="${inputId}"
+        ${disabled ? 'disabled' : ''}
+      >Save color</button>
+    </div>
+    ${renderColorHistory(historyKind, inputId, disabled)}
+  `;
 }
 
 function firstSelectedShape(store) {
@@ -87,8 +161,18 @@ export function mountPropertiesPanel({ container, store }) {
   panel.addEventListener('change', (event) => {
     const target = event.target;
 
-    if (target.id === 'style-stroke') updateSelectedStyles({ stroke: target.value });
-    if (target.id === 'style-fill') updateSelectedStyles({ fill: target.value });
+    if (target.id === 'style-stroke') {
+      const value = toColorInputValue(target.value, FALLBACK_STROKE);
+      target.value = value;
+      updateSelectedStyles({ stroke: value });
+      rememberColor('stroke', value);
+    }
+    if (target.id === 'style-fill') {
+      const value = toColorInputValue(target.value, FALLBACK_FILL);
+      target.value = value;
+      updateSelectedStyles({ fill: value });
+      rememberColor('fill', value);
+    }
     if (target.id === 'style-fill-alpha') {
       const fillAlpha = Number.parseFloat(target.value);
       if (Number.isFinite(fillAlpha)) updateSelectedStyles({ fillAlpha: Math.min(1, Math.max(0, fillAlpha)) });
@@ -116,14 +200,52 @@ export function mountPropertiesPanel({ container, store }) {
     if (target.id === 'room-auto-fill') updateSelectedRoomsFilled(target.checked);
   });
 
-
   panel.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
+    const historyButton = target.closest('button[data-color-history-kind][data-color-history-value]');
+    if (historyButton instanceof HTMLButtonElement) {
+      const kind = historyButton.dataset.colorHistoryKind;
+      const color = historyButton.dataset.colorHistoryValue;
+      const targetId = historyButton.dataset.colorTarget;
+      if (!kind || !color || !targetId) return;
+
+      const input = panel.querySelector(`#${targetId}`);
+      if (input instanceof HTMLInputElement) {
+        input.value = color;
+      }
+
+      if (kind === 'stroke') {
+        updateSelectedStyles({ stroke: color });
+      } else {
+        updateSelectedStyles({ fill: color });
+      }
+      rememberColor(kind, color);
+      return;
+    }
+
+    const saveColorButton = target.closest('button[data-save-color-kind][data-save-color-target]');
+    if (saveColorButton instanceof HTMLButtonElement) {
+      const kind = saveColorButton.dataset.saveColorKind;
+      const targetId = saveColorButton.dataset.saveColorTarget;
+      if (!kind || !targetId) return;
+
+      const input = panel.querySelector(`#${targetId}`);
+      if (!(input instanceof HTMLInputElement)) return;
+
+      const fallback = kind === 'stroke' ? FALLBACK_STROKE : FALLBACK_FILL;
+      const normalized = toColorInputValue(input.value, fallback);
+      input.value = normalized;
+      rememberColor(kind, normalized);
+      render();
+      return;
+    }
+
     if (target.id === 'selection-group') updateSelectedShapes({ groupId: `group-${Date.now()}` });
     if (target.id === 'selection-ungroup') updateSelectedShapes({ groupId: null });
     if (target.id === 'selection-unlock-all') unlockAllShapes();
+    if (target.id === 'selection-transform') patchState({ transformSelection: !store.appState.transformSelection });
   });
 
   panel.addEventListener('input', (event) => {
@@ -184,11 +306,12 @@ export function mountPropertiesPanel({ container, store }) {
             <button id="selection-group" ${count ? '' : 'disabled'}>Group</button>
             <button id="selection-ungroup" ${count ? '' : 'disabled'}>Ungroup</button>
             <button id="selection-unlock-all" ${anyLockedShapes ? '' : 'disabled'}>Unlock all</button>
+            <button id="selection-transform" ${count ? '' : 'disabled'}>${store.appState.transformSelection ? 'Exit transform' : 'Transform selection'}</button>
           </div>
           <label>Rotate <input id="selection-rotate-slider" type="range" min="-270" max="270" step="1" value="${rotationValue}" ${count ? '' : 'disabled'} /> <span id="selection-rotate-value">${Math.round(rotationValue)}°</span></label>
           <label class="property-toggle"><input id="shape-locked" type="checkbox" ${allSelectedLocked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
-          <label>Line color <input id="style-stroke" type="color" value="${strokeValue}" ${count ? '' : 'disabled'} /></label>
-          <label>Fill color <input id="style-fill" type="color" value="${fillValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${style.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
         </div>
@@ -199,7 +322,7 @@ export function mountPropertiesPanel({ container, store }) {
       body += `
         <div class="property-group">
           <h3>Line</h3>
-          <label>Line color <input id="style-stroke" type="color" value="${strokeValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
         </div>
@@ -210,11 +333,11 @@ export function mountPropertiesPanel({ container, store }) {
       body += `
         <div class="property-group">
           <h3>Room</h3>
-          <label>Line color <input id="style-stroke" type="color" value="${strokeValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
           <label class="property-toggle"><input id="room-auto-fill" type="checkbox" ${allSelectedRoomsFilled ? 'checked' : ''} ${selectedRooms.length ? '' : 'disabled'} /> Auto fill</label>
-          <label>Fill color <input id="style-fill" type="color" value="${fillValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
         </div>
       `;
     }
@@ -223,7 +346,7 @@ export function mountPropertiesPanel({ container, store }) {
       body += `
         <div class="property-group">
           <h3>Curve</h3>
-          <label>Line color <input id="style-stroke" type="color" value="${strokeValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
         </div>
@@ -234,7 +357,7 @@ export function mountPropertiesPanel({ container, store }) {
       body += `
         <div class="property-group">
           <h3>Label</h3>
-          <label>Font color <input id="style-fill" type="color" value="${fillValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Font color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
           <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${style.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
           <label>Font
             <select id="style-font-family" ${count ? '' : 'disabled'}>
@@ -249,7 +372,7 @@ export function mountPropertiesPanel({ container, store }) {
       body += `
         <div class="property-group">
           <h3>Fill</h3>
-          <label>Fill color <input id="style-fill" type="color" value="${fillValue}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
           <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${count ? '' : 'disabled'} /></label>
         </div>
       `;

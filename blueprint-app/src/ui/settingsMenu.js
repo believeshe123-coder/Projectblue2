@@ -47,6 +47,14 @@ const SETTING_DEFINITIONS = [
     description: 'Snap points to the nearest grid intersection.',
   },
   {
+    id: 'settings-snap-debug-half-points',
+    key: 'snapDebugHalfPoints',
+    type: 'boolean',
+    section: 'Snapping',
+    label: 'Snap debug: half points',
+    description: 'Debug option to snap to half-grid points as well.',
+  },
+  {
     id: 'settings-axis-snap',
     key: 'axisSnap',
     type: 'boolean',
@@ -260,6 +268,7 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
 
     if (target.id === 'settings-show-grid') updateDocumentSettings({ showGrid: target.checked });
     if (target.id === 'settings-snap') updateDocumentSettings({ snap: target.checked });
+    if (target.id === 'settings-snap-debug-half-points') updateDocumentSettings({ snapDebugHalfPoints: target.checked });
     if (target.id === 'settings-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
     if (target.id === 'settings-cursor-preview') updateDocumentSettings({ showCursorPreview: target.checked });
     if (target.id === 'settings-show-tape-tool') {
@@ -297,6 +306,12 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
   });
 
   if (previewCanvas) {
-    previewCanvas.style.display = settings.showCursorPreview === false ? 'none' : 'block';
+    const showPreview = settings.showCursorPreview !== false;
+    previewCanvas.style.display = showPreview ? 'block' : 'none';
+
+    const historyControls = document.querySelector('.history-controls');
+    if (historyControls instanceof HTMLElement) {
+      historyControls.style.display = showPreview ? 'flex' : 'none';
+    }
   }
 }

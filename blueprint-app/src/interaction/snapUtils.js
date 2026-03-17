@@ -1,8 +1,11 @@
 export function snapToGrid(point, documentData) {
-  const size = documentData.settings.gridSize;
+  const settings = documentData.settings ?? {};
+  const gridSize = Number(settings.gridSize) || 25;
+  const snapStep = settings.snapDebugHalfPoints ? gridSize / 2 : gridSize;
+
   return {
-    x: Math.round(point.x / size) * size,
-    y: Math.round(point.y / size) * size,
+    x: Math.round(point.x / snapStep) * snapStep,
+    y: Math.round(point.y / snapStep) * snapStep,
   };
 }
 

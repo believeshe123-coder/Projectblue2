@@ -217,6 +217,21 @@ body {
   border: 2px solid #0f4c81;
 }
 
+.history-controls {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.history-controls button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .canvas-panel {
   overflow: auto;
   padding: 0.75rem;
@@ -427,4 +442,46 @@ body {
 
 .app-shell[data-active-route='home'] .route-page {
   display: none !important;
+}
+
+.color-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.color-save-button {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.color-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.color-history {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-top: -0.1rem;
+}
+
+.color-history-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--swatch-color, #ffffff);
+  cursor: pointer;
+  padding: 0;
+}
+
+.color-history-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }

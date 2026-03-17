@@ -1,5 +1,7 @@
 import { store } from './store.js';
-import { pushHistory } from './history.js';
+import { pushHistory, undo, redo } from './history.js';
+import { snapToGrid } from '../interaction/snapUtils.js';
+import { expandSelectionWithGroups } from '../interaction/selection.js';
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
@@ -9,7 +11,8 @@ function clampZoom(value) {
 }
 
 function selectedShapes() {
-  const selected = new Set(store.appState.selectedIds);
+  const expandedIds = expandSelectionWithGroups(store.documentData, store.appState.selectedIds);
+  const selected = new Set(expandedIds);
   return store.documentData.shapes.filter((shape) => selected.has(shape.id));
 }
 
@@ -54,6 +57,29 @@ function rotatePoint(point, center, radians) {
   };
 }
 
+function snapPoint(point) {
+  const settings = store.documentData.settings;
+  if (!settings?.snap) return point;
+  return snapToGrid(point, store.documentData);
+}
+
+
+export function performUndo() {
+  const snapshot = undo();
+  if (!snapshot) return false;
+  Object.assign(store.documentData, snapshot);
+  store.notify();
+  return true;
+}
+
+export function performRedo() {
+  const snapshot = redo();
+  if (!snapshot) return false;
+  Object.assign(store.documentData, snapshot);
+  store.notify();
+  return true;
+}
+
 export function setActiveTool(toolId) {
   store.appState.activeTool = toolId;
   store.notify();
@@ -71,7 +97,8 @@ export function addShape(shape) {
 
 export function deleteSelectedShapes() {
   if (!store.appState.selectedIds.length) return;
-  const selected = new Set(store.appState.selectedIds);
+  const selectedIds = expandSelectionWithGroups(store.documentData, store.appState.selectedIds);
+  const selected = new Set(selectedIds);
   store.documentData.shapes = store.documentData.shapes.filter((shape) => !selected.has(shape.id));
   store.appState.selectedIds = [];
   pushDocumentHistory();
@@ -140,12 +167,22 @@ export function rotateSelectedShapes(angleDeg = 15) {
   const radians = (angleDeg * Math.PI) / 180;
 
   for (const shape of shapes) {
-    if (shape.start) shape.start = rotatePoint(shape.start, center, radians);
-    if (shape.end) shape.end = rotatePoint(shape.end, center, radians);
-    if (shape.control) shape.control = rotatePoint(shape.control, center, radians);
-    if (shape.points) shape.points = shape.points.map((point) => rotatePoint(point, center, radians));
+    if (shape.start) shape.start = snapPoint(rotatePoint(shape.start, center, radians));
+    if (shape.end) shape.end = snapPoint(rotatePoint(shape.end, center, radians));
+    if (shape.control) shape.control = snapPoint(rotatePoint(shape.control, center, radians));
+    if (shape.points) shape.points = shape.points.map((point) => snapPoint(rotatePoint(point, center, radians)));
+    if (shape.width != null && shape.height != null && shape.x != null && shape.y != null) {
+      const roomCenter = {
+        x: shape.x + shape.width / 2,
+        y: shape.y + shape.height / 2,
+      };
+      const nextCenter = snapPoint(rotatePoint(roomCenter, center, radians));
+      shape.x = nextCenter.x - shape.width / 2;
+      shape.y = nextCenter.y - shape.height / 2;
+      shape.angle = (shape.angle ?? 0) + angleDeg;
+    }
     if (shape.x != null && shape.y != null && shape.width == null && shape.height == null) {
-      const next = rotatePoint({ x: shape.x, y: shape.y }, center, radians);
+      const next = snapPoint(rotatePoint({ x: shape.x, y: shape.y }, center, radians));
       shape.x = next.x;
       shape.y = next.y;
     }
@@ -169,7 +206,7 @@ export function unlockAllShapes() {
 }
 
 export function setSelection(ids) {
-  store.appState.selectedIds = ids;
+  store.appState.selectedIds = expandSelectionWithGroups(store.documentData, ids);
   store.notify();
 }
 

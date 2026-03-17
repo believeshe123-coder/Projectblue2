@@ -1,3 +1,4 @@
+import { performRedo, performUndo } from './app/actions.js';
 import { store } from './app/store.js';
 import { bindPointerEvents } from './interaction/pointerEvents.js';
 import { bindKeyboardEvents } from './interaction/keyboardEvents.js';
@@ -67,6 +68,17 @@ const layersRefresh = mountLayersPanel({
 
 const navRefresh = mountTopNavigation({
   container: document.getElementById('header-controls'),
+});
+
+const undoButton = document.getElementById('undo-button');
+const redoButton = document.getElementById('redo-button');
+
+undoButton?.addEventListener('click', () => {
+  performUndo();
+});
+
+redoButton?.addEventListener('click', () => {
+  performRedo();
 });
 
 const ephemeral = {
