@@ -146,7 +146,7 @@ function lineTypeOptions(selected) {
   `;
 }
 
-export function mountPropertiesPanel({ container, store }) {
+export function mountPropertiesPanel({ container, store, showActionToast = () => {} }) {
   const panel = document.createElement('div');
   panel.className = 'panel';
   container.appendChild(panel);
@@ -236,13 +236,25 @@ export function mountPropertiesPanel({ container, store }) {
       return;
     }
 
-    if (target.id === 'selection-group') updateSelectedShapes({ groupId: `group-${Date.now()}` });
-    if (target.id === 'selection-ungroup') updateSelectedShapes({ groupId: null });
+    if (target.id === 'selection-group') {
+      const changed = updateSelectedShapes({ groupId: `group-${Date.now()}` });
+      if (changed) showActionToast('Grouped selected objects.');
+    }
+    if (target.id === 'selection-ungroup') {
+      const changed = updateSelectedShapes({ groupId: null });
+      if (changed) showActionToast('Ungrouped selected objects.');
+    }
     if (target.id === 'selection-unlock-all') unlockAllShapes();
     if (target.id === 'selection-transform') patchState({ transformSelection: !store.appState.transformSelection, rotateSelection: false });
     if (target.id === 'selection-rotate') patchState({ rotateSelection: !store.appState.rotateSelection, transformSelection: false });
-    if (target.id === 'selection-flip-horizontal') flipSelectedHorizontal();
-    if (target.id === 'selection-flip-vertical') flipSelectedVertical();
+    if (target.id === 'selection-flip-horizontal') {
+      const changed = flipSelectedHorizontal();
+      if (changed) showActionToast('Flipped selected objects left-right.');
+    }
+    if (target.id === 'selection-flip-vertical') {
+      const changed = flipSelectedVertical();
+      if (changed) showActionToast('Flipped selected objects up-down.');
+    }
     if (target.id === 'fill-remove') removeSelectedFill();
   });
 

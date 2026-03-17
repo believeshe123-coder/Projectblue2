@@ -246,6 +246,32 @@ body {
   cursor: crosshair;
 }
 
+
+.action-toast-host {
+  margin-top: 0.5rem;
+  min-height: 0;
+  pointer-events: none;
+}
+
+.action-toast {
+  display: inline-block;
+  max-width: min(70ch, 100%);
+  background: #0f4c81;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  box-shadow: 0 6px 20px rgba(15, 76, 129, 0.25);
+  font-size: 0.82rem;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.action-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .panel {
   border: 1px solid var(--border);
   border-radius: 6px;

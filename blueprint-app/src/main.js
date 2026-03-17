@@ -5,6 +5,7 @@ import { bindKeyboardEvents } from './interaction/keyboardEvents.js';
 import { renderCanvas } from './canvas/renderer.js';
 import { mountToolbar } from './ui/toolbar.js';
 import { mountPropertiesPanel } from './ui/propertiesPanel.js';
+import { mountActionToast } from './ui/actionToast.js';
 import { mountLayersPanel } from './ui/layersPanel.js';
 import { renderSettingsPage } from './ui/settingsMenu.js';
 import { renderFilePage } from './ui/fileMenu.js';
@@ -42,6 +43,7 @@ const canvas = document.getElementById('blueprint-canvas');
 const ctx = canvas.getContext('2d');
 const previewCanvas = document.getElementById('cursor-preview');
 const appMain = document.querySelector('.app-main');
+const canvasPanel = document.querySelector('.canvas-panel');
 const appShell = document.querySelector('.app-shell');
 
 const routeContainer = document.createElement('section');
@@ -54,10 +56,15 @@ const toolbarRefresh = mountToolbar({
   store,
 });
 
+const showActionToast = mountActionToast({
+  container: canvasPanel,
+  store,
+});
+
 const propsRefresh = mountPropertiesPanel({
   container: document.getElementById('properties-panel'),
   store,
-  canvas,
+  showActionToast,
 });
 
 const layersRefresh = mountLayersPanel({

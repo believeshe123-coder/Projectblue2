@@ -118,6 +118,14 @@ const SETTING_DEFINITIONS = [
     description: 'Show or hide the Measure tool button in the toolbar.',
   },
   {
+    id: 'settings-action-toasts',
+    key: 'showActionToasts',
+    type: 'boolean',
+    section: 'View',
+    label: 'Action popups',
+    description: 'Show quick bottom-left popups for actions like grouping and flipping.',
+  },
+  {
     id: 'settings-cursor-preview',
     key: 'showCursorPreview',
     type: 'boolean',
@@ -151,7 +159,9 @@ function renderSettingField(definition, settings, measurementMode) {
       ? settings.showCursorPreview !== false
       : definition.key === 'showTapeTool'
         ? settings.showTapeTool !== false
-        : Boolean(settings[definition.key]);
+        : definition.key === 'showActionToasts'
+          ? settings.showActionToasts !== false
+          : Boolean(settings[definition.key]);
 
     return `
       <label class="settings-toggle" for="${definition.id}">
@@ -271,6 +281,7 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     if (target.id === 'settings-snap-debug-half-points') updateDocumentSettings({ snapDebugHalfPoints: target.checked });
     if (target.id === 'settings-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
     if (target.id === 'settings-cursor-preview') updateDocumentSettings({ showCursorPreview: target.checked });
+    if (target.id === 'settings-action-toasts') updateDocumentSettings({ showActionToasts: target.checked });
     if (target.id === 'settings-show-tape-tool') {
       updateDocumentSettings({ showTapeTool: target.checked });
       if (!target.checked && store.appState.activeTool === 'tape') setActiveTool('line');
