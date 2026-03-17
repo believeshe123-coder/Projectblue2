@@ -124,7 +124,7 @@ export function renderCanvas({ ctx, canvas, documentData, appState, activeTool, 
   ctx.translate(appState.panX, appState.panY);
   ctx.scale(appState.zoom, appState.zoom);
 
-  drawShapes(ctx, documentData);
+  drawShapes(ctx, documentData, { library: interactionContext?.store?.library });
   drawPreviewShape(ctx, interactionContext);
   drawSelection(ctx, documentData, appState);
 

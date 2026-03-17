@@ -1,6 +1,7 @@
 import { createDocumentModel } from '../document/documentModel.js';
 import { createLayer } from '../document/layerModel.js';
 import { pushHistory } from './history.js';
+import { loadLibrary } from './libraryStore.js';
 
 const documentData = createDocumentModel();
 documentData.layers.push(createLayer());
@@ -17,13 +18,17 @@ const appState = {
   dragStart: null,
   transformSelection: false,
   rotateSelection: false,
+  placeShapeTemplateId: null,
 };
+
+const library = loadLibrary();
 
 const listeners = new Set();
 
 export const store = {
   documentData,
   appState,
+  library,
 
   subscribe(listener) {
     listeners.add(listener);

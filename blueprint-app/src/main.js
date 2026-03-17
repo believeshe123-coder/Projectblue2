@@ -9,6 +9,7 @@ import { mountActionToast } from './ui/actionToast.js';
 import { mountLayersPanel } from './ui/layersPanel.js';
 import { renderSettingsPage } from './ui/settingsMenu.js';
 import { renderFilePage } from './ui/fileMenu.js';
+import { renderLibraryPage } from './ui/libraryPage.js';
 import { getTool } from './tools/toolRegistry.js';
 
 function mountTopNavigation({ container }) {
@@ -16,6 +17,7 @@ function mountTopNavigation({ container }) {
     { label: 'Home', route: 'home' },
     { label: 'Settings', route: 'settings' },
     { label: 'File', route: 'file' },
+    { label: 'Library', route: 'library' },
   ];
 
   const buttons = routes.map(({ label, route }) => {
@@ -113,7 +115,7 @@ bindKeyboardEvents({ store, ephemeral });
 function getRoute() {
   const route = window.location.hash.replace('#', '');
   if (!route || route === 'home') return 'home';
-  if (route === 'file' || route === 'settings') return route;
+  if (route === 'file' || route === 'settings' || route === 'library') return route;
   return 'home';
 }
 
@@ -127,6 +129,11 @@ function renderRoutePage(route) {
 
   if (route === 'settings') {
     renderSettingsPage({ container: routeContainer, store, previewCanvas });
+    return;
+  }
+
+  if (route === 'library') {
+    renderLibraryPage({ container: routeContainer, store });
   }
 }
 
@@ -178,4 +185,9 @@ window.addEventListener('resize', () => {
 });
 
 store.subscribe(draw);
+
+window.addEventListener('library-texture-loaded', () => {
+  if (getRoute() === 'home') draw();
+});
+
 draw();

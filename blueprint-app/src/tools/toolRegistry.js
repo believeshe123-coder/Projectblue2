@@ -6,6 +6,7 @@ import { labelTool } from './labelTool.js';
 import { tapeTool } from './tapeTool.js';
 import { fillTool } from './fillTool.js';
 import { eraseTool } from './eraseTool.js';
+import { placeShapeTool } from './placeShapeTool.js';
 
 export const toolRegistry = {
   select: selectTool,
@@ -16,6 +17,7 @@ export const toolRegistry = {
   tape: tapeTool,
   fill: fillTool,
   erase: eraseTool,
+  'place-shape': placeShapeTool,
 };
 
 export function getTool(toolId) {

@@ -1,6 +1,7 @@
 import { pointInRect } from '../utils/geometry.js';
 import { formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
 import { colorWithAlpha } from '../utils/color.js';
+import { applyTextureFill } from '../canvas/textureFill.js';
 
 function rotatePoint(point, center, radians) {
   const cos = Math.cos(radians);
@@ -101,8 +102,14 @@ export const roomShape = {
     ctx.translate(center.x, center.y);
     if (radians) ctx.rotate(radians);
     if (shape.filled) {
-      ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
-      ctx.fillRect(-shape.width / 2, -shape.height / 2, shape.width, shape.height);
+      ctx.beginPath();
+      ctx.rect(-shape.width / 2, -shape.height / 2, shape.width, shape.height);
+      if (shape.style?.fillMode === 'texture' && shape.style?.textureId) {
+        applyTextureFill(ctx, options.library, shape.style.textureId, colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12));
+      } else {
+        ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
+        ctx.fill();
+      }
     }
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
