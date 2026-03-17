@@ -1,7 +1,6 @@
-import { deleteSelectedShapes } from '../app/actions.js';
+import { deleteSelectedShapes, performRedo, performUndo } from '../app/actions.js';
 import { getTool } from '../tools/toolRegistry.js';
 import { selectTool } from '../tools/selectTool.js';
-import { undo, redo } from '../app/history.js';
 
 function isLabelEditingKey(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) return false;
@@ -11,10 +10,10 @@ function isLabelEditingKey(event) {
 export function bindKeyboardEvents({ store, ephemeral }) {
   window.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-      const snapshot = event.shiftKey ? redo() : undo();
-      if (snapshot) {
-        Object.assign(store.documentData, snapshot);
-        store.notify();
+      if (event.shiftKey) {
+        performRedo();
+      } else {
+        performUndo();
       }
       return;
     }

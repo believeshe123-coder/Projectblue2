@@ -47,9 +47,39 @@ function canonicalCycleKey(cycle) {
   return rotations.sort()[0];
 }
 
-function buildLineGraph(documentData) {
+function edgeKey(a, b) {
+  return `${a}>${b}`;
+}
+
+function pairKey(a, b) {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+function pointOnQuadratic(t, p0, p1, p2) {
+  const mt = 1 - t;
+  return {
+    x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
+    y: mt * mt * p0.y + 2 * mt * t * p1.y + t * t * p2.y,
+  };
+}
+
+function sampleCurvePoints(shape, samples = 24) {
+  const points = [];
+  for (let index = 0; index <= samples; index += 1) {
+    points.push(pointOnQuadratic(index / samples, shape.start, shape.control, shape.end));
+  }
+  return points;
+}
+
+function reversePoints(points) {
+  return [...points].reverse().map((point) => ({ x: point.x, y: point.y }));
+}
+
+function buildBoundaryGraph(documentData) {
   const byKey = new Map();
   const adjacency = new Map();
+  const directedPaths = new Map();
+  const pairPaths = new Map();
 
   const upsertVertex = (point) => {
     const key = `${point.x.toFixed(3)},${point.y.toFixed(3)}`;
@@ -60,20 +90,66 @@ function buildLineGraph(documentData) {
     return byKey.get(key);
   };
 
+  const addEdgePath = (from, to, points) => {
+    adjacency.get(from.key).add(to.key);
+    adjacency.get(to.key).add(from.key);
+
+    directedPaths.set(edgeKey(from.key, to.key), points);
+    directedPaths.set(edgeKey(to.key, from.key), reversePoints(points));
+
+    const pKey = pairKey(from.key, to.key);
+    if (!pairPaths.has(pKey)) pairPaths.set(pKey, []);
+    pairPaths.get(pKey).push({ from: from.key, to: to.key, points });
+  };
+
   for (const shape of documentData.shapes) {
-    if (shape.type !== 'line' || !shape.visible || shape.locked) continue;
+    if (!shape.visible || shape.locked) continue;
+    if (shape.type !== 'line' && shape.type !== 'curve') continue;
+
     const start = upsertVertex(shape.start);
     const end = upsertVertex(shape.end);
     if (start.key === end.key) continue;
-    adjacency.get(start.key).add(end.key);
-    adjacency.get(end.key).add(start.key);
+
+    const pathPoints = shape.type === 'curve'
+      ? sampleCurvePoints(shape)
+      : [{ x: shape.start.x, y: shape.start.y }, { x: shape.end.x, y: shape.end.y }];
+
+    addEdgePath(start, end, pathPoints);
   }
 
-  return { byKey, adjacency };
+  return { byKey, adjacency, directedPaths, pairPaths };
+}
+
+function pathToPolygon(path, graph) {
+  const polygon = [];
+
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const from = path[index].key;
+    const to = path[index + 1].key;
+
+    const directed = graph.directedPaths.get(edgeKey(from, to));
+    let points = directed;
+
+    if (!points) {
+      const candidates = graph.pairPaths.get(pairKey(from, to)) ?? [];
+      const matched = candidates.find((candidate) => candidate.from === from && candidate.to === to)
+        ?? candidates[0];
+      if (!matched) return [];
+      points = matched.from === from ? matched.points : reversePoints(matched.points);
+    }
+
+    for (let pointIndex = 0; pointIndex < points.length; pointIndex += 1) {
+      if (index > 0 && pointIndex === 0) continue;
+      polygon.push(points[pointIndex]);
+    }
+  }
+
+  return polygon;
 }
 
 function findClosedPolygons(documentData, point) {
-  const { byKey, adjacency } = buildLineGraph(documentData);
+  const graph = buildBoundaryGraph(documentData);
+  const { byKey, adjacency } = graph;
   const vertices = [...byKey.values()];
   const seenCycles = new Set();
   const polygons = [];
@@ -90,7 +166,7 @@ function findClosedPolygons(documentData, point) {
         if (seenCycles.has(key)) continue;
         seenCycles.add(key);
 
-        const polygon = cycle.slice(0, -1).map(({ x, y }) => ({ x, y }));
+        const polygon = pathToPolygon(cycle, graph);
         const area = polygonArea(polygon);
         if (area < 1) continue;
         if (!pointInPolygon(point, polygon)) continue;

@@ -15,6 +15,7 @@ const appState = {
   hoveredId: null,
   isDragging: false,
   dragStart: null,
+  transformSelection: false,
 };
 
 const listeners = new Set();
