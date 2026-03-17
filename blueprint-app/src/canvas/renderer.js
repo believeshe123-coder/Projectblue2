@@ -67,7 +67,7 @@ export function renderCanvas({ ctx, canvas, documentData, appState, activeTool, 
   ctx.scale(appState.zoom, appState.zoom);
 
   drawShapes(ctx, documentData);
-  drawSelection(ctx, documentData, appState.selectedIds);
+  drawSelection(ctx, documentData, appState);
 
   activeTool?.drawOverlay?.(interactionContext);
 

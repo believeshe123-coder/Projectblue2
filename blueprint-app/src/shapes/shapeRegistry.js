@@ -3,6 +3,7 @@ import { roomShape } from './roomShape.js';
 import { labelShape } from './labelShape.js';
 import { curveShape } from './curveShape.js';
 import { tapeShape } from './tapeShape.js';
+import { regionShape } from './regionShape.js';
 
 export const shapeRegistry = {
   line: lineShape,
@@ -10,6 +11,7 @@ export const shapeRegistry = {
   curve: curveShape,
   label: labelShape,
   tape: tapeShape,
+  region: regionShape,
 };
 
 export function getShapeBehavior(type) {
