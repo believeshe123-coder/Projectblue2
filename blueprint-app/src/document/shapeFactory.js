@@ -77,3 +77,17 @@ export function createLabelShape({ layerId, x, y, text = 'Label' }) {
     locked: false,
   };
 }
+
+
+export function createRegionShape({ layerId, points }) {
+  return {
+    id: generateId('shape'),
+    type: 'region',
+    layerId,
+    points: points.map((point) => ({ x: point.x, y: point.y })),
+    style: { ...defaultStyle },
+    filled: true,
+    visible: true,
+    locked: false,
+  };
+}

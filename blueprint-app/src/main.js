@@ -77,6 +77,17 @@ const ephemeral = {
   editingLabelDirty: false,
 };
 
+function syncCanvasSize() {
+  const rect = canvas.getBoundingClientRect();
+  const nextWidth = Math.max(1, Math.round(rect.width));
+  const nextHeight = Math.max(1, Math.round(rect.height));
+
+  if (canvas.width !== nextWidth || canvas.height !== nextHeight) {
+    canvas.width = nextWidth;
+    canvas.height = nextHeight;
+  }
+}
+
 bindPointerEvents({ canvas, store, ephemeral });
 bindKeyboardEvents({ store, ephemeral });
 
@@ -116,6 +127,8 @@ function draw() {
   setPageVisibility({ showingHome });
 
   if (showingHome) {
+    syncCanvasSize();
+
     const activeTool = getTool(store.appState.activeTool);
     renderCanvas({
       ctx,
@@ -137,6 +150,12 @@ function draw() {
 
 window.addEventListener('hashchange', () => {
   draw();
+});
+
+window.addEventListener('resize', () => {
+  if (getRoute() === 'home') {
+    draw();
+  }
 });
 
 store.subscribe(draw);

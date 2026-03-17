@@ -16,6 +16,18 @@ const SETTING_DEFINITIONS = [
     description: 'Draw the grid in the workspace.',
   },
   {
+    id: 'settings-draw-mode',
+    key: 'drawMode',
+    type: 'select',
+    section: 'Canvas',
+    label: 'Drawing interaction',
+    description: 'Choose between click-click drawing or click-drag drawing.',
+    options: [
+      { value: 'click', label: 'Click start, click end' },
+      { value: 'drag', label: 'Click and drag' },
+    ],
+  },
+  {
     id: 'settings-grid-size',
     key: 'gridSize',
     type: 'number',
@@ -73,6 +85,19 @@ const SETTING_DEFINITIONS = [
       { value: 'always', label: 'At all times' },
       { value: 'drawing', label: 'Only while drawing' },
       { value: 'off', label: 'Off' },
+    ],
+  },
+  {
+    id: 'settings-selection-outline-mode',
+    key: 'selectionOutlineMode',
+    type: 'select',
+    section: 'View',
+    label: 'Selection outline',
+    description: 'Control when the blue dashed outline appears around selected shapes.',
+    options: [
+      { value: 'off', label: 'Not at all' },
+      { value: 'selection-tool', label: 'Only with Selection tool' },
+      { value: 'always', label: 'At all times' },
     ],
   },
   {
@@ -142,7 +167,11 @@ function renderSettingField(definition, settings, measurementMode) {
 
   const selectedValue = definition.key === 'measurementMode'
     ? measurementMode
-    : settings[definition.key];
+    : definition.key === 'drawMode'
+      ? (settings.drawMode ?? 'click')
+      : definition.key === 'selectionOutlineMode'
+        ? (settings.selectionOutlineMode ?? (settings.showSelectionOutline === false ? 'off' : 'always'))
+        : settings[definition.key];
 
   return `
     <label for="${definition.id}" class="settings-field-label">${definition.label}</label>
@@ -222,6 +251,10 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     if (target.id === 'settings-snap') updateDocumentSettings({ snap: target.checked });
     if (target.id === 'settings-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
     if (target.id === 'settings-cursor-preview') updateDocumentSettings({ showCursorPreview: target.checked });
+    if (target.id === 'settings-selection-outline-mode') updateDocumentSettings({
+      selectionOutlineMode: ['off', 'selection-tool', 'always'].includes(target.value) ? target.value : 'always',
+    });
+    if (target.id === 'settings-draw-mode') updateDocumentSettings({ drawMode: target.value === 'drag' ? 'drag' : 'click' });
 
     if (target.id === 'settings-grid-size') {
       const parsed = Number.parseInt(target.value, 10);

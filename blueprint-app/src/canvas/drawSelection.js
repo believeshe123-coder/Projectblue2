@@ -1,6 +1,24 @@
 import { getShapeBehavior } from '../shapes/shapeRegistry.js';
 
-export function drawSelection(ctx, documentData, selectedIds) {
+function resolveSelectionOutlineMode(settings) {
+  if (settings.selectionOutlineMode === 'off') return 'off';
+  if (settings.selectionOutlineMode === 'selection-tool') return 'selection-tool';
+  if (settings.selectionOutlineMode === 'always') return 'always';
+
+  // Backward compatibility with older documents that saved a boolean toggle.
+  if (settings.showSelectionOutline === false) return 'off';
+  return 'always';
+}
+
+export function drawSelection(ctx, documentData, appState) {
+  const mode = resolveSelectionOutlineMode(documentData.settings);
+
+  if (mode === 'off') return;
+  if (mode === 'selection-tool' && appState.activeTool !== 'select') return;
+
+  const selectedIds = appState.selectedIds ?? [];
+  if (!selectedIds.length) return;
+
   ctx.save();
   ctx.strokeStyle = '#2563eb';
   ctx.lineWidth = 1.5;
