@@ -7,6 +7,7 @@ const PROJECT_FILE_VERSION = 1;
 const PROJECT_FILE_TYPE = 'blueprint-project';
 const STROKE_HISTORY_KEY = 'blueprint.colorHistory.stroke';
 const FILL_HISTORY_KEY = 'blueprint.colorHistory.fill';
+const PROJECT_NAME_KEY = 'blueprint.projectName';
 
 function ensureDocumentShape(candidate) {
   if (!candidate || typeof candidate !== 'object') return null;
@@ -144,13 +145,41 @@ function createProjectSnapshot(store) {
   };
 }
 
+function sanitizeProjectName(value) {
+  const normalized = String(value ?? '')
+    .replace(/\.json$/i, '')
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .trim();
+  return normalized || 'blueprint-project';
+}
+
+function normalizeProjectFileName(projectName) {
+  return `${sanitizeProjectName(projectName)}.json`;
+}
+
+function fileNameToProjectName(fileName) {
+  if (typeof fileName !== 'string') return 'blueprint-project';
+  return sanitizeProjectName(fileName);
+}
+
+function supportsNativeSave() {
+  return typeof window.showSaveFilePicker === 'function';
+}
+
 export function renderFilePage({ container, store, canvas }) {
+  const initialProjectName = sanitizeProjectName(localStorage.getItem(PROJECT_NAME_KEY) ?? 'blueprint-project');
+
   container.innerHTML = `
     <div class="route-card">
       <h2>File</h2>
       <p>Save, load, or reset your blueprint from this page.</p>
+      <label class="file-name-field" for="file-project-name">
+        <span>Project filename</span>
+        <input id="file-project-name" type="text" value="${initialProjectName}" placeholder="blueprint-project" maxlength="80" />
+      </label>
       <div class="button-row">
         <button class="menu-item" data-file-action="save" type="button">Save Project</button>
+        <button class="menu-item" data-file-action="save-as" type="button">Save Project As</button>
         <button class="menu-item" data-file-action="save-canvas" type="button">Save Canvas Photo</button>
         <button class="menu-item" data-file-action="load" type="button">Load Project</button>
         <button class="menu-item" data-file-action="reset-view" type="button">Reset Canvas View</button>
@@ -162,10 +191,20 @@ export function renderFilePage({ container, store, canvas }) {
   `;
 
   const fileInput = container.querySelector('#file-load-input');
+  const nameInput = container.querySelector('#file-project-name');
   const status = container.querySelector('#file-status');
+
+  let saveFileHandle = null;
 
   function setStatus(message) {
     if (status) status.textContent = message;
+  }
+
+  function getCurrentProjectName() {
+    const nextName = sanitizeProjectName(nameInput?.value ?? initialProjectName);
+    if (nameInput) nameInput.value = nextName;
+    localStorage.setItem(PROJECT_NAME_KEY, nextName);
+    return nextName;
   }
 
   function download(name, text, type = 'application/json') {
@@ -177,6 +216,51 @@ export function renderFilePage({ container, store, canvas }) {
     anchor.click();
     URL.revokeObjectURL(url);
   }
+
+  async function writeSnapshotToHandle(handle, snapshotText) {
+    const writable = await handle.createWritable();
+    await writable.write(snapshotText);
+    await writable.close();
+  }
+
+  async function saveProject({ forceSaveAs = false } = {}) {
+    const projectName = getCurrentProjectName();
+    const fileName = normalizeProjectFileName(projectName);
+    const snapshotText = JSON.stringify(createProjectSnapshot(store), null, 2);
+
+    if (!supportsNativeSave()) {
+      download(fileName, snapshotText);
+      setStatus(`Saved ${fileName}. (Browser download mode: each save creates a download.)`);
+      return;
+    }
+
+    try {
+      if (forceSaveAs || !saveFileHandle) {
+        saveFileHandle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [
+            {
+              description: 'Blueprint Project',
+              accept: { 'application/json': ['.json'] },
+            },
+          ],
+        });
+      }
+
+      await writeSnapshotToHandle(saveFileHandle, snapshotText);
+      setStatus(`Saved ${saveFileHandle.name ?? fileName}.`);
+    } catch (error) {
+      if (error?.name === 'AbortError') {
+        setStatus('Save canceled.');
+        return;
+      }
+      setStatus('Could not save project file.');
+    }
+  }
+
+  nameInput?.addEventListener('change', () => {
+    getCurrentProjectName();
+  });
 
   fileInput?.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
@@ -192,6 +276,10 @@ export function renderFilePage({ container, store, canvas }) {
       }
 
       applyProject(store, normalized);
+      const loadedName = fileNameToProjectName(file.name);
+      if (nameInput) nameInput.value = loadedName;
+      localStorage.setItem(PROJECT_NAME_KEY, loadedName);
+      saveFileHandle = null;
       setStatus(`Loaded ${file.name}.`);
     } catch {
       setStatus('Could not load file: invalid JSON.');
@@ -200,7 +288,7 @@ export function renderFilePage({ container, store, canvas }) {
     }
   });
 
-  container.addEventListener('click', (event) => {
+  container.addEventListener('click', async (event) => {
     const actionButton = event.target instanceof Element
       ? event.target.closest('[data-file-action]')
       : null;
@@ -208,11 +296,12 @@ export function renderFilePage({ container, store, canvas }) {
     if (!action) return;
 
     if (action === 'save') {
-      const snapshot = createProjectSnapshot(store);
-      download('blueprint-project.json', JSON.stringify(snapshot, null, 2));
-      setStatus('Project saved (settings, view, and colors included).');
+      await saveProject({ forceSaveAs: false });
     }
 
+    if (action === 'save-as') {
+      await saveProject({ forceSaveAs: true });
+    }
 
     if (action === 'save-canvas') {
       if (!(canvas instanceof HTMLCanvasElement)) {

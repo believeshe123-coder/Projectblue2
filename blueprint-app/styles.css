@@ -342,6 +342,21 @@ body {
   padding: 0.35rem;
 }
 
+
+.file-name-field {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 360px;
+  font-size: 0.85rem;
+}
+
+.file-name-field input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
 .button-row {
   display: flex;
   gap: 0.35rem;
