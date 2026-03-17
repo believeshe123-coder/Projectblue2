@@ -1,5 +1,6 @@
 import { pointInRect } from '../utils/geometry.js';
 import { formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
+import { colorWithAlpha } from '../utils/color.js';
 
 function drawMeasurementLabel(ctx, x, y, text) {
   ctx.save();
@@ -56,7 +57,7 @@ export const roomShape = {
   draw(ctx, shape, options = {}) {
     ctx.save();
     if (shape.filled) {
-      ctx.fillStyle = shape.style.fill || 'rgba(15, 76, 129, 0.12)';
+      ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
       ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
     }
     ctx.strokeStyle = shape.style.stroke;

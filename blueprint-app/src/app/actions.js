@@ -90,6 +90,19 @@ export function updateSelectedStyles(partialStyle) {
   store.notify();
 }
 
+
+export function updateSelectedRoomsFilled(filled) {
+  const shapes = selectedShapes().filter((shape) => shape.type === 'room' || shape.type === 'region');
+  if (!shapes.length) return;
+
+  for (const shape of shapes) {
+    shape.filled = Boolean(filled);
+  }
+
+  pushDocumentHistory();
+  store.notify();
+}
+
 export function updateSelectedShapes(partial) {
   const shapes = selectedShapes();
   if (!shapes.length) return;
@@ -136,6 +149,19 @@ export function rotateSelectedShapes(angleDeg = 15) {
       shape.x = next.x;
       shape.y = next.y;
     }
+  }
+
+  pushDocumentHistory();
+  store.notify();
+}
+
+
+export function unlockAllShapes() {
+  const lockedShapes = store.documentData.shapes.filter((shape) => shape.locked);
+  if (!lockedShapes.length) return;
+
+  for (const shape of lockedShapes) {
+    shape.locked = false;
   }
 
   pushDocumentHistory();
