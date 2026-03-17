@@ -16,15 +16,46 @@ function sampledPoints(shape, samples = 20) {
   return points;
 }
 
+function drawCurve(ctx, start, control, end) {
+  ctx.beginPath();
+  ctx.moveTo(start.x, start.y);
+  ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+  ctx.stroke();
+}
+
 export const curveShape = {
   draw(ctx, shape) {
     ctx.save();
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
-    ctx.beginPath();
-    ctx.moveTo(shape.start.x, shape.start.y);
-    ctx.quadraticCurveTo(shape.control.x, shape.control.y, shape.end.x, shape.end.y);
-    ctx.stroke();
+
+    const lineType = shape.style.lineType ?? 'solid';
+    if (lineType === 'dotted') {
+      ctx.setLineDash([4, 4]);
+      drawCurve(ctx, shape.start, shape.control, shape.end);
+    } else if (lineType === 'double') {
+      const dx = shape.end.x - shape.start.x;
+      const dy = shape.end.y - shape.start.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const offset = Math.max(1.5, shape.style.strokeWidth * 0.8);
+      const nx = (-dy / len) * offset;
+      const ny = (dx / len) * offset;
+      drawCurve(
+        ctx,
+        { x: shape.start.x + nx, y: shape.start.y + ny },
+        { x: shape.control.x + nx, y: shape.control.y + ny },
+        { x: shape.end.x + nx, y: shape.end.y + ny },
+      );
+      drawCurve(
+        ctx,
+        { x: shape.start.x - nx, y: shape.start.y - ny },
+        { x: shape.control.x - nx, y: shape.control.y - ny },
+        { x: shape.end.x - nx, y: shape.end.y - ny },
+      );
+    } else {
+      drawCurve(ctx, shape.start, shape.control, shape.end);
+    }
+
     ctx.restore();
   },
 

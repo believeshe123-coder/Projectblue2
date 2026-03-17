@@ -66,7 +66,7 @@ export const selectTool = {
         ephemeral.moved = true;
         const selected = new Set(store.appState.selectedIds);
         for (const shape of store.documentData.shapes) {
-          if (!selected.has(shape.id)) continue;
+          if (!selected.has(shape.id) || shape.locked) continue;
           const behavior = getShapeBehavior(shape.type);
           behavior?.move?.(shape, dx, dy);
         }
@@ -82,6 +82,7 @@ export const selectTool = {
 
       const ids = store.documentData.shapes
         .filter((shape) => {
+          if (shape.locked) return false;
           const bounds = getShapeBehavior(shape.type)?.getBounds?.(shape);
           return bounds ? boundsIntersect(bounds, rect) : false;
         })

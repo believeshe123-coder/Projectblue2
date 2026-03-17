@@ -4,21 +4,32 @@ export function drawGrid(ctx, canvas, documentData, appState) {
   const step = documentData.settings.gridSize;
   if (step < 8) return;
 
-  ctx.save();
-  ctx.strokeStyle = '#eef2f7';
-  ctx.lineWidth = 1;
+  const worldLeft = -appState.panX / appState.zoom;
+  const worldTop = -appState.panY / appState.zoom;
+  const worldRight = (canvas.width - appState.panX) / appState.zoom;
+  const worldBottom = (canvas.height - appState.panY) / appState.zoom;
 
-  for (let x = appState.panX % step; x < canvas.width; x += step) {
+  const startX = Math.floor(worldLeft / step) * step;
+  const startY = Math.floor(worldTop / step) * step;
+
+  ctx.save();
+  ctx.translate(appState.panX, appState.panY);
+  ctx.scale(appState.zoom, appState.zoom);
+
+  ctx.strokeStyle = '#eef2f7';
+  ctx.lineWidth = 1 / appState.zoom;
+
+  for (let x = startX; x <= worldRight; x += step) {
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
+    ctx.moveTo(x, worldTop);
+    ctx.lineTo(x, worldBottom);
     ctx.stroke();
   }
 
-  for (let y = appState.panY % step; y < canvas.height; y += step) {
+  for (let y = startY; y <= worldBottom; y += step) {
     ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
+    ctx.moveTo(worldLeft, y);
+    ctx.lineTo(worldRight, y);
     ctx.stroke();
   }
 

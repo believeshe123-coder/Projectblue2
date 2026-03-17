@@ -38,6 +38,20 @@ export function drawRoomMeasurements(ctx, room, settings = {}) {
   drawMeasurementLabel(ctx, rightX, room.y + room.height / 2, vertical);
 }
 
+function strokeRoom(ctx, shape) {
+  const lineType = shape.style.lineType ?? 'solid';
+  if (lineType === 'dotted') ctx.setLineDash([4, 4]);
+
+  if (lineType !== 'double') {
+    ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+    return;
+  }
+
+  const inset = Math.max(2, shape.style.strokeWidth * 1.2);
+  ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+  ctx.strokeRect(shape.x + inset, shape.y + inset, Math.max(0, shape.width - inset * 2), Math.max(0, shape.height - inset * 2));
+}
+
 export const roomShape = {
   draw(ctx, shape, options = {}) {
     ctx.save();
@@ -47,7 +61,7 @@ export const roomShape = {
     }
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
-    ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+    strokeRoom(ctx, shape);
     ctx.restore();
 
     if (shouldRenderPersistedMeasurements(options.settings)) {
