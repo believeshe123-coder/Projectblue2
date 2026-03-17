@@ -3,6 +3,7 @@ import {
   setSelectedShapeType,
   updateSelectedShapes,
   updateSelectedStyles,
+  updateSelectedRoomsFilled,
 } from '../app/actions.js';
 
 const FALLBACK_STROKE = '#1f2937';
@@ -41,6 +42,15 @@ function toColorInputValue(color, fallback) {
 function firstSelectedShape(store) {
   const id = store.appState.selectedIds[0];
   return store.documentData.shapes.find((shape) => shape.id === id);
+}
+
+function selectedShapes(store) {
+  const selected = new Set(store.appState.selectedIds);
+  return store.documentData.shapes.filter((shape) => selected.has(shape.id));
+}
+
+function selectedRoomShapes(store) {
+  return selectedShapes(store).filter((shape) => shape.type === 'room' || shape.type === 'region');
 }
 
 function lineTypeOptions(selected) {
@@ -102,7 +112,7 @@ export function mountPropertiesPanel({ container, store }) {
       }
     }
     if (target.id === 'shape-locked') updateSelectedShapes({ locked: target.checked });
-    if (target.id === 'room-auto-fill') updateSelectedShapes({ filled: target.checked });
+    if (target.id === 'room-auto-fill') updateSelectedRoomsFilled(target.checked);
   });
 
 
@@ -137,6 +147,9 @@ export function mountPropertiesPanel({ container, store }) {
     const activeTool = store.appState.activeTool;
     const count = store.appState.selectedIds.length;
     const selected = firstSelectedShape(store);
+    const selectedRooms = selectedRoomShapes(store);
+    const allSelectedLocked = count > 0 && selectedShapes(store).every((shape) => shape.locked);
+    const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
     const selectionKey = store.appState.selectedIds.join(',');
     if (selectionKey !== lastSelectionKey) {
       rotationValue = 0;
@@ -169,7 +182,7 @@ export function mountPropertiesPanel({ container, store }) {
             <button id="selection-ungroup" ${count ? '' : 'disabled'}>Ungroup</button>
           </div>
           <label>Rotate <input id="selection-rotate-slider" type="range" min="-270" max="270" step="1" value="${rotationValue}" ${count ? '' : 'disabled'} /> <span id="selection-rotate-value">${Math.round(rotationValue)}°</span></label>
-          <label><input id="shape-locked" type="checkbox" ${selected?.locked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
+          <label><input id="shape-locked" type="checkbox" ${allSelectedLocked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
           <label>Line color <input id="style-stroke" type="color" value="${strokeValue}" ${count ? '' : 'disabled'} /></label>
           <label>Fill color <input id="style-fill" type="color" value="${fillValue}" ${count ? '' : 'disabled'} /></label>
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
@@ -196,7 +209,7 @@ export function mountPropertiesPanel({ container, store }) {
           <label>Line color <input id="style-stroke" type="color" value="${strokeValue}" ${count ? '' : 'disabled'} /></label>
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
-          <label><input id="room-auto-fill" type="checkbox" ${selected?.filled ? 'checked' : ''} ${count ? '' : 'disabled'} /> Auto fill</label>
+          <label><input id="room-auto-fill" type="checkbox" ${allSelectedRoomsFilled ? 'checked' : ''} ${selectedRooms.length ? '' : 'disabled'} /> Auto fill</label>
           <label>Fill color <input id="style-fill" type="color" value="${fillValue}" ${count ? '' : 'disabled'} /></label>
         </div>
       `;

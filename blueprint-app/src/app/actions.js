@@ -90,6 +90,19 @@ export function updateSelectedStyles(partialStyle) {
   store.notify();
 }
 
+
+export function updateSelectedRoomsFilled(filled) {
+  const shapes = selectedShapes().filter((shape) => shape.type === 'room' || shape.type === 'region');
+  if (!shapes.length) return;
+
+  for (const shape of shapes) {
+    shape.filled = Boolean(filled);
+  }
+
+  pushDocumentHistory();
+  store.notify();
+}
+
 export function updateSelectedShapes(partial) {
   const shapes = selectedShapes();
   if (!shapes.length) return;
