@@ -34,6 +34,20 @@ export function createCurveShape({ layerId, start, end, control }) {
   };
 }
 
+
+export function createTapeShape({ layerId, start, end }) {
+  return {
+    id: generateId('shape'),
+    type: 'tape',
+    layerId,
+    start,
+    end,
+    style: { ...defaultStyle, stroke: '#0f4c81' },
+    visible: true,
+    locked: false,
+  };
+}
+
 export function createRoomShape({ layerId, x, y, width, height }) {
   return {
     id: generateId('shape'),
@@ -44,6 +58,7 @@ export function createRoomShape({ layerId, x, y, width, height }) {
     width,
     height,
     style: { ...defaultStyle },
+    filled: false,
     visible: true,
     locked: false,
   };

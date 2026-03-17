@@ -1,80 +1,76 @@
 import { createLineShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
-import { formatMeasurement, shouldRenderDrawingMeasurements } from '../utils/measurement.js';
+function beginPreview(context, point) {
+  context.ephemeral.preview = { type: 'line', start: point, end: point, phase: 'armed' };
+  patchState({ isDragging: false, dragStart: point });
+}
 
-function drawPreviewMeasurement(ctx, start, end, settings = {}) {
-  const length = Math.hypot(end.x - start.x, end.y - start.y);
-  if (length < 0.01) return;
+function startDrawing(context) {
+  const preview = context.ephemeral.preview;
+  if (!preview || preview.type !== 'line') return;
+  if (preview.phase === 'drawing') return;
 
-  const midX = (start.x + end.x) / 2;
-  const midY = (start.y + end.y) / 2;
-  const label = formatMeasurement(length, settings);
+  preview.phase = 'drawing';
+  patchState({ isDragging: true, dragStart: preview.start });
+}
 
-  ctx.save();
-  ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+function finalizeLine(context, endPoint) {
+  const preview = context.ephemeral.preview;
+  const { documentData } = context.store;
+  if (!preview || preview.type !== 'line') return;
 
-  const width = ctx.measureText(label).width + 12;
-  const height = 18;
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#0f4c81';
-  ctx.lineWidth = 1;
-  ctx.fillRect(midX - width / 2, midY - height / 2, width, height);
-  ctx.strokeRect(midX - width / 2, midY - height / 2, width, height);
+  const shape = createLineShape({
+    layerId: documentData.layers[0].id,
+    start: preview.start,
+    end: endPoint,
+  });
 
-  ctx.fillStyle = '#0f4c81';
-  ctx.fillText(label, midX, midY);
-  ctx.restore();
+  addShape(shape);
+  setSelection([shape.id]);
+  patchState({ isDragging: false, dragStart: null });
+  context.ephemeral.preview = null;
 }
 
 export const lineTool = {
   id: 'line',
 
   onPointerDown(context, point) {
-    patchState({ isDragging: true, dragStart: point });
-    context.ephemeral.preview = { type: 'line', start: point, end: point };
-  },
+    if (!context.ephemeral.preview || context.ephemeral.preview.type !== 'line') {
+      beginPreview(context, point);
+      return;
+    }
 
-  onPointerMove(context, point) {
-    if (!context.store.appState.isDragging || !context.ephemeral.preview) return;
+    startDrawing(context);
     context.ephemeral.preview.end = point;
     context.store.notify();
   },
 
-  onPointerUp(context, point) {
-    const { appState, documentData } = context.store;
-    if (!appState.dragStart) return;
-
-    const shape = createLineShape({
-      layerId: documentData.layers[0].id,
-      start: appState.dragStart,
-      end: point,
-    });
-
-    addShape(shape);
-    setSelection([shape.id]);
-    patchState({ isDragging: false, dragStart: null });
-    context.ephemeral.preview = null;
-  },
-
-  onKeyDown() {},
-
-  drawOverlay(context) {
+  onPointerMove(context, point, event) {
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'line') return;
-    const { ctx } = context;
-    ctx.save();
-    ctx.strokeStyle = '#0f4c81';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(preview.start.x, preview.start.y);
-    ctx.lineTo(preview.end.x, preview.end.y);
-    ctx.stroke();
-    ctx.restore();
 
-    if (shouldRenderDrawingMeasurements(context.store.documentData.settings)) {
-      drawPreviewMeasurement(ctx, preview.start, preview.end, context.store.documentData.settings);
+    const isPointerPressed = Boolean(event?.buttons & 1);
+    if (isPointerPressed) {
+      startDrawing(context);
     }
+
+    preview.end = point;
+    context.store.notify();
   },
+
+  onPointerUp(context, point) {
+    const preview = context.ephemeral.preview;
+    if (!preview || preview.type !== 'line') return;
+    if (preview.phase !== 'drawing') return;
+
+    finalizeLine(context, point);
+  },
+
+  onKeyDown(context, key, event) {
+    const pressedKey = event?.key ?? key;
+    if (pressedKey !== 'Escape') return;
+    context.ephemeral.preview = null;
+    patchState({ isDragging: false, dragStart: null });
+  },
+  drawOverlay() {},
 };

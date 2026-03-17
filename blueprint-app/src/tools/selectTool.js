@@ -8,6 +8,19 @@ function boundsIntersect(a, b) {
   return a.x <= b.x + b.width && a.x + a.width >= b.x && a.y <= b.y + b.height && a.y + a.height >= b.y;
 }
 
+function findShapeById(documentData, id) {
+  return documentData.shapes.find((shape) => shape.id === id);
+}
+
+function finishLabelEditing(context) {
+  if (!context.ephemeral.editingLabelId) return;
+  if (context.ephemeral.editingLabelDirty) {
+    pushDocumentHistory();
+  }
+  context.ephemeral.editingLabelId = null;
+  context.ephemeral.editingLabelDirty = false;
+}
+
 export const selectTool = {
   id: 'select',
 
@@ -15,6 +28,10 @@ export const selectTool = {
     const { store, ephemeral } = context;
     const hit = findShapeAtPoint(store.documentData, point);
     const multi = event?.ctrlKey || event?.metaKey;
+
+    if (!hit || hit.type !== 'label' || multi) {
+      finishLabelEditing(context);
+    }
 
     if (hit && store.appState.selectedIds.includes(hit.id)) {
       ephemeral.selectionMode = 'move';
@@ -76,17 +93,64 @@ export const selectTool = {
   },
 
   onPointerUp(context) {
-    const { ephemeral } = context;
+    const { store, ephemeral } = context;
     if (ephemeral.selectionMode === 'move' && ephemeral.moved) {
       pushDocumentHistory();
     }
+
+    if (ephemeral.selectionMode === 'move' && !ephemeral.moved && store.appState.selectedIds.length === 1) {
+      const selectedShape = findShapeById(store.documentData, store.appState.selectedIds[0]);
+      if (selectedShape?.type === 'label') {
+        ephemeral.editingLabelId = selectedShape.id;
+        ephemeral.editingLabelDirty = false;
+      }
+    }
+
     ephemeral.selectionMode = null;
     ephemeral.selectionBox = null;
     ephemeral.moveLastPoint = null;
     ephemeral.moved = false;
   },
 
-  onKeyDown() {},
+  onKeyDown(context, key, event) {
+    const { store, ephemeral } = context;
+    const editingId = ephemeral.editingLabelId;
+    if (!editingId) return;
+
+    const label = findShapeById(store.documentData, editingId);
+    if (!label || label.type !== 'label') {
+      ephemeral.editingLabelId = null;
+      ephemeral.editingLabelDirty = false;
+      return;
+    }
+
+    if (event?.ctrlKey || event?.metaKey || event?.altKey) return;
+
+    if (key === 'Enter') {
+      finishLabelEditing(context);
+      store.notify();
+      return;
+    }
+
+    if (key === 'Escape') {
+      finishLabelEditing(context);
+      store.notify();
+      return;
+    }
+
+    if (key === 'Backspace') {
+      label.text = label.text.slice(0, -1);
+      ephemeral.editingLabelDirty = true;
+      store.notify();
+      return;
+    }
+
+    if (key.length === 1) {
+      label.text = `${label.text}${key}`;
+      ephemeral.editingLabelDirty = true;
+      store.notify();
+    }
+  },
 
   drawOverlay(context) {
     const { ephemeral, ctx } = context;

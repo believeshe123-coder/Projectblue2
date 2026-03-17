@@ -26,7 +26,7 @@ function shouldPan(event) {
 }
 
 function applyDrawingSnap(world, store, activeTool) {
-  if (activeTool?.id === 'select') return world;
+  if (activeTool?.id === 'select' || activeTool?.id === 'fill') return world;
 
   const { settings } = store.documentData;
   const { dragStart, isDragging } = store.appState;

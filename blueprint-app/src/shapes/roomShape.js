@@ -41,10 +41,12 @@ export function drawRoomMeasurements(ctx, room, settings = {}) {
 export const roomShape = {
   draw(ctx, shape, options = {}) {
     ctx.save();
+    if (shape.filled) {
+      ctx.fillStyle = shape.style.fill || 'rgba(15, 76, 129, 0.12)';
+      ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+    }
     ctx.strokeStyle = shape.style.stroke;
-    ctx.fillStyle = shape.style.fill;
     ctx.lineWidth = shape.style.strokeWidth;
-    ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
     ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
     ctx.restore();
 

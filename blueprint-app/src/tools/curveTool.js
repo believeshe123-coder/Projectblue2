@@ -1,65 +1,85 @@
 import { createCurveShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
 
-function computeControl(start, end) {
-  const mx = (start.x + end.x) / 2;
-  const my = (start.y + end.y) / 2;
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const normal = { x: -dy / len, y: dx / len };
-  const bend = Math.min(80, len * 0.25);
-  return { x: mx + normal.x * bend, y: my + normal.y * bend };
+function beginPreview(context, point) {
+  context.ephemeral.preview = {
+    type: 'curve',
+    start: point,
+    control: point,
+    end: point,
+    phase: 'set-mid',
+  };
+  patchState({ isDragging: false, dragStart: point });
+}
+
+function setControlPoint(context, point) {
+  const preview = context.ephemeral.preview;
+  if (!preview || preview.type !== 'curve') return;
+
+  preview.control = point;
+  preview.end = point;
+  preview.phase = 'set-end';
+  patchState({ isDragging: false, dragStart: preview.start });
+}
+
+function finalizeCurve(context, endPoint) {
+  const preview = context.ephemeral.preview;
+  const { documentData } = context.store;
+  if (!preview || preview.type !== 'curve') return;
+
+  const shape = createCurveShape({
+    layerId: documentData.layers[0].id,
+    start: preview.start,
+    control: preview.control,
+    end: endPoint,
+  });
+
+  addShape(shape);
+  setSelection([shape.id]);
+  patchState({ isDragging: false, dragStart: null });
+  context.ephemeral.preview = null;
 }
 
 export const curveTool = {
   id: 'curve',
 
   onPointerDown(context, point) {
-    patchState({ isDragging: true, dragStart: point });
-    context.ephemeral.preview = { type: 'curve', start: point, end: point, control: point };
+    const preview = context.ephemeral.preview;
+    if (!preview || preview.type !== 'curve') {
+      beginPreview(context, point);
+      return;
+    }
+
+    if (preview.phase === 'set-mid') {
+      setControlPoint(context, point);
+      context.store.notify();
+      return;
+    }
+
+    finalizeCurve(context, point);
   },
 
   onPointerMove(context, point) {
-    if (!context.store.appState.isDragging || !context.ephemeral.preview) return;
-    const start = context.ephemeral.preview.start;
-    context.ephemeral.preview.end = point;
-    context.ephemeral.preview.control = computeControl(start, point);
+    const preview = context.ephemeral.preview;
+    if (!preview || preview.type !== 'curve') return;
+
+    if (preview.phase === 'set-mid') {
+      preview.control = point;
+      preview.end = point;
+    } else {
+      preview.end = point;
+    }
+
     context.store.notify();
   },
 
-  onPointerUp(context, point) {
-    const { appState, documentData } = context.store;
-    if (!appState.dragStart) return;
-    const control = computeControl(appState.dragStart, point);
+  onPointerUp() {},
 
-    const shape = createCurveShape({
-      layerId: documentData.layers[0].id,
-      start: appState.dragStart,
-      end: point,
-      control,
-    });
-
-    addShape(shape);
-    setSelection([shape.id]);
-    patchState({ isDragging: false, dragStart: null });
+  onKeyDown(context, key, event) {
+    const pressedKey = event?.key ?? key;
+    if (pressedKey !== 'Escape') return;
     context.ephemeral.preview = null;
+    patchState({ isDragging: false, dragStart: null });
   },
-
-  onKeyDown() {},
-
-  drawOverlay(context) {
-    const preview = context.ephemeral.preview;
-    if (!preview || preview.type !== 'curve') return;
-    const { ctx } = context;
-
-    ctx.save();
-    ctx.strokeStyle = '#0f4c81';
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(preview.start.x, preview.start.y);
-    ctx.quadraticCurveTo(preview.control.x, preview.control.y, preview.end.x, preview.end.y);
-    ctx.stroke();
-    ctx.restore();
-  },
+  drawOverlay() {},
 };

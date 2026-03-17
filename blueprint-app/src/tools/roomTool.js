@@ -1,8 +1,36 @@
 import { createRoomShape } from '../document/shapeFactory.js';
 import { normalizeRect } from '../utils/geometry.js';
-import { shouldRenderDrawingMeasurements } from '../utils/measurement.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
-import { drawRoomMeasurements } from '../shapes/roomShape.js';
+
+function lockSquare(start, point) {
+  const dx = point.x - start.x;
+  const dy = point.y - start.y;
+  const size = Math.max(Math.abs(dx), Math.abs(dy));
+
+  return {
+    x: start.x + Math.sign(dx || 1) * size,
+    y: start.y + Math.sign(dy || 1) * size,
+  };
+}
+
+function finalizeRoom(context, endPoint) {
+  const preview = context.ephemeral.preview;
+  const { documentData } = context.store;
+  if (!preview || preview.type !== 'room') return;
+
+  const squareEnd = lockSquare(preview.start, endPoint);
+  const rect = normalizeRect(preview.start, squareEnd);
+
+  const shape = createRoomShape({
+    layerId: documentData.layers[0].id,
+    ...rect,
+  });
+
+  addShape(shape);
+  setSelection([shape.id]);
+  patchState({ isDragging: false, dragStart: null });
+  context.ephemeral.preview = null;
+}
 
 export const roomTool = {
   id: 'room',
@@ -13,45 +41,25 @@ export const roomTool = {
   },
 
   onPointerMove(context, point) {
-    if (!context.store.appState.isDragging || !context.ephemeral.preview) return;
-    context.ephemeral.preview.end = point;
+    const preview = context.ephemeral.preview;
+    if (!context.store.appState.isDragging || !preview || preview.type !== 'room') return;
+
+    preview.end = lockSquare(preview.start, point);
     context.store.notify();
   },
 
   onPointerUp(context, point) {
-    const { appState, documentData } = context.store;
-    if (!appState.dragStart) return;
-    const rect = normalizeRect(appState.dragStart, point);
-
-    const shape = createRoomShape({
-      layerId: documentData.layers[0].id,
-      ...rect,
-    });
-
-    addShape(shape);
-    setSelection([shape.id]);
-    patchState({ isDragging: false, dragStart: null });
-    context.ephemeral.preview = null;
-  },
-
-  onKeyDown() {},
-
-  drawOverlay(context) {
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'room') return;
-    const { ctx } = context;
-    const rect = normalizeRect(preview.start, preview.end);
 
-    ctx.save();
-    ctx.strokeStyle = '#0f4c81';
-    ctx.fillStyle = 'rgba(15, 76, 129, 0.08)';
-    ctx.setLineDash([5, 3]);
-    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-    ctx.restore();
-
-    if (shouldRenderDrawingMeasurements(context.store.documentData.settings)) {
-      drawRoomMeasurements(ctx, rect, context.store.documentData.settings);
-    }
+    finalizeRoom(context, point);
   },
+
+  onKeyDown(context, key, event) {
+    const pressedKey = event?.key ?? key;
+    if (pressedKey !== 'Escape') return;
+    context.ephemeral.preview = null;
+    patchState({ isDragging: false, dragStart: null });
+  },
+  drawOverlay() {},
 };
