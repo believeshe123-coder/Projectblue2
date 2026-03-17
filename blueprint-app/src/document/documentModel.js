@@ -17,6 +17,7 @@ export function createDocumentModel() {
       showCursorPreview: true,
       selectionOutlineMode: 'always',
       showTapeTool: true,
+      showActionToasts: true,
     },
     layers: [],
     shapes: [],

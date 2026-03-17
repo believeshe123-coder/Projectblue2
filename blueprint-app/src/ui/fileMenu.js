@@ -1,6 +1,7 @@
 import { patchState, pushDocumentHistory, setActiveTool, setZoom } from '../app/actions.js';
 import { createDocumentModel } from '../document/documentModel.js';
 import { createLayer } from '../document/layerModel.js';
+import { seedIdGeneratorFromDocument } from '../utils/idGenerator.js';
 
 const PROJECT_FILE_VERSION = 1;
 const PROJECT_FILE_TYPE = 'blueprint-project';
@@ -70,6 +71,7 @@ function applyDocument(store, nextDocument) {
     delete store.documentData[key];
   });
   Object.assign(store.documentData, nextDocument);
+  seedIdGeneratorFromDocument(store.documentData);
 }
 
 function applyProject(store, project) {
