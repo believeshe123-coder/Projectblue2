@@ -1,5 +1,7 @@
 import {
-  rotateSelectedShapes,
+  flipSelectedHorizontal,
+  flipSelectedVertical,
+  removeSelectedFill,
   setSelectedShapeType,
   updateSelectedShapes,
   updateSelectedStyles,
@@ -137,17 +139,11 @@ function lineTypeOptions(selected) {
         <option value="solid" ${current === 'solid' ? 'selected' : ''}>Single line</option>
         <option value="dotted" ${current === 'dotted' ? 'selected' : ''}>Dotted</option>
         <option value="double" ${current === 'double' ? 'selected' : ''}>Double line</option>
+        <option value="capped-dotted" ${current === 'capped-dotted' ? 'selected' : ''}>Capped dotted (|---|)</option>
         <option value="tape" ${current === 'tape' ? 'selected' : ''}>Measure</option>
       </select>
     </label>
   `;
-}
-
-function snapRotation(value) {
-  const targets = [90, 180, 270, -90, -180, -270];
-  const threshold = 4;
-  const hit = targets.find((target) => Math.abs(target - value) <= threshold);
-  return hit ?? value;
 }
 
 export function mountPropertiesPanel({ container, store }) {
@@ -155,8 +151,6 @@ export function mountPropertiesPanel({ container, store }) {
   panel.className = 'panel';
   container.appendChild(panel);
 
-  let rotationValue = 0;
-  let lastSelectionKey = '';
 
   panel.addEventListener('change', (event) => {
     const target = event.target;
@@ -245,26 +239,11 @@ export function mountPropertiesPanel({ container, store }) {
     if (target.id === 'selection-group') updateSelectedShapes({ groupId: `group-${Date.now()}` });
     if (target.id === 'selection-ungroup') updateSelectedShapes({ groupId: null });
     if (target.id === 'selection-unlock-all') unlockAllShapes();
-    if (target.id === 'selection-transform') patchState({ transformSelection: !store.appState.transformSelection });
-  });
-
-  panel.addEventListener('input', (event) => {
-    const target = event.target;
-    if (target.id !== 'selection-rotate-slider') return;
-
-    const raw = Number.parseFloat(target.value);
-    if (!Number.isFinite(raw)) return;
-    const next = snapRotation(raw);
-    target.value = String(next);
-
-    const delta = next - rotationValue;
-    if (Math.abs(delta) < 0.001) return;
-
-    rotateSelectedShapes(delta);
-    rotationValue = next;
-
-    const indicator = panel.querySelector('#selection-rotate-value');
-    if (indicator) indicator.textContent = `${Math.round(rotationValue)}°`;
+    if (target.id === 'selection-transform') patchState({ transformSelection: !store.appState.transformSelection, rotateSelection: false });
+    if (target.id === 'selection-rotate') patchState({ rotateSelection: !store.appState.rotateSelection, transformSelection: false });
+    if (target.id === 'selection-flip-horizontal') flipSelectedHorizontal();
+    if (target.id === 'selection-flip-vertical') flipSelectedVertical();
+    if (target.id === 'fill-remove') removeSelectedFill();
   });
 
   const render = () => {
@@ -275,12 +254,7 @@ export function mountPropertiesPanel({ container, store }) {
     const allSelectedLocked = count > 0 && selectedShapes(store).every((shape) => shape.locked);
     const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
     const anyLockedShapes = store.documentData.shapes.some((shape) => shape.locked);
-    const selectionKey = store.appState.selectedIds.join(',');
-    if (selectionKey !== lastSelectionKey) {
-      rotationValue = 0;
-      lastSelectionKey = selectionKey;
-    }
-
+    const hasFilledSelection = selectedShapes(store).some((shape) => (shape.type === 'room' || shape.type === 'region') && shape.filled === true);
     const style = selected?.style ?? {
       stroke: FALLBACK_STROKE,
       fill: FALLBACK_FILL,
@@ -307,8 +281,10 @@ export function mountPropertiesPanel({ container, store }) {
             <button id="selection-ungroup" ${count ? '' : 'disabled'}>Ungroup</button>
             <button id="selection-unlock-all" ${anyLockedShapes ? '' : 'disabled'}>Unlock all</button>
             <button id="selection-transform" ${count ? '' : 'disabled'}>${store.appState.transformSelection ? 'Exit transform' : 'Transform selection'}</button>
+            <button id="selection-flip-horizontal" ${count ? '' : 'disabled'}>Flip left-right</button>
+            <button id="selection-flip-vertical" ${count ? '' : 'disabled'}>Flip up-down</button>
           </div>
-          <label>Rotate <input id="selection-rotate-slider" type="range" min="-270" max="270" step="1" value="${rotationValue}" ${count ? '' : 'disabled'} /> <span id="selection-rotate-value">${Math.round(rotationValue)}°</span></label>
+          <button id="selection-rotate" ${count ? '' : 'disabled'}>${store.appState.rotateSelection ? 'Exit rotate' : 'Rotate selection'}</button>
           <label class="property-toggle"><input id="shape-locked" type="checkbox" ${allSelectedLocked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
@@ -374,6 +350,7 @@ export function mountPropertiesPanel({ container, store }) {
           <h3>Fill</h3>
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
           <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${count ? '' : 'disabled'} /></label>
+          <button id="fill-remove" ${hasFilledSelection ? '' : 'disabled'}>Take away fill</button>
         </div>
       `;
     }

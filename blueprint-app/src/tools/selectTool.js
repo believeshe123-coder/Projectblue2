@@ -12,6 +12,11 @@ import { snapToAxis, snapToGrid } from '../interaction/snapUtils.js';
 import { pushDocumentHistory } from '../app/actions.js';
 
 const TRANSFORM_HANDLE_SIZE = 10;
+const SELECTION_PADDING = 4;
+const MIN_TRANSFORM_SIZE = 8;
+const ROTATE_CIRCLE_PADDING = 28;
+const ROTATE_HANDLE_RADIUS = 8;
+const ROTATE_SNAP_THRESHOLD = 4;
 
 function boundsIntersect(a, b) {
   return a.x <= b.x + b.width && a.x + a.width >= b.x && a.y <= b.y + b.height && a.y + a.height >= b.y;
@@ -30,20 +35,30 @@ function finishLabelEditing(context) {
   context.ephemeral.editingLabelDirty = false;
 }
 
-function selectionCorners(bounds) {
+function selectionRect(bounds) {
+  return {
+    x: bounds.x - SELECTION_PADDING,
+    y: bounds.y - SELECTION_PADDING,
+    width: bounds.width + (SELECTION_PADDING * 2),
+    height: bounds.height + (SELECTION_PADDING * 2),
+  };
+}
+
+function transformHandles(bounds) {
+  const rect = selectionRect(bounds);
   return [
-    { x: bounds.x - 4, y: bounds.y - 4 },
-    { x: bounds.x + bounds.width + 4, y: bounds.y - 4 },
-    { x: bounds.x + bounds.width + 4, y: bounds.y + bounds.height + 4 },
-    { x: bounds.x - 4, y: bounds.y + bounds.height + 4 },
+    { type: 'left', x: rect.x, y: rect.y + rect.height / 2 },
+    { type: 'right', x: rect.x + rect.width, y: rect.y + rect.height / 2 },
+    { type: 'top', x: rect.x + rect.width / 2, y: rect.y },
+    { type: 'bottom', x: rect.x + rect.width / 2, y: rect.y + rect.height },
   ];
 }
 
 function detectTransformHandle(bounds, point) {
-  const corners = selectionCorners(bounds);
-  return corners.findIndex((corner) => (
-    Math.abs(point.x - corner.x) <= TRANSFORM_HANDLE_SIZE
-    && Math.abs(point.y - corner.y) <= TRANSFORM_HANDLE_SIZE
+  const handles = transformHandles(bounds);
+  return handles.find((handle) => (
+    Math.abs(point.x - handle.x) <= TRANSFORM_HANDLE_SIZE
+    && Math.abs(point.y - handle.y) <= TRANSFORM_HANDLE_SIZE
   ));
 }
 
@@ -71,38 +86,71 @@ function captureTransformSnapshot(documentData, ids) {
   return snapshot;
 }
 
-function bilinearMap(point, bounds, corners) {
-  const w = Math.max(1, bounds.width + 8);
-  const h = Math.max(1, bounds.height + 8);
-  const u = (point.x - (bounds.x - 4)) / w;
-  const v = (point.y - (bounds.y - 4)) / h;
+function mapPointByBounds(point, fromBounds, toBounds) {
+  const mapped = { ...point };
 
-  const tl = corners[0];
-  const tr = corners[1];
-  const br = corners[2];
-  const bl = corners[3];
+  if (fromBounds.width > 0.001) {
+    const rx = (point.x - fromBounds.x) / fromBounds.width;
+    mapped.x = toBounds.x + (rx * toBounds.width);
+  } else {
+    mapped.x = point.x + (toBounds.x - fromBounds.x);
+  }
 
-  return {
-    x: tl.x * (1 - u) * (1 - v) + tr.x * u * (1 - v) + br.x * u * v + bl.x * (1 - u) * v,
-    y: tl.y * (1 - u) * (1 - v) + tr.y * u * (1 - v) + br.y * u * v + bl.y * (1 - u) * v,
-  };
+  if (fromBounds.height > 0.001) {
+    const ry = (point.y - fromBounds.y) / fromBounds.height;
+    mapped.y = toBounds.y + (ry * toBounds.height);
+  } else {
+    mapped.y = point.y + (toBounds.y - fromBounds.y);
+  }
+
+  return mapped;
 }
 
-function applyTransform(documentData, snapshot, bounds, corners) {
+function boundsFromHandleDrag(baseBounds, handleType, point) {
+  const baseRight = baseBounds.x + baseBounds.width;
+  const baseBottom = baseBounds.y + baseBounds.height;
+  const next = { ...baseBounds };
+
+  if (handleType === 'left') {
+    const nextLeft = Math.min(point.x, baseRight - MIN_TRANSFORM_SIZE);
+    next.x = nextLeft;
+    next.width = baseRight - nextLeft;
+  }
+
+  if (handleType === 'right') {
+    const nextRight = Math.max(point.x, baseBounds.x + MIN_TRANSFORM_SIZE);
+    next.width = nextRight - baseBounds.x;
+  }
+
+  if (handleType === 'top') {
+    const nextTop = Math.min(point.y, baseBottom - MIN_TRANSFORM_SIZE);
+    next.y = nextTop;
+    next.height = baseBottom - nextTop;
+  }
+
+  if (handleType === 'bottom') {
+    const nextBottom = Math.max(point.y, baseBounds.y + MIN_TRANSFORM_SIZE);
+    next.height = nextBottom - baseBounds.y;
+  }
+
+  return next;
+}
+
+function applyTransform(documentData, snapshot, fromBounds, toBounds) {
   for (const shape of documentData.shapes) {
     const original = snapshot[shape.id];
     if (!original) continue;
 
-    if (original.start) shape.start = bilinearMap(original.start, bounds, corners);
-    if (original.end) shape.end = bilinearMap(original.end, bounds, corners);
-    if (original.control) shape.control = bilinearMap(original.control, bounds, corners);
-    if (original.points) shape.points = original.points.map((point) => bilinearMap(point, bounds, corners));
+    if (original.start) shape.start = mapPointByBounds(original.start, fromBounds, toBounds);
+    if (original.end) shape.end = mapPointByBounds(original.end, fromBounds, toBounds);
+    if (original.control) shape.control = mapPointByBounds(original.control, fromBounds, toBounds);
+    if (original.points) shape.points = original.points.map((point) => mapPointByBounds(point, fromBounds, toBounds));
 
     if (original.width != null && original.height != null && original.x != null && original.y != null) {
-      const c1 = bilinearMap({ x: original.x, y: original.y }, bounds, corners);
-      const c2 = bilinearMap({ x: original.x + original.width, y: original.y }, bounds, corners);
-      const c3 = bilinearMap({ x: original.x + original.width, y: original.y + original.height }, bounds, corners);
-      const c4 = bilinearMap({ x: original.x, y: original.y + original.height }, bounds, corners);
+      const c1 = mapPointByBounds({ x: original.x, y: original.y }, fromBounds, toBounds);
+      const c2 = mapPointByBounds({ x: original.x + original.width, y: original.y }, fromBounds, toBounds);
+      const c3 = mapPointByBounds({ x: original.x + original.width, y: original.y + original.height }, fromBounds, toBounds);
+      const c4 = mapPointByBounds({ x: original.x, y: original.y + original.height }, fromBounds, toBounds);
       const xs = [c1.x, c2.x, c3.x, c4.x];
       const ys = [c1.y, c2.y, c3.y, c4.y];
       shape.x = Math.min(...xs);
@@ -113,11 +161,94 @@ function applyTransform(documentData, snapshot, bounds, corners) {
     }
 
     if (original.width == null && original.height == null && original.x != null && original.y != null) {
-      const mapped = bilinearMap({ x: original.x, y: original.y }, bounds, corners);
+      const mapped = mapPointByBounds({ x: original.x, y: original.y }, fromBounds, toBounds);
       shape.x = mapped.x;
       shape.y = mapped.y;
     }
   }
+}
+
+function normalizeAngleDelta(deltaDeg) {
+  let normalized = deltaDeg;
+  while (normalized > 180) normalized -= 360;
+  while (normalized < -180) normalized += 360;
+  return normalized;
+}
+
+function snapRotationAngle(angleDeg) {
+  const normalized = normalizeAngleDelta(angleDeg);
+  const targets = [0, 90, 180, -90, -180, 270, -270];
+  const hit = targets.find((target) => Math.abs(target - normalized) <= ROTATE_SNAP_THRESHOLD);
+  return hit ?? normalized;
+}
+
+function angleFromCenter(center, point) {
+  return (Math.atan2(point.y - center.y, point.x - center.x) * 180) / Math.PI;
+}
+
+function rotatePoint(point, center, radians) {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const dx = point.x - center.x;
+  const dy = point.y - center.y;
+  return {
+    x: center.x + dx * cos - dy * sin,
+    y: center.y + dx * sin + dy * cos,
+  };
+}
+
+function applyRotation(documentData, snapshot, center, angleDeg) {
+  const radians = (angleDeg * Math.PI) / 180;
+
+  for (const shape of documentData.shapes) {
+    const original = snapshot[shape.id];
+    if (!original) continue;
+
+    if (original.start) shape.start = rotatePoint(original.start, center, radians);
+    if (original.end) shape.end = rotatePoint(original.end, center, radians);
+    if (original.control) shape.control = rotatePoint(original.control, center, radians);
+    if (original.points) shape.points = original.points.map((point) => rotatePoint(point, center, radians));
+
+    if (original.width != null && original.height != null && original.x != null && original.y != null) {
+      const roomCenter = {
+        x: original.x + original.width / 2,
+        y: original.y + original.height / 2,
+      };
+      const nextCenter = rotatePoint(roomCenter, center, radians);
+      shape.x = nextCenter.x - original.width / 2;
+      shape.y = nextCenter.y - original.height / 2;
+      shape.width = original.width;
+      shape.height = original.height;
+      shape.angle = (original.angle ?? 0) + angleDeg;
+    }
+
+    if (original.width == null && original.height == null && original.x != null && original.y != null) {
+      const mapped = rotatePoint({ x: original.x, y: original.y }, center, radians);
+      shape.x = mapped.x;
+      shape.y = mapped.y;
+    }
+  }
+}
+
+function getRotateGeometry(bounds) {
+  const center = {
+    x: bounds.x + bounds.width / 2,
+    y: bounds.y + bounds.height / 2,
+  };
+  const radius = Math.max(bounds.width, bounds.height) / 2 + ROTATE_CIRCLE_PADDING;
+  return {
+    center,
+    radius,
+    handle: {
+      x: center.x + radius,
+      y: center.y,
+    },
+  };
+}
+
+function isPointNearRotateHandle(bounds, point) {
+  const geometry = getRotateGeometry(bounds);
+  return Math.hypot(point.x - geometry.handle.x, point.y - geometry.handle.y) <= ROTATE_HANDLE_RADIUS + 4;
 }
 
 export const selectTool = {
@@ -126,15 +257,29 @@ export const selectTool = {
   onPointerDown(context, point, event) {
     const { store, ephemeral } = context;
 
+    if (store.appState.rotateSelection) {
+      const bounds = getSelectionBounds(store.documentData, store.appState);
+      if (bounds && isPointNearRotateHandle(bounds, point)) {
+        const ids = expandSelectionWithGroups(store.documentData, store.appState.selectedIds);
+        ephemeral.selectionMode = 'rotate';
+        ephemeral.rotateCenter = getRotateGeometry(bounds).center;
+        ephemeral.rotateLastPointerAngle = angleFromCenter(ephemeral.rotateCenter, point);
+        ephemeral.rotateAccumulatedAngle = 0;
+        ephemeral.rotateAppliedAngle = 0;
+        ephemeral.transformSnapshot = captureTransformSnapshot(store.documentData, ids);
+        ephemeral.moved = false;
+        return;
+      }
+    }
+
     if (store.appState.transformSelection) {
       const bounds = getSelectionBounds(store.documentData, store.appState);
-      const handleIndex = bounds ? detectTransformHandle(bounds, point) : -1;
-      if (handleIndex >= 0) {
+      const handle = bounds ? detectTransformHandle(bounds, point) : null;
+      if (handle) {
         const ids = expandSelectionWithGroups(store.documentData, store.appState.selectedIds);
         ephemeral.selectionMode = 'transform';
-        ephemeral.transformHandleIndex = handleIndex;
+        ephemeral.transformHandle = handle;
         ephemeral.transformBaseBounds = bounds;
-        ephemeral.transformBaseCorners = selectionCorners(bounds);
         ephemeral.transformSnapshot = captureTransformSnapshot(store.documentData, ids);
         return;
       }
@@ -175,7 +320,21 @@ export const selectTool = {
   onPointerMove(context, point, event) {
     const { store, ephemeral } = context;
 
-    if (ephemeral.selectionMode === 'transform' && ephemeral.transformBaseBounds && ephemeral.transformBaseCorners) {
+    if (ephemeral.selectionMode === 'rotate' && ephemeral.rotateCenter && ephemeral.transformSnapshot) {
+      const currentPointerAngle = angleFromCenter(ephemeral.rotateCenter, point);
+      const step = normalizeAngleDelta(currentPointerAngle - (ephemeral.rotateLastPointerAngle ?? currentPointerAngle));
+      ephemeral.rotateAccumulatedAngle = (ephemeral.rotateAccumulatedAngle ?? 0) + step;
+      ephemeral.rotateLastPointerAngle = currentPointerAngle;
+
+      const snappedAngle = snapRotationAngle(ephemeral.rotateAccumulatedAngle);
+      applyRotation(store.documentData, ephemeral.transformSnapshot, ephemeral.rotateCenter, snappedAngle);
+      ephemeral.rotateAppliedAngle = snappedAngle;
+      ephemeral.moved = true;
+      store.notify();
+      return;
+    }
+
+    if (ephemeral.selectionMode === 'transform' && ephemeral.transformBaseBounds && ephemeral.transformHandle) {
       let nextPoint = point;
       const { settings } = store.documentData;
       const snappingEnabled = !event?.ctrlKey && !event?.metaKey;
@@ -183,10 +342,9 @@ export const selectTool = {
         nextPoint = snapToGrid(nextPoint, store.documentData);
       }
 
-      const corners = ephemeral.transformBaseCorners.map((corner) => ({ ...corner }));
-      corners[ephemeral.transformHandleIndex] = nextPoint;
+      const nextBounds = boundsFromHandleDrag(ephemeral.transformBaseBounds, ephemeral.transformHandle.type, nextPoint);
 
-      applyTransform(store.documentData, ephemeral.transformSnapshot ?? {}, ephemeral.transformBaseBounds, corners);
+      applyTransform(store.documentData, ephemeral.transformSnapshot ?? {}, ephemeral.transformBaseBounds, nextBounds);
       ephemeral.moved = true;
       store.notify();
       return;
@@ -240,7 +398,7 @@ export const selectTool = {
 
   onPointerUp(context) {
     const { store, ephemeral } = context;
-    if ((ephemeral.selectionMode === 'move' || ephemeral.selectionMode === 'transform') && ephemeral.moved) {
+    if ((ephemeral.selectionMode === 'move' || ephemeral.selectionMode === 'transform' || ephemeral.selectionMode === 'rotate') && ephemeral.moved) {
       pushDocumentHistory();
     }
 
@@ -256,10 +414,13 @@ export const selectTool = {
     ephemeral.selectionBox = null;
     ephemeral.moveStartPoint = null;
     ephemeral.moveLastPoint = null;
-    ephemeral.transformHandleIndex = null;
+    ephemeral.transformHandle = null;
     ephemeral.transformBaseBounds = null;
-    ephemeral.transformBaseCorners = null;
     ephemeral.transformSnapshot = null;
+    ephemeral.rotateCenter = null;
+    ephemeral.rotateLastPointerAngle = null;
+    ephemeral.rotateAccumulatedAngle = 0;
+    ephemeral.rotateAppliedAngle = 0;
     ephemeral.moved = false;
   },
 
@@ -304,16 +465,50 @@ export const selectTool = {
   },
 
   drawOverlay(context) {
-    const { ephemeral, ctx } = context;
-    if (!ephemeral.selectionBox) return;
+    const { ephemeral, ctx, store } = context;
+    if (ephemeral.selectionBox) {
+      const rect = normalizeRect(ephemeral.selectionBox.start, ephemeral.selectionBox.end);
+      ctx.save();
+      ctx.strokeStyle = '#2563eb';
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
+      ctx.setLineDash([4, 4]);
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+      ctx.restore();
+    }
 
-    const rect = normalizeRect(ephemeral.selectionBox.start, ephemeral.selectionBox.end);
+    if (!store.appState.rotateSelection || !store.appState.selectedIds.length) return;
+
+    const bounds = getSelectionBounds(store.documentData, store.appState);
+    if (!bounds) return;
+
+    const geometry = getRotateGeometry(bounds);
+    const angle = (ephemeral.selectionMode === 'rotate' ? ephemeral.rotateAppliedAngle : 0) ?? 0;
+    const radians = (angle * Math.PI) / 180;
+    const handle = {
+      x: geometry.center.x + Math.cos(radians) * geometry.radius,
+      y: geometry.center.y + Math.sin(radians) * geometry.radius,
+    };
+
     ctx.save();
-    ctx.strokeStyle = '#2563eb';
-    ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
-    ctx.setLineDash([4, 4]);
-    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+    ctx.strokeStyle = '#0f4c81';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.arc(geometry.center.x, geometry.center.y, geometry.radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(geometry.center.x, geometry.center.y);
+    ctx.lineTo(handle.x, handle.y);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(handle.x, handle.y, ROTATE_HANDLE_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
   },
 };
