@@ -169,7 +169,7 @@ export function removeSelectedFill() {
 
 export function updateSelectedShapes(partial) {
   const shapes = selectedShapes();
-  if (!shapes.length) return;
+  if (!shapes.length) return false;
 
   for (const shape of shapes) {
     Object.assign(shape, partial);
@@ -177,6 +177,7 @@ export function updateSelectedShapes(partial) {
 
   pushDocumentHistory();
   store.notify();
+  return true;
 }
 
 export function setSelectedShapeType(nextType) {
@@ -278,7 +279,7 @@ function flipPointVertically(point, axisY) {
 
 export function flipSelectedHorizontal() {
   const shapes = selectedEditableShapes();
-  if (!shapes.length) return;
+  if (!shapes.length) return false;
 
   const center = centerFromBounds(shapes);
   const axisX = center.x;
@@ -298,11 +299,12 @@ export function flipSelectedHorizontal() {
 
   pushDocumentHistory();
   store.notify();
+  return true;
 }
 
 export function flipSelectedVertical() {
   const shapes = selectedEditableShapes();
-  if (!shapes.length) return;
+  if (!shapes.length) return false;
 
   const center = centerFromBounds(shapes);
   const axisY = center.y;
@@ -322,6 +324,7 @@ export function flipSelectedVertical() {
 
   pushDocumentHistory();
   store.notify();
+  return true;
 }
 
 function clamp(value, min, max) {
