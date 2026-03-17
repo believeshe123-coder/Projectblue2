@@ -34,6 +34,7 @@ function polygonBounds(points) {
 export const regionShape = {
   draw(ctx, shape) {
     if (!shape.points?.length) return;
+    if (shape.filled === false) return;
 
     ctx.save();
     ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);

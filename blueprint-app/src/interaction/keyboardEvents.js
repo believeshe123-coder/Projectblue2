@@ -18,12 +18,21 @@ export function bindKeyboardEvents({ store, ephemeral }) {
       return;
     }
 
+    if (event.key === 'Delete') {
+      if (ephemeral) {
+        ephemeral.editingLabelId = null;
+        ephemeral.editingLabelDirty = false;
+      }
+      deleteSelectedShapes();
+      return;
+    }
+
     if (ephemeral?.editingLabelId && isLabelEditingKey(event)) {
       selectTool.onKeyDown?.({ store, ephemeral }, event.key, event);
       return;
     }
 
-    if (event.key === 'Delete' || event.key === 'Backspace') {
+    if (event.key === 'Backspace') {
       deleteSelectedShapes();
       return;
     }

@@ -1,6 +1,6 @@
-import { createRoomShape } from '../document/shapeFactory.js';
+import { createLineShape } from '../document/shapeFactory.js';
 import { normalizeRect } from '../utils/geometry.js';
-import { addShape, patchState, setSelection } from '../app/actions.js';
+import { patchState, pushDocumentHistory, setSelection } from '../app/actions.js';
 
 function isClickDrawMode(context) {
   return context.store.documentData.settings.drawMode !== 'drag';
@@ -37,18 +37,39 @@ function startDrawing(context) {
 
 function finalizeRoom(context, endPoint, forceSquare = false) {
   const preview = context.ephemeral.preview;
-  const { documentData } = context.store;
+  const { documentData, appState } = context.store;
   if (!preview || preview.type !== 'room') return;
 
   const rect = normalizeRect(preview.start, resolveRoomEnd(preview, endPoint, forceSquare));
+  if (rect.width < 1 || rect.height < 1) {
+    patchState({ isDragging: false, dragStart: null });
+    context.ephemeral.preview = null;
+    return;
+  }
 
-  const shape = createRoomShape({
-    layerId: documentData.layers[0].id,
-    ...rect,
-  });
+  const layerId = documentData.layers[0].id;
+  const corners = [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ];
 
-  addShape(shape);
-  setSelection([shape.id]);
+  const created = [
+    createLineShape({ layerId, start: corners[0], end: corners[1] }),
+    createLineShape({ layerId, start: corners[1], end: corners[2] }),
+    createLineShape({ layerId, start: corners[2], end: corners[3] }),
+    createLineShape({ layerId, start: corners[3], end: corners[0] }),
+  ];
+
+  for (const shape of created) {
+    documentData.shapes.push(shape);
+  }
+
+  setSelection(created.map((shape) => shape.id));
+  appState.transformSelection = false;
+  appState.rotateSelection = false;
+  pushDocumentHistory();
   patchState({ isDragging: false, dragStart: null });
   context.ephemeral.preview = null;
 }

@@ -12,11 +12,15 @@ function resolveSelectionOutlineMode(settings) {
 }
 
 function selectionCorners(bounds) {
+  const x = bounds.x - 4;
+  const y = bounds.y - 4;
+  const width = bounds.width + 8;
+  const height = bounds.height + 8;
   return [
-    { x: bounds.x - 4, y: bounds.y - 4 },
-    { x: bounds.x + bounds.width + 4, y: bounds.y - 4 },
-    { x: bounds.x + bounds.width + 4, y: bounds.y + bounds.height + 4 },
-    { x: bounds.x - 4, y: bounds.y + bounds.height + 4 },
+    { x, y: y + height / 2 },
+    { x: x + width, y: y + height / 2 },
+    { x: x + width / 2, y },
+    { x: x + width / 2, y: y + height },
   ];
 }
 

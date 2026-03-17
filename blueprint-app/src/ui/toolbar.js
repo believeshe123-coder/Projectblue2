@@ -9,6 +9,7 @@ const TOOL_LABELS = {
   label: 'Label',
   tape: 'Measure',
   fill: 'Fill',
+  erase: 'Erase',
 };
 
 export function mountToolbar({ container, store }) {

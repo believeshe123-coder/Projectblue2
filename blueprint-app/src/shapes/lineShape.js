@@ -34,6 +34,31 @@ function drawStyledLine(ctx, shape) {
   const lineType = shape.style.lineType ?? 'solid';
   if (lineType === 'dotted') ctx.setLineDash([4, 4]);
 
+  if (lineType === 'capped-dotted') {
+    const dx = shape.end.x - shape.start.x;
+    const dy = shape.end.y - shape.start.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const nx = -dy / length;
+    const ny = dx / length;
+    const capLength = Math.max(10, shape.style.strokeWidth * 4);
+    const halfCap = capLength / 2;
+
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(shape.start.x, shape.start.y);
+    ctx.lineTo(shape.end.x, shape.end.y);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(shape.start.x - nx * halfCap, shape.start.y - ny * halfCap);
+    ctx.lineTo(shape.start.x + nx * halfCap, shape.start.y + ny * halfCap);
+    ctx.moveTo(shape.end.x - nx * halfCap, shape.end.y - ny * halfCap);
+    ctx.lineTo(shape.end.x + nx * halfCap, shape.end.y + ny * halfCap);
+    ctx.stroke();
+    return;
+  }
+
   if (lineType !== 'double') {
     ctx.beginPath();
     ctx.moveTo(shape.start.x, shape.start.y);

@@ -16,6 +16,7 @@ const appState = {
   isDragging: false,
   dragStart: null,
   transformSelection: false,
+  rotateSelection: false,
 };
 
 const listeners = new Set();
