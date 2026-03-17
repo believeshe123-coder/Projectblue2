@@ -30,15 +30,39 @@ function drawLineMeasurement(ctx, shape, settings) {
   ctx.restore();
 }
 
+function drawStyledLine(ctx, shape) {
+  const lineType = shape.style.lineType ?? 'solid';
+  if (lineType === 'dotted') ctx.setLineDash([4, 4]);
+
+  if (lineType !== 'double') {
+    ctx.beginPath();
+    ctx.moveTo(shape.start.x, shape.start.y);
+    ctx.lineTo(shape.end.x, shape.end.y);
+    ctx.stroke();
+    return;
+  }
+
+  const dx = shape.end.x - shape.start.x;
+  const dy = shape.end.y - shape.start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const offset = Math.max(1.5, shape.style.strokeWidth * 0.8);
+  const nx = (-dy / length) * offset;
+  const ny = (dx / length) * offset;
+
+  ctx.beginPath();
+  ctx.moveTo(shape.start.x + nx, shape.start.y + ny);
+  ctx.lineTo(shape.end.x + nx, shape.end.y + ny);
+  ctx.moveTo(shape.start.x - nx, shape.start.y - ny);
+  ctx.lineTo(shape.end.x - nx, shape.end.y - ny);
+  ctx.stroke();
+}
+
 export const lineShape = {
   draw(ctx, shape, options = {}) {
     ctx.save();
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
-    ctx.beginPath();
-    ctx.moveTo(shape.start.x, shape.start.y);
-    ctx.lineTo(shape.end.x, shape.end.y);
-    ctx.stroke();
+    drawStyledLine(ctx, shape);
     ctx.restore();
 
     if (shouldRenderPersistedMeasurements(options.settings)) {
