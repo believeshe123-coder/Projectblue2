@@ -1,5 +1,6 @@
 import { selectTool } from './selectTool.js';
 import { lineTool } from './lineTool.js';
+import { penTool } from './penTool.js';
 import { roomTool } from './roomTool.js';
 import { curveTool } from './curveTool.js';
 import { labelTool } from './labelTool.js';
@@ -10,6 +11,7 @@ import { placeShapeTool } from './placeShapeTool.js';
 
 export const toolRegistry = {
   select: selectTool,
+  pen: penTool,
   line: lineTool,
   room: roomTool,
   curve: curveTool,

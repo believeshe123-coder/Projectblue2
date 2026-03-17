@@ -314,10 +314,10 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       `;
     }
 
-    if (activeTool === 'line') {
+    if (activeTool === 'line' || activeTool === 'pen') {
       body += `
         <div class="property-group">
-          <h3>Line</h3>
+          <h3>Line / Pen</h3>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}

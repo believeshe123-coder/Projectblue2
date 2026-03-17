@@ -101,17 +101,58 @@ function previewToShape(preview, layerId = 'layer-1') {
   return null;
 }
 
+
+function drawPenPreview(ctx, preview, layerId, settings) {
+  if (preview?.type !== 'pen' || !Array.isArray(preview.points) || preview.points.length < 2) return;
+
+  const behavior = getShapeBehavior('line');
+  if (!behavior?.draw) return;
+
+  const style = { stroke: '#1f2937', strokeWidth: 2, lineType: 'solid' };
+  for (let index = 1; index < preview.points.length; index += 1) {
+    const start = preview.points[index - 1];
+    const end = preview.points[index];
+    if (!start || !end || (start.x === end.x && start.y === end.y)) continue;
+
+    behavior.draw(ctx, {
+      type: 'line',
+      layerId,
+      start,
+      end,
+      style,
+      visible: true,
+      locked: false,
+    }, { settings });
+  }
+}
+
 function drawPreviewShape(ctx, interactionContext) {
   const preview = interactionContext?.ephemeral?.preview;
-  const shape = previewToShape(preview, interactionContext?.store?.documentData?.layers?.[0]?.id);
-  if (!shape) return;
-
-  const behavior = getShapeBehavior(shape.type);
-  if (!behavior?.draw) return;
+  const layerId = interactionContext?.store?.documentData?.layers?.[0]?.id;
+  const settings = interactionContext?.store?.documentData?.settings ?? {};
 
   ctx.save();
   ctx.globalAlpha = 0.7;
-  behavior.draw(ctx, shape, { settings: interactionContext?.store?.documentData?.settings ?? {} });
+
+  if (preview?.type === 'pen') {
+    drawPenPreview(ctx, preview, layerId, settings);
+    ctx.restore();
+    return;
+  }
+
+  const shape = previewToShape(preview, layerId);
+  if (!shape) {
+    ctx.restore();
+    return;
+  }
+
+  const behavior = getShapeBehavior(shape.type);
+  if (!behavior?.draw) {
+    ctx.restore();
+    return;
+  }
+
+  behavior.draw(ctx, shape, { settings });
   ctx.restore();
 }
 

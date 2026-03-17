@@ -3,6 +3,7 @@ import { toolRegistry } from '../tools/toolRegistry.js';
 
 const TOOL_LABELS = {
   select: 'Select',
+  pen: 'Pen',
   line: 'Line',
   room: 'Room',
   curve: 'Curve',

@@ -36,7 +36,7 @@ function applyDrawingSnap(world, store, activeTool) {
     point = snapToGrid(point, store.documentData);
   }
 
-  if (settings.axisSnap && isDragging && dragStart) {
+  if (settings.axisSnap && activeTool?.id !== 'pen' && isDragging && dragStart) {
     point = snapToAxis(point, dragStart);
   }
 
