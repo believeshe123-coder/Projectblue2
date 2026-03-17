@@ -10,7 +10,7 @@ export const labelTool = {
       layerId: documentData.layers[0].id,
       x: point.x,
       y: point.y,
-      text: '',
+      text: 'Text',
     });
     addShape(shape);
     setSelection([shape.id]);

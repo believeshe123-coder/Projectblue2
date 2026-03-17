@@ -3,8 +3,10 @@ import { generateId } from '../utils/idGenerator.js';
 const defaultStyle = {
   stroke: '#1f2937',
   strokeWidth: 2,
-  fill: 'rgba(15, 76, 129, 0.12)',
+  fill: '#0f4c81',
+  fillAlpha: 0.12,
   textSize: 14,
+  fontFamily: 'Inter, Segoe UI, Tahoma, sans-serif',
 };
 
 export function createLineShape({ layerId, start, end }) {
@@ -64,7 +66,7 @@ export function createRoomShape({ layerId, x, y, width, height }) {
   };
 }
 
-export function createLabelShape({ layerId, x, y, text = 'Label' }) {
+export function createLabelShape({ layerId, x, y, text = 'Text' }) {
   return {
     id: generateId('shape'),
     type: 'label',

@@ -2,7 +2,7 @@ export const labelShape = {
   draw(ctx, shape) {
     ctx.save();
     ctx.fillStyle = shape.style.fill || '#111827';
-    ctx.font = `${shape.style.textSize || 14}px sans-serif`;
+    ctx.font = `${shape.style.textSize || 14}px ${shape.style.fontFamily || 'Inter, Segoe UI, Tahoma, sans-serif'}`;
     ctx.fillText(shape.text, shape.x, shape.y);
     ctx.restore();
   },

@@ -1,4 +1,4 @@
-import { updateDocumentSettings } from '../app/actions.js';
+import { setActiveTool, updateDocumentSettings } from '../app/actions.js';
 import { resolveMeasurementMode } from '../utils/measurement.js';
 
 const GRID_MIN = 5;
@@ -100,6 +100,15 @@ const SETTING_DEFINITIONS = [
       { value: 'always', label: 'At all times' },
     ],
   },
+
+  {
+    id: 'settings-show-tape-tool',
+    key: 'showTapeTool',
+    type: 'boolean',
+    section: 'View',
+    label: 'Show Measure tool',
+    description: 'Show or hide the Measure tool button in the toolbar.',
+  },
   {
     id: 'settings-cursor-preview',
     key: 'showCursorPreview',
@@ -132,7 +141,9 @@ function renderSettingField(definition, settings, measurementMode) {
   if (definition.type === 'boolean') {
     const isChecked = definition.key === 'showCursorPreview'
       ? settings.showCursorPreview !== false
-      : Boolean(settings[definition.key]);
+      : definition.key === 'showTapeTool'
+        ? settings.showTapeTool !== false
+        : Boolean(settings[definition.key]);
 
     return `
       <label class="settings-toggle" for="${definition.id}">
@@ -251,6 +262,10 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     if (target.id === 'settings-snap') updateDocumentSettings({ snap: target.checked });
     if (target.id === 'settings-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
     if (target.id === 'settings-cursor-preview') updateDocumentSettings({ showCursorPreview: target.checked });
+    if (target.id === 'settings-show-tape-tool') {
+      updateDocumentSettings({ showTapeTool: target.checked });
+      if (!target.checked && store.appState.activeTool === 'tape') setActiveTool('line');
+    }
     if (target.id === 'settings-selection-outline-mode') updateDocumentSettings({
       selectionOutlineMode: ['off', 'selection-tool', 'always'].includes(target.value) ? target.value : 'always',
     });

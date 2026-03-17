@@ -1,6 +1,7 @@
 import { drawGrid } from './drawGrid.js';
 import { drawShapes } from './drawShapes.js';
 import { drawSelection } from './drawSelection.js';
+import { getShapeBehavior } from '../shapes/shapeRegistry.js';
 
 function drawCursorPreview(sourceCanvas, interactionContext) {
   const previewCanvas = interactionContext?.previewCanvas;
@@ -16,8 +17,6 @@ function drawCursorPreview(sourceCanvas, interactionContext) {
   previewCtx.beginPath();
   previewCtx.arc(radius, radius, radius - 1, 0, Math.PI * 2);
   previewCtx.clip();
-
-  // Keep preview background opaque even before pointer movement.
   previewCtx.fillStyle = '#ffffff';
   previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
 
@@ -54,9 +53,68 @@ function drawCursorPreview(sourceCanvas, interactionContext) {
   previewCtx.restore();
 }
 
-/**
- * Render pipeline only reads document/app state and never mutates it.
- */
+function previewToShape(preview, layerId = 'layer-1') {
+  if (!preview?.type) return null;
+
+  if ((preview.type === 'line' || preview.type === 'tape') && preview.start && preview.end) {
+    return {
+      type: preview.type,
+      layerId,
+      start: preview.start,
+      end: preview.end,
+      style: { stroke: '#1f2937', strokeWidth: 2, lineType: 'solid' },
+      visible: true,
+      locked: false,
+    };
+  }
+
+  if (preview.type === 'curve' && preview.start && preview.control && preview.end) {
+    return {
+      type: 'curve',
+      layerId,
+      start: preview.start,
+      control: preview.control,
+      end: preview.end,
+      style: { stroke: '#1f2937', strokeWidth: 2, lineType: 'solid' },
+      visible: true,
+      locked: false,
+    };
+  }
+
+  if (preview.type === 'room' && preview.start && preview.end) {
+    const x = Math.min(preview.start.x, preview.end.x);
+    const y = Math.min(preview.start.y, preview.end.y);
+    return {
+      type: 'room',
+      layerId,
+      x,
+      y,
+      width: Math.abs(preview.end.x - preview.start.x),
+      height: Math.abs(preview.end.y - preview.start.y),
+      style: { stroke: '#1f2937', strokeWidth: 2, fill: '#0f4c81', fillAlpha: 0.12, lineType: 'solid' },
+      filled: false,
+      visible: true,
+      locked: false,
+    };
+  }
+
+  return null;
+}
+
+function drawPreviewShape(ctx, interactionContext) {
+  const preview = interactionContext?.ephemeral?.preview;
+  const shape = previewToShape(preview, interactionContext?.store?.documentData?.layers?.[0]?.id);
+  if (!shape) return;
+
+  const behavior = getShapeBehavior(shape.type);
+  if (!behavior?.draw) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.7;
+  behavior.draw(ctx, shape, { settings: interactionContext?.store?.documentData?.settings ?? {} });
+  ctx.restore();
+}
+
 export function renderCanvas({ ctx, canvas, documentData, appState, activeTool, interactionContext }) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -67,6 +125,7 @@ export function renderCanvas({ ctx, canvas, documentData, appState, activeTool, 
   ctx.scale(appState.zoom, appState.zoom);
 
   drawShapes(ctx, documentData);
+  drawPreviewShape(ctx, interactionContext);
   drawSelection(ctx, documentData, appState);
 
   activeTool?.drawOverlay?.(interactionContext);

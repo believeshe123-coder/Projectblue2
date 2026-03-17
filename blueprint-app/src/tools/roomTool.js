@@ -17,8 +17,12 @@ function lockSquare(start, point) {
   };
 }
 
+function resolveRoomEnd(preview, point, forceSquare = false) {
+  return forceSquare ? lockSquare(preview.start, point) : point;
+}
+
 function beginPreview(context, point) {
-  context.ephemeral.preview = { type: 'room', start: point, end: point, phase: 'armed' };
+  context.ephemeral.preview = { type: 'room', start: point, end: point, phase: 'armed', square: false };
   patchState({ isDragging: false, dragStart: point });
 }
 
@@ -31,13 +35,12 @@ function startDrawing(context) {
   patchState({ isDragging: true, dragStart: preview.start });
 }
 
-function finalizeRoom(context, endPoint) {
+function finalizeRoom(context, endPoint, forceSquare = false) {
   const preview = context.ephemeral.preview;
   const { documentData } = context.store;
   if (!preview || preview.type !== 'room') return;
 
-  const squareEnd = lockSquare(preview.start, endPoint);
-  const rect = normalizeRect(preview.start, squareEnd);
+  const rect = normalizeRect(preview.start, resolveRoomEnd(preview, endPoint, forceSquare));
 
   const shape = createRoomShape({
     layerId: documentData.layers[0].id,
@@ -53,7 +56,7 @@ function finalizeRoom(context, endPoint) {
 export const roomTool = {
   id: 'room',
 
-  onPointerDown(context, point) {
+  onPointerDown(context, point, event) {
     const preview = context.ephemeral.preview;
 
     if (!preview || preview.type !== 'room') {
@@ -67,12 +70,13 @@ export const roomTool = {
     }
 
     if (isClickDrawMode(context)) {
-      finalizeRoom(context, point);
+      finalizeRoom(context, point, Boolean(event?.shiftKey));
       return;
     }
 
     startDrawing(context);
-    preview.end = lockSquare(preview.start, point);
+    preview.square = Boolean(event?.shiftKey);
+    preview.end = resolveRoomEnd(preview, point, preview.square);
     context.store.notify();
   },
 
@@ -89,16 +93,17 @@ export const roomTool = {
       if (!context.store.appState.isDragging) return;
     }
 
-    preview.end = lockSquare(preview.start, point);
+    preview.square = Boolean(event?.shiftKey);
+    preview.end = resolveRoomEnd(preview, point, preview.square);
     context.store.notify();
   },
 
-  onPointerUp(context, point) {
+  onPointerUp(context, point, event) {
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'room') return;
     if (isClickDrawMode(context)) return;
 
-    finalizeRoom(context, point);
+    finalizeRoom(context, point, Boolean(event?.shiftKey));
   },
 
   onKeyDown(context, key, event) {

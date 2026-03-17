@@ -1,3 +1,4 @@
+import { colorWithAlpha } from '../utils/color.js';
 function pointInPolygon(point, points) {
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
@@ -35,7 +36,7 @@ export const regionShape = {
     if (!shape.points?.length) return;
 
     ctx.save();
-    ctx.fillStyle = shape.style.fill || 'rgba(15, 76, 129, 0.12)';
+    ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
     ctx.beginPath();
     ctx.moveTo(shape.points[0].x, shape.points[0].y);
     for (let index = 1; index < shape.points.length; index += 1) {
