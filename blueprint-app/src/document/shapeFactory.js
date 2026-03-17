@@ -93,3 +93,20 @@ export function createRegionShape({ layerId, points }) {
     locked: false,
   };
 }
+
+
+export function createLibraryShape({ layerId, x, y, grid }) {
+  return {
+    id: generateId('shape'),
+    type: 'library-shape',
+    layerId,
+    x,
+    y,
+    grid: grid.map((row) => row.map((value) => (value ? 1 : 0))),
+    cellSize: 12,
+    style: { ...defaultStyle, fillAlpha: 1 },
+    visible: true,
+    locked: false,
+  };
+}
+

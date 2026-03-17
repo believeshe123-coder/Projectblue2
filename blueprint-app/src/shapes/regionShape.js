@@ -1,4 +1,5 @@
 import { colorWithAlpha } from '../utils/color.js';
+import { applyTextureFill } from '../canvas/textureFill.js';
 function pointInPolygon(point, points) {
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
@@ -32,19 +33,23 @@ function polygonBounds(points) {
 }
 
 export const regionShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
     if (!shape.points?.length) return;
     if (shape.filled === false) return;
 
     ctx.save();
-    ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
     ctx.beginPath();
     ctx.moveTo(shape.points[0].x, shape.points[0].y);
     for (let index = 1; index < shape.points.length; index += 1) {
       ctx.lineTo(shape.points[index].x, shape.points[index].y);
     }
     ctx.closePath();
-    ctx.fill();
+    if (shape.style?.fillMode === 'texture' && shape.style?.textureId) {
+      applyTextureFill(ctx, options.library, shape.style.textureId, colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12));
+    } else {
+      ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
+      ctx.fill();
+    }
     ctx.restore();
   },
 

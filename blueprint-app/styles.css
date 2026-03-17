@@ -526,3 +526,79 @@ body {
   cursor: not-allowed;
   opacity: 0.55;
 }
+
+.library-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.library-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.library-item canvas {
+  border: 1px solid var(--border);
+}
+
+.library-editor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.3);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+
+.library-editor-dialog {
+  width: 360px;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.library-editor-dialog label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+}
+
+.library-editor-dialog input[type='text'] {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.35rem;
+}
+
+.library-tools {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.library-tools button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#lib-grid {
+  border: 1px solid var(--border);
+  width: 240px;
+  height: 240px;
+}
+
+.texture-upload-preview-wrap {
+  min-height: 40px;
+}
+
+#texture-upload-preview {
+  max-width: 80px;
+  max-height: 80px;
+  border: 1px solid var(--border);
+}

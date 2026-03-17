@@ -3,6 +3,7 @@ import { pushHistory, undo, redo } from './history.js';
 import { snapToGrid } from '../interaction/snapUtils.js';
 import { expandSelectionWithGroups } from '../interaction/selection.js';
 import { generateId } from '../utils/idGenerator.js';
+import { saveLibrary } from './libraryStore.js';
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
@@ -434,4 +435,21 @@ export function eraseLinesAlongSegment(start, end) {
   pushDocumentHistory();
   store.notify();
   return 1;
+}
+
+
+export function upsertLibraryShape(shapeTemplate) {
+  const index = store.library.shapes.findIndex((entry) => entry.id === shapeTemplate.id);
+  if (index >= 0) store.library.shapes[index] = shapeTemplate;
+  else store.library.shapes.push(shapeTemplate);
+  saveLibrary(store.library);
+  store.notify();
+}
+
+export function upsertLibraryTexture(texture) {
+  const index = store.library.textures.findIndex((entry) => entry.id === texture.id);
+  if (index >= 0) store.library.textures[index] = texture;
+  else store.library.textures.push(texture);
+  saveLibrary(store.library);
+  store.notify();
 }

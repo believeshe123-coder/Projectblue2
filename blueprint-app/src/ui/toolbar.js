@@ -1,4 +1,4 @@
-import { setActiveTool } from '../app/actions.js';
+import { patchState, setActiveTool } from '../app/actions.js';
 import { toolRegistry } from '../tools/toolRegistry.js';
 
 const TOOL_LABELS = {
@@ -10,6 +10,7 @@ const TOOL_LABELS = {
   tape: 'Measure',
   fill: 'Fill',
   erase: 'Erase',
+  'place-shape': 'Place Shape',
 };
 
 export function mountToolbar({ container, store }) {
@@ -34,7 +35,23 @@ export function mountToolbar({ container, store }) {
         btn.className = 'toolbar-button';
         btn.dataset.toolId = toolId;
         btn.textContent = TOOL_LABELS[toolId] ?? (toolId[0].toUpperCase() + toolId.slice(1));
-        btn.addEventListener('click', () => setActiveTool(toolId));
+        btn.addEventListener('click', () => {
+          if (toolId === 'place-shape') {
+            if (!store.library.shapes.length) {
+              window.alert('No saved shapes yet. Create one in Library first.');
+              return;
+            }
+
+            const options = store.library.shapes.map((shape, index) => `${index + 1}. ${shape.name}`).join('\n');
+            const choice = window.prompt(`Pick shape number:\n${options}`);
+            const index = Number.parseInt(choice, 10) - 1;
+            const selected = store.library.shapes[index];
+            if (!selected) return;
+            patchState({ placeShapeTemplateId: selected.id });
+          }
+
+          setActiveTool(toolId);
+        });
         buttonWrap.appendChild(btn);
       });
   };

@@ -171,6 +171,12 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       const fillAlpha = Number.parseFloat(target.value);
       if (Number.isFinite(fillAlpha)) updateSelectedStyles({ fillAlpha: Math.min(1, Math.max(0, fillAlpha)) });
     }
+    if (target.id === 'style-fill-mode') {
+      updateSelectedStyles({ fillMode: target.value === 'texture' ? 'texture' : 'color' });
+    }
+    if (target.id === 'style-texture-id') {
+      updateSelectedStyles({ textureId: target.value || null, fillMode: target.value ? 'texture' : 'color' });
+    }
     if (target.id === 'style-stroke-width') {
       const width = Number.parseFloat(target.value);
       if (Number.isFinite(width)) updateSelectedStyles({ strokeWidth: Math.max(1, width) });
@@ -281,6 +287,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const fillValue = toColorInputValue(style.fill, FALLBACK_FILL);
     const fillAlpha = Number.isFinite(style.fillAlpha) ? style.fillAlpha : 0.12;
     const noSelectionLabel = count ? `${count} shape(s) selected.` : 'Select a shape to edit properties.';
+    const fillMode = style.fillMode === 'texture' ? 'texture' : 'color';
+    const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${style.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
 
     let body = `<p>${noSelectionLabel}</p>`;
 
@@ -360,7 +368,19 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       body += `
         <div class="property-group">
           <h3>Fill</h3>
-          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
+          <label>Fill type
+            <select id="style-fill-mode" ${count ? '' : 'disabled'}>
+              <option value="color" ${fillMode === 'color' ? 'selected' : ''}>Color</option>
+              <option value="texture" ${fillMode === 'texture' ? 'selected' : ''}>Texture</option>
+            </select>
+          </label>
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count || fillMode === 'texture', historyKind: 'fill' })}
+          <label>Texture
+            <select id="style-texture-id" ${count && store.library.textures.length ? '' : 'disabled'}>
+              <option value="">None</option>
+              ${textureOptions}
+            </select>
+          </label>
           <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${count ? '' : 'disabled'} /></label>
           <button id="fill-remove" ${hasFilledSelection ? '' : 'disabled'}>Take away fill</button>
         </div>
