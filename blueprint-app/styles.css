@@ -280,6 +280,21 @@ body {
   gap: 0.25rem;
 }
 
+
+
+.property-toggle {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.property-toggle input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
 .property-group input[type='number'] {
   border: 1px solid var(--border);
   border-radius: 6px;
