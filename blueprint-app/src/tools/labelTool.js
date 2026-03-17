@@ -10,10 +10,12 @@ export const labelTool = {
       layerId: documentData.layers[0].id,
       x: point.x,
       y: point.y,
-      text: 'Label',
+      text: '',
     });
     addShape(shape);
     setSelection([shape.id]);
+    context.ephemeral.editingLabelId = shape.id;
+    context.ephemeral.editingLabelDirty = false;
   },
 
   onPointerMove() {},

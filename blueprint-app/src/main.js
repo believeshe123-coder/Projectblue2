@@ -73,10 +73,12 @@ const ephemeral = {
   preview: null,
   cursorScreen: null,
   cursorWorld: null,
+  editingLabelId: null,
+  editingLabelDirty: false,
 };
 
 bindPointerEvents({ canvas, store, ephemeral });
-bindKeyboardEvents({ store });
+bindKeyboardEvents({ store, ephemeral });
 
 function getRoute() {
   const route = window.location.hash.replace('#', '');
