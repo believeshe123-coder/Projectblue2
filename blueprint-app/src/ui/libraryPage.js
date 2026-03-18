@@ -1,7 +1,3 @@
-import { patchState, upsertLibraryShape, upsertLibraryTexture } from '../app/actions.js';
-import { generateId } from '../utils/idGenerator.js';
-import { cloneShapeGrid, cloneTextureGrid } from '../app/libraryStore.js';
-
 const DEFAULT_GRID_SIZE = 10;
 const TEXTURE_TILE_SIZE = 2;
 const TEXTURE_PREVIEW_SIZE = 10;
@@ -61,6 +57,13 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
   const size = includeUpload ? TEXTURE_TILE_SIZE : DEFAULT_GRID_SIZE;
   const previewSize = includeUpload ? TEXTURE_PREVIEW_SIZE : size;
   const cell = canvas.width / size;
+  const texturePaintCanvas = includeUpload ? document.createElement('canvas') : null;
+  const texturePaintCtx = texturePaintCanvas?.getContext('2d');
+
+  if (texturePaintCanvas) {
+    texturePaintCanvas.width = canvas.width;
+    texturePaintCanvas.height = canvas.height;
+  }
 
   const grid = normalizeGridSize(initialGrid, size);
 
@@ -68,6 +71,7 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
   let drawing = false;
   let dragCell = null;
   let lineStart = null;
+  let lineStartPoint = null;
   let roomStart = null;
   let curveStart = null;
   let curveControl = null;
@@ -76,6 +80,7 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
   let dataUrl = initialDataUrl;
   let repeatImage = null;
   let repeatImageUrl = '';
+  let strokeActive = false;
 
   const TOOL_HINTS = {
     select: 'Select: inspect only (no drawing).',
@@ -102,6 +107,14 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
     if (!repeatPreviewCanvas || !repeatPreviewCtx) return;
 
     repeatPreviewCtx.clearRect(0, 0, repeatPreviewCanvas.width, repeatPreviewCanvas.height);
+
+    if (includeUpload && texturePaintCanvas) {
+      const pattern = repeatPreviewCtx.createPattern(texturePaintCanvas, 'repeat');
+      if (!pattern) return;
+      repeatPreviewCtx.fillStyle = pattern;
+      repeatPreviewCtx.fillRect(0, 0, repeatPreviewCanvas.width, repeatPreviewCanvas.height);
+      return;
+    }
 
     if (dataUrl) {
       if (repeatImageUrl !== dataUrl) {
@@ -135,6 +148,23 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (includeUpload && texturePaintCanvas) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(texturePaintCanvas, 0, 0);
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          ctx.strokeStyle = '#d5dbe5';
+          ctx.strokeRect(x * cell, y * cell, cell, cell);
+        }
+      }
+
+      drawToolPreview();
+      drawTextureRepeatPreview();
+      return;
+    }
+
     for (let y = 0; y < size; y += 1) {
       for (let x = 0; x < size; x += 1) {
         ctx.fillStyle = grid[y][x] ? '#0f4c81' : '#ffffff';
@@ -164,8 +194,8 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
     ctx.lineWidth = 2;
 
     if (tool === 'line' && lineStart) {
-      const start = cellCenter(lineStart);
-      const end = cellCenter(hoverCell);
+      const start = includeUpload && lineStartPoint ? lineStartPoint : cellCenter(lineStart);
+      const end = includeUpload ? penTrail[0] ?? start : cellCenter(hoverCell);
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
@@ -209,6 +239,59 @@ function gridEditor({ title, store, initialName = '', initialGrid = null, onSave
   function setCell(x, y, value) {
     if (x < 0 || y < 0 || x >= size || y >= size) return;
     grid[y][x] = value;
+  }
+
+  function startTextureStroke(point) {
+    if (!texturePaintCtx) return;
+    texturePaintCtx.save();
+    texturePaintCtx.globalCompositeOperation = tool === 'erase' ? 'destination-out' : 'source-over';
+    texturePaintCtx.strokeStyle = '#0f4c81';
+    texturePaintCtx.lineWidth = Math.max(2, canvas.width * 0.02);
+    texturePaintCtx.lineJoin = 'round';
+    texturePaintCtx.lineCap = 'round';
+    texturePaintCtx.beginPath();
+    texturePaintCtx.moveTo(point.x, point.y);
+    texturePaintCtx.lineTo(point.x, point.y);
+    texturePaintCtx.stroke();
+    texturePaintCtx.restore();
+    penTrail = [point];
+    strokeActive = true;
+  }
+
+  function continueTextureStroke(point) {
+    if (!texturePaintCtx || !strokeActive) return;
+    const previous = penTrail[penTrail.length - 1] ?? point;
+    texturePaintCtx.save();
+    texturePaintCtx.globalCompositeOperation = tool === 'erase' ? 'destination-out' : 'source-over';
+    texturePaintCtx.strokeStyle = '#0f4c81';
+    texturePaintCtx.lineWidth = Math.max(2, canvas.width * 0.02);
+    texturePaintCtx.lineJoin = 'round';
+    texturePaintCtx.lineCap = 'round';
+    texturePaintCtx.beginPath();
+    texturePaintCtx.moveTo(previous.x, previous.y);
+    texturePaintCtx.lineTo(point.x, point.y);
+    texturePaintCtx.stroke();
+    texturePaintCtx.restore();
+    penTrail.push(point);
+  }
+
+  function endTextureStroke() {
+    strokeActive = false;
+  }
+
+  function drawTextureLine(a, b) {
+    if (!texturePaintCtx) return;
+    texturePaintCtx.save();
+    texturePaintCtx.globalCompositeOperation = 'source-over';
+    texturePaintCtx.strokeStyle = '#0f4c81';
+    texturePaintCtx.lineWidth = Math.max(2, canvas.width * 0.02);
+    texturePaintCtx.lineJoin = 'round';
+    texturePaintCtx.lineCap = 'round';
+    texturePaintCtx.beginPath();
+    texturePaintCtx.moveTo(a.x, a.y);
+    texturePaintCtx.lineTo(b.x, b.y);
+    texturePaintCtx.stroke();
+    texturePaintCtx.restore();
   }
 
   function canvasCell(event) {
@@ -323,10 +406,39 @@ ${options}`);
     drawing = false;
     dragCell = null;
     lineStart = null;
+    lineStartPoint = null;
     roomStart = null;
     curveStart = null;
     curveControl = null;
     penTrail = [];
+    strokeActive = false;
+  }
+
+  function loadTexturePaintFromDataUrl(url) {
+    if (!texturePaintCtx || !texturePaintCanvas) return;
+    texturePaintCtx.clearRect(0, 0, texturePaintCanvas.width, texturePaintCanvas.height);
+    if (!url) return;
+    const image = new Image();
+    image.onload = () => {
+      texturePaintCtx.clearRect(0, 0, texturePaintCanvas.width, texturePaintCanvas.height);
+      texturePaintCtx.drawImage(image, 0, 0, texturePaintCanvas.width, texturePaintCanvas.height);
+      draw();
+    };
+    image.src = url;
+  }
+
+  if (includeUpload && texturePaintCanvas) {
+    if (initialDataUrl) {
+      loadTexturePaintFromDataUrl(initialDataUrl);
+    } else if (Array.isArray(initialGrid)) {
+      for (let y = 0; y < size; y += 1) {
+        for (let x = 0; x < size; x += 1) {
+          if (!grid[y][x]) continue;
+          texturePaintCtx.fillStyle = '#0f4c81';
+          texturePaintCtx.fillRect(x * cell, y * cell, cell, cell);
+        }
+      }
+    }
   }
 
   overlay.querySelectorAll('[data-tool]').forEach((button) => {
@@ -348,6 +460,22 @@ ${options}`);
     if (tool === 'select' || tool === 'tape') return;
 
     if (tool === 'line') {
+      if (includeUpload) {
+        const point = canvasPoint(event);
+        if (lineStartPoint) {
+          drawTextureLine(lineStartPoint, point);
+          lineStartPoint = null;
+          lineStart = null;
+          penTrail = [];
+        } else {
+          lineStartPoint = point;
+          lineStart = pos;
+          penTrail = [point];
+        }
+        draw();
+        return;
+      }
+
       if (lineStart) {
         drawLine(lineStart, pos, 1);
         lineStart = null;
@@ -396,6 +524,12 @@ ${options}`);
       return;
     }
 
+    if (includeUpload) {
+      startTextureStroke(canvasPoint(event));
+      draw();
+      return;
+    }
+
     dragCell = pos;
     penTrail = [canvasPoint(event)];
     setCell(pos.x, pos.y, tool === 'erase' ? 0 : 1);
@@ -412,7 +546,14 @@ ${options}`);
     }
 
     if (tool === 'pen' || tool === 'erase') {
-      penTrail.push(canvasPoint(event));
+      const point = canvasPoint(event);
+      if (includeUpload) {
+        continueTextureStroke(point);
+        draw();
+        return;
+      }
+
+      penTrail.push(point);
       if (dragCell) {
         drawLine(dragCell, pos, tool === 'erase' ? 0 : 1);
       } else {
@@ -424,6 +565,9 @@ ${options}`);
     }
 
     if (tool === 'line' || tool === 'room' || tool === 'curve') {
+      if (tool === 'line' && includeUpload && lineStartPoint) {
+        penTrail = [canvasPoint(event)];
+      }
       draw();
     }
   });
@@ -446,6 +590,7 @@ ${options}`);
     }
 
     dragCell = null;
+    endTextureStroke();
     penTrail = [];
   }
 
@@ -460,7 +605,12 @@ ${options}`);
       repeatImage = null;
       repeatImageUrl = '';
       if (imgPreview) imgPreview.src = dataUrl;
-      drawTextureRepeatPreview();
+      if (includeUpload) {
+        loadTexturePaintFromDataUrl(dataUrl);
+        draw();
+      } else {
+        drawTextureRepeatPreview();
+      }
     };
     reader.readAsDataURL(file);
   });
@@ -472,6 +622,9 @@ ${options}`);
 
   overlay.querySelector('#lib-save').addEventListener('click', () => {
     const name = overlay.querySelector('#lib-name').value.trim() || title;
+    if (includeUpload && texturePaintCanvas) {
+      dataUrl = texturePaintCanvas.toDataURL('image/png');
+    }
     onSave({ name, grid, dataUrl });
     closeEditor();
   });
@@ -497,157 +650,12 @@ function drawGridPreview(canvas, grid) {
   }
 }
 
-export function renderLibraryPage({ container, store }) {
+export function renderLibraryPage({ container }) {
   container.innerHTML = `
     <article class="route-card">
       <h2>Library</h2>
-      <p>Save and reuse custom shapes and textures.</p>
-      <div class="button-row">
-        <button id="new-shape" type="button">Make New Shape</button>
-        <button id="new-texture" type="button">New Texture</button>
-      </div>
-      <h3>Shapes</h3>
-      <div id="shape-list" class="library-list"></div>
-      <h3>Textures</h3>
-      <div id="texture-list" class="library-list"></div>
+      <p>Library is temporarily disabled.</p>
+      <p>No shapes or textures are available right now.</p>
     </article>
   `;
-
-  const shapeList = container.querySelector('#shape-list');
-  const textureList = container.querySelector('#texture-list');
-
-  function refreshLists() {
-    shapeList.innerHTML = '';
-    textureList.innerHTML = '';
-
-    store.library.shapes.forEach((shape) => {
-      const row = document.createElement('div');
-      row.className = 'library-item';
-      row.innerHTML = `
-        <canvas width="60" height="60"></canvas>
-        <div>
-          <strong>${shape.name}</strong>
-          <div class="button-row">
-            <button type="button" data-edit="${shape.id}">Edit</button>
-            <button type="button" data-place="${shape.id}">Use in canvas</button>
-          </div>
-        </div>
-      `;
-      drawGridPreview(row.querySelector('canvas'), shape.grid);
-      shapeList.appendChild(row);
-    });
-
-    if (!store.library.shapes.length) {
-      shapeList.innerHTML = '<p>No shapes saved yet.</p>';
-    }
-
-    store.library.textures.forEach((texture) => {
-      const row = document.createElement('div');
-      row.className = 'library-item';
-      row.innerHTML = `
-        <canvas width="60" height="60"></canvas>
-        <div>
-          <strong>${texture.name}</strong>
-          <div class="button-row">
-            <button type="button" data-edit-texture="${texture.id}">Edit</button>
-          </div>
-        </div>
-      `;
-      const previewCanvas = row.querySelector('canvas');
-      if (texture.kind === 'image' && texture.dataUrl) {
-        const img = new Image();
-        img.onload = () => {
-          const ctx = previewCanvas.getContext('2d');
-          ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-          ctx.drawImage(img, 0, 0, previewCanvas.width, previewCanvas.height);
-        };
-        img.src = texture.dataUrl;
-      } else {
-        drawGridPreview(previewCanvas, texture.grid);
-      }
-      textureList.appendChild(row);
-    });
-
-    if (!store.library.textures.length) {
-      textureList.innerHTML = '<p>No textures saved yet.</p>';
-    }
-
-    shapeList.querySelectorAll('[data-edit]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const entry = store.library.shapes.find((shape) => shape.id === button.dataset.edit);
-        if (!entry) return;
-        gridEditor({
-          title: 'Edit Shape',
-          store,
-          initialName: entry.name,
-          initialGrid: cloneShapeGrid(entry.grid),
-          onSave: ({ name, grid }) => {
-            upsertLibraryShape({ ...entry, name, grid: cloneShapeGrid(grid), updatedAt: Date.now() });
-          },
-        });
-      });
-    });
-
-    shapeList.querySelectorAll('[data-place]').forEach((button) => {
-      button.addEventListener('click', () => {
-        patchState({ activeTool: 'place-shape', placeShapeTemplateId: button.dataset.place });
-        window.location.hash = '#home';
-      });
-    });
-
-    textureList.querySelectorAll('[data-edit-texture]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const entry = store.library.textures.find((texture) => texture.id === button.dataset.editTexture);
-        if (!entry) return;
-        gridEditor({
-          title: 'Edit Texture',
-          store,
-          initialName: entry.name,
-          initialGrid: cloneTextureGrid(entry.grid),
-          includeUpload: true,
-          initialDataUrl: entry.dataUrl ?? '',
-          onSave: ({ name, grid, dataUrl }) => {
-            upsertLibraryTexture({
-              ...entry,
-              name,
-              kind: dataUrl ? 'image' : 'drawn',
-              dataUrl: dataUrl || '',
-              grid: cloneTextureGrid(grid),
-              updatedAt: Date.now(),
-            });
-          },
-        });
-      });
-    });
-  }
-
-  container.querySelector('#new-shape').addEventListener('click', () => {
-    gridEditor({
-      title: 'New Shape',
-      store,
-      onSave: ({ name, grid }) => {
-        upsertLibraryShape({ id: generateId('lib-shape'), name, grid: cloneShapeGrid(grid), updatedAt: Date.now() });
-      },
-    });
-  });
-
-  container.querySelector('#new-texture').addEventListener('click', () => {
-    gridEditor({
-      title: 'New Texture',
-      store,
-      includeUpload: true,
-      onSave: ({ name, grid, dataUrl }) => {
-        upsertLibraryTexture({
-          id: generateId('lib-texture'),
-          name,
-          kind: dataUrl ? 'image' : 'drawn',
-          dataUrl: dataUrl || '',
-          grid: cloneTextureGrid(grid),
-          updatedAt: Date.now(),
-        });
-      },
-    });
-  });
-
-  refreshLists();
 }

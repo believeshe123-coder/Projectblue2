@@ -32,7 +32,7 @@ function applyDrawingSnap(world, store, activeTool) {
   const { dragStart, isDragging } = store.appState;
   let point = world;
 
-  if (settings.snap) {
+  if (settings.snap && activeTool?.id !== 'pen') {
     point = snapToGrid(point, store.documentData);
   }
 
