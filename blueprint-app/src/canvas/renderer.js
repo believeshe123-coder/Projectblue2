@@ -57,12 +57,17 @@ function previewToShape(preview, layerId = 'layer-1') {
   if (!preview?.type) return null;
 
   if ((preview.type === 'line' || preview.type === 'tape') && preview.start && preview.end) {
+    const isErasePreview = preview.erase === true;
     return {
       type: preview.type,
       layerId,
       start: preview.start,
       end: preview.end,
-      style: { stroke: '#1f2937', strokeWidth: 2, lineType: 'solid' },
+      style: {
+        stroke: isErasePreview ? '#dc2626' : '#1f2937',
+        strokeWidth: 2,
+        lineType: isErasePreview ? 'dotted' : 'solid',
+      },
       visible: true,
       locked: false,
     };
@@ -105,25 +110,18 @@ function previewToShape(preview, layerId = 'layer-1') {
 function drawPenPreview(ctx, preview, layerId, settings) {
   if (preview?.type !== 'pen' || !Array.isArray(preview.points) || preview.points.length < 2) return;
 
-  const behavior = getShapeBehavior('line');
+  const behavior = getShapeBehavior('pen');
   if (!behavior?.draw) return;
 
   const style = { stroke: '#1f2937', strokeWidth: 2, lineType: 'solid' };
-  for (let index = 1; index < preview.points.length; index += 1) {
-    const start = preview.points[index - 1];
-    const end = preview.points[index];
-    if (!start || !end || (start.x === end.x && start.y === end.y)) continue;
-
-    behavior.draw(ctx, {
-      type: 'line',
-      layerId,
-      start,
-      end,
-      style,
-      visible: true,
-      locked: false,
-    }, { settings });
-  }
+  behavior.draw(ctx, {
+    type: 'pen',
+    layerId,
+    points: preview.points,
+    style,
+    visible: true,
+    locked: false,
+  }, { settings });
 }
 
 function drawPreviewShape(ctx, interactionContext) {

@@ -104,17 +104,29 @@ function buildBoundaryGraph(documentData) {
 
   for (const shape of documentData.shapes) {
     if (!shape.visible || shape.locked) continue;
-    if (shape.type !== 'line' && shape.type !== 'curve') continue;
 
-    const start = upsertVertex(shape.start);
-    const end = upsertVertex(shape.end);
-    if (start.key === end.key) continue;
+    if (shape.type === 'line' || shape.type === 'curve') {
+      const start = upsertVertex(shape.start);
+      const end = upsertVertex(shape.end);
+      if (start.key === end.key) continue;
 
-    const pathPoints = shape.type === 'curve'
-      ? sampleCurvePoints(shape)
-      : [{ x: shape.start.x, y: shape.start.y }, { x: shape.end.x, y: shape.end.y }];
+      const pathPoints = shape.type === 'curve'
+        ? sampleCurvePoints(shape)
+        : [{ x: shape.start.x, y: shape.start.y }, { x: shape.end.x, y: shape.end.y }];
 
-    addEdgePath(start, end, pathPoints);
+      addEdgePath(start, end, pathPoints);
+      continue;
+    }
+
+    if (shape.type !== 'pen' || !Array.isArray(shape.points) || shape.points.length < 2) continue;
+    for (let index = 1; index < shape.points.length; index += 1) {
+      const startPoint = shape.points[index - 1];
+      const endPoint = shape.points[index];
+      const start = upsertVertex(startPoint);
+      const end = upsertVertex(endPoint);
+      if (start.key === end.key) continue;
+      addEdgePath(start, end, [startPoint, endPoint]);
+    }
   }
 
   return { byKey, adjacency, directedPaths, pairPaths };
@@ -231,44 +243,60 @@ function addRegionShapeAtBack(store, shape) {
   store.documentData.shapes.unshift(shape);
 }
 
+function getActiveFillStyle(store) {
+  const selectedId = store.appState.selectedIds[0];
+  const selectedShape = store.documentData.shapes.find((shape) => shape.id === selectedId);
+  const selectedStyle = selectedShape?.style ?? {};
+  const configured = store.appState.fillStyle ?? {};
+
+  return {
+    fill: selectedStyle.fill ?? configured.fill ?? '#0f4c81',
+    fillAlpha: Number.isFinite(selectedStyle.fillAlpha)
+      ? selectedStyle.fillAlpha
+      : (Number.isFinite(configured.fillAlpha) ? configured.fillAlpha : 0.12),
+    fillMode: selectedStyle.fillMode ?? configured.fillMode ?? 'color',
+    textureId: selectedStyle.textureId ?? configured.textureId ?? null,
+  };
+}
+
 export const fillTool = {
   id: 'fill',
 
   onPointerDown(context, point) {
     const { store } = context;
-    const hit = findShapeAtPoint(store.documentData, point);
-
-    if (hit && isClosedShape(hit)) {
-      if (hit.filled === true) {
-        setSelection([hit.id]);
+    const activeFillStyle = getActiveFillStyle(store);
+    const polygons = findClosedPolygons(store.documentData, point);
+    const target = polygons[0];
+    if (target) {
+      const existing = findMatchingRegion(store.documentData, target.points);
+      if (existing) {
+        existing.filled = true;
+        existing.style = { ...existing.style, ...activeFillStyle };
+        setSelection([existing.id]);
+        pushDocumentHistory();
+        store.notify();
         return;
       }
 
-      hit.filled = true;
-      setSelection([hit.id]);
+      const region = createRegionShape({
+        layerId: store.documentData.layers[0].id,
+        points: target.points,
+      });
+      region.style = { ...region.style, ...activeFillStyle };
+
+      addRegionShapeAtBack(store, region);
+      setSelection([region.id]);
       pushDocumentHistory();
       store.notify();
       return;
     }
 
-    const polygons = findClosedPolygons(store.documentData, point);
-    const target = polygons[0];
-    if (!target) return;
+    const hit = findShapeAtPoint(store.documentData, point);
+    if (!(hit && isClosedShape(hit))) return;
 
-    const existing = findMatchingRegion(store.documentData, target.points);
-    if (existing) {
-      setSelection([existing.id]);
-      store.notify();
-      return;
-    }
-
-    const region = createRegionShape({
-      layerId: store.documentData.layers[0].id,
-      points: target.points,
-    });
-
-    addRegionShapeAtBack(store, region);
-    setSelection([region.id]);
+    hit.filled = true;
+    hit.style = { ...hit.style, ...activeFillStyle };
+    setSelection([hit.id]);
     pushDocumentHistory();
     store.notify();
   },

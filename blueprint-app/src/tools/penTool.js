@@ -1,5 +1,5 @@
 import { addShape, patchState, setSelection } from '../app/actions.js';
-import { createLineShape } from '../document/shapeFactory.js';
+import { createPenShape } from '../document/shapeFactory.js';
 
 function samePoint(a, b) {
   return Boolean(a && b && a.x === b.x && a.y === b.y);
@@ -20,6 +20,7 @@ function appendPoint(context, point) {
 
   const lastPoint = preview.points[preview.points.length - 1];
   if (samePoint(lastPoint, point)) return;
+  if (lastPoint && Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y) < 2) return;
 
   preview.points.push(point);
 }
@@ -29,19 +30,13 @@ function finalizeStroke(context) {
   const layerId = context.store.documentData.layers[0]?.id;
   if (!preview || preview.type !== 'pen' || !layerId) return;
 
-  const strokeSegmentIds = [];
-  for (let index = 1; index < preview.points.length; index += 1) {
-    const start = preview.points[index - 1];
-    const end = preview.points[index];
-    if (samePoint(start, end)) continue;
-
-    const segment = createLineShape({ layerId, start, end });
-    addShape(segment);
-    strokeSegmentIds.push(segment.id);
-  }
-
-  if (strokeSegmentIds.length) {
-    setSelection(strokeSegmentIds);
+  if (preview.points.length >= 2) {
+    const stroke = createPenShape({
+      layerId,
+      points: preview.points,
+    });
+    addShape(stroke);
+    setSelection([stroke.id]);
   }
 
   patchState({ isDragging: false, dragStart: null });

@@ -164,18 +164,44 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     if (target.id === 'style-fill') {
       const value = toColorInputValue(target.value, FALLBACK_FILL);
       target.value = value;
-      updateSelectedStyles({ fill: value });
+      if (store.appState.activeTool === 'fill') {
+        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), fill: value } });
+      }
+      if (store.appState.selectedIds.length) {
+        updateSelectedStyles({ fill: value });
+      }
       rememberColor('fill', value);
     }
     if (target.id === 'style-fill-alpha') {
       const fillAlpha = Number.parseFloat(target.value);
-      if (Number.isFinite(fillAlpha)) updateSelectedStyles({ fillAlpha: Math.min(1, Math.max(0, fillAlpha)) });
+      if (Number.isFinite(fillAlpha)) {
+        const nextFillAlpha = Math.min(1, Math.max(0, fillAlpha));
+        if (store.appState.activeTool === 'fill') {
+          patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), fillAlpha: nextFillAlpha } });
+        }
+        if (store.appState.selectedIds.length) {
+          updateSelectedStyles({ fillAlpha: nextFillAlpha });
+        }
+      }
     }
     if (target.id === 'style-fill-mode') {
-      updateSelectedStyles({ fillMode: target.value === 'texture' ? 'texture' : 'color' });
+      const nextFillMode = target.value === 'texture' ? 'texture' : 'color';
+      if (store.appState.activeTool === 'fill') {
+        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), fillMode: nextFillMode } });
+      }
+      if (store.appState.selectedIds.length) {
+        updateSelectedStyles({ fillMode: nextFillMode });
+      }
     }
     if (target.id === 'style-texture-id') {
-      updateSelectedStyles({ textureId: target.value || null, fillMode: target.value ? 'texture' : 'color' });
+      const textureId = target.value || null;
+      const fillMode = textureId ? 'texture' : 'color';
+      if (store.appState.activeTool === 'fill') {
+        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureId, fillMode } });
+      }
+      if (store.appState.selectedIds.length) {
+        updateSelectedStyles({ textureId, fillMode });
+      }
     }
     if (target.id === 'style-stroke-width') {
       const width = Number.parseFloat(target.value);
@@ -273,7 +299,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
     const anyLockedShapes = store.documentData.shapes.some((shape) => shape.locked);
     const hasFilledSelection = selectedShapes(store).some((shape) => (shape.type === 'room' || shape.type === 'region') && shape.filled === true);
-    const style = selected?.style ?? {
+    const style = selected?.style ?? null;
+    const defaultStyle = {
       stroke: FALLBACK_STROKE,
       fill: FALLBACK_FILL,
       fillAlpha: 0.12,
@@ -281,14 +308,29 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       textSize: 14,
       lineType: 'solid',
       fontFamily: FONT_OPTIONS[0],
+      fillMode: 'color',
+      textureId: null,
     };
+    const fillToolStyle = store.appState.fillStyle ?? {};
+    const effectiveStyle = activeTool === 'fill'
+      ? {
+          ...defaultStyle,
+          ...style,
+          fill: style?.fill ?? fillToolStyle.fill ?? defaultStyle.fill,
+          fillAlpha: Number.isFinite(style?.fillAlpha) ? style.fillAlpha : (
+            Number.isFinite(fillToolStyle.fillAlpha) ? fillToolStyle.fillAlpha : 0.12
+          ),
+          fillMode: style?.fillMode ?? fillToolStyle.fillMode ?? defaultStyle.fillMode,
+          textureId: style?.textureId ?? fillToolStyle.textureId ?? defaultStyle.textureId,
+        }
+      : { ...defaultStyle, ...style };
 
-    const strokeValue = toColorInputValue(style.stroke, FALLBACK_STROKE);
-    const fillValue = toColorInputValue(style.fill, FALLBACK_FILL);
-    const fillAlpha = Number.isFinite(style.fillAlpha) ? style.fillAlpha : 0.12;
+    const strokeValue = toColorInputValue(effectiveStyle.stroke, FALLBACK_STROKE);
+    const fillValue = toColorInputValue(effectiveStyle.fill, FALLBACK_FILL);
+    const fillAlpha = Number.isFinite(effectiveStyle.fillAlpha) ? effectiveStyle.fillAlpha : 0.12;
     const noSelectionLabel = count ? `${count} shape(s) selected.` : 'Select a shape to edit properties.';
-    const fillMode = style.fillMode === 'texture' ? 'texture' : 'color';
-    const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${style.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
+    const fillMode = effectiveStyle.fillMode === 'texture' ? 'texture' : 'color';
+    const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${effectiveStyle.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
 
     let body = `<p>${noSelectionLabel}</p>`;
 
@@ -308,8 +350,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           <label class="property-toggle"><input id="shape-locked" type="checkbox" ${allSelectedLocked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
-          <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${style.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
+          <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${effectiveStyle.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
         </div>
       `;
     }
@@ -319,7 +361,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         <div class="property-group">
           <h3>Line / Pen</h3>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
         </div>
       `;
@@ -330,7 +372,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         <div class="property-group">
           <h3>Room</h3>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
           <label class="property-toggle"><input id="room-auto-fill" type="checkbox" ${allSelectedRoomsFilled ? 'checked' : ''} ${selectedRooms.length ? '' : 'disabled'} /> Auto fill</label>
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
@@ -343,7 +385,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         <div class="property-group">
           <h3>Curve</h3>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${style.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
           ${lineTypeOptions(selected)}
         </div>
       `;
@@ -354,10 +396,10 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         <div class="property-group">
           <h3>Label</h3>
           ${renderColorField({ label: 'Font color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
-          <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${style.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
+          <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${effectiveStyle.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
           <label>Font
             <select id="style-font-family" ${count ? '' : 'disabled'}>
-              ${FONT_OPTIONS.map((font) => `<option value="${font}" ${(style.fontFamily ?? FONT_OPTIONS[0]) === font ? 'selected' : ''}>${font.split(',')[0]}</option>`).join('')}
+              ${FONT_OPTIONS.map((font) => `<option value="${font}" ${(effectiveStyle.fontFamily ?? FONT_OPTIONS[0]) === font ? 'selected' : ''}>${font.split(',')[0]}</option>`).join('')}
             </select>
           </label>
         </div>
@@ -365,23 +407,24 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     }
 
     if (activeTool === 'fill') {
+      const fillControlsDisabled = false;
       body += `
         <div class="property-group">
           <h3>Fill</h3>
           <label>Fill type
-            <select id="style-fill-mode" ${count ? '' : 'disabled'}>
+            <select id="style-fill-mode" ${fillControlsDisabled ? 'disabled' : ''}>
               <option value="color" ${fillMode === 'color' ? 'selected' : ''}>Color</option>
               <option value="texture" ${fillMode === 'texture' ? 'selected' : ''}>Texture</option>
             </select>
           </label>
-          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count || fillMode === 'texture', historyKind: 'fill' })}
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: fillControlsDisabled || fillMode === 'texture', historyKind: 'fill' })}
           <label>Texture
-            <select id="style-texture-id" ${count && store.library.textures.length ? '' : 'disabled'}>
+            <select id="style-texture-id" ${fillControlsDisabled || !store.library.textures.length ? 'disabled' : ''}>
               <option value="">None</option>
               ${textureOptions}
             </select>
           </label>
-          <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${count ? '' : 'disabled'} /></label>
+          <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${fillControlsDisabled ? 'disabled' : ''} /></label>
           <button id="fill-remove" ${hasFilledSelection ? '' : 'disabled'}>Take away fill</button>
         </div>
       `;

@@ -32,11 +32,12 @@ function applyDrawingSnap(world, store, activeTool) {
   const { dragStart, isDragging } = store.appState;
   let point = world;
 
-  if (settings.snap && activeTool?.id !== 'pen') {
+  const shouldGridSnap = activeTool?.id === 'erase' || (settings.snap && activeTool?.id !== 'pen');
+  if (shouldGridSnap) {
     point = snapToGrid(point, store.documentData);
   }
 
-  if (settings.axisSnap && activeTool?.id !== 'pen' && isDragging && dragStart) {
+  if (settings.axisSnap && activeTool?.id !== 'pen' && activeTool?.id !== 'erase' && isDragging && dragStart) {
     point = snapToAxis(point, dragStart);
   }
 

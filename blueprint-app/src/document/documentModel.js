@@ -8,6 +8,7 @@ export function createDocumentModel() {
       gridSize: 25,
       showGrid: true,
       snap: true,
+      halfGridSnap: false,
       snapDebugHalfPoints: false,
       axisSnap: true,
       drawMode: 'click',
