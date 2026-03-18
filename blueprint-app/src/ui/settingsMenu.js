@@ -47,12 +47,12 @@ const SETTING_DEFINITIONS = [
     description: 'Snap points to the nearest grid intersection.',
   },
   {
-    id: 'settings-snap-debug-half-points',
-    key: 'snapDebugHalfPoints',
+    id: 'settings-half-grid-snap',
+    key: 'halfGridSnap',
     type: 'boolean',
     section: 'Snapping',
-    label: 'Snap debug: half points',
-    description: 'Debug option to snap to half-grid points as well.',
+    label: 'Half-grid snap',
+    description: 'Allow snapping to half-grid intersections.',
   },
   {
     id: 'settings-axis-snap',
@@ -161,6 +161,8 @@ function renderSettingField(definition, settings, measurementMode) {
         ? settings.showTapeTool !== false
         : definition.key === 'showActionToasts'
           ? settings.showActionToasts !== false
+          : definition.key === 'halfGridSnap'
+            ? (settings.halfGridSnap === true || settings.snapDebugHalfPoints === true)
           : Boolean(settings[definition.key]);
 
     return `
@@ -278,7 +280,7 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
 
     if (target.id === 'settings-show-grid') updateDocumentSettings({ showGrid: target.checked });
     if (target.id === 'settings-snap') updateDocumentSettings({ snap: target.checked });
-    if (target.id === 'settings-snap-debug-half-points') updateDocumentSettings({ snapDebugHalfPoints: target.checked });
+    if (target.id === 'settings-half-grid-snap') updateDocumentSettings({ halfGridSnap: target.checked, snapDebugHalfPoints: target.checked });
     if (target.id === 'settings-axis-snap') updateDocumentSettings({ axisSnap: target.checked });
     if (target.id === 'settings-cursor-preview') updateDocumentSettings({ showCursorPreview: target.checked });
     if (target.id === 'settings-action-toasts') updateDocumentSettings({ showActionToasts: target.checked });

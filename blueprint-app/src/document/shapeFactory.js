@@ -36,6 +36,18 @@ export function createCurveShape({ layerId, start, end, control }) {
   };
 }
 
+export function createPenShape({ layerId, points }) {
+  return {
+    id: generateId('shape'),
+    type: 'pen',
+    layerId,
+    points: points.map((point) => ({ x: point.x, y: point.y })),
+    style: { ...defaultStyle },
+    visible: true,
+    locked: false,
+  };
+}
+
 
 export function createTapeShape({ layerId, start, end }) {
   return {
@@ -109,4 +121,3 @@ export function createLibraryShape({ layerId, x, y, grid }) {
     locked: false,
   };
 }
-

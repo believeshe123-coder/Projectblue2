@@ -19,6 +19,12 @@ const appState = {
   transformSelection: false,
   rotateSelection: false,
   placeShapeTemplateId: null,
+  fillStyle: {
+    fill: '#0f4c81',
+    fillAlpha: 0.12,
+    fillMode: 'color',
+    textureId: null,
+  },
 };
 
 const library = loadLibrary();
