@@ -9,6 +9,8 @@ function isLabelEditingKey(event) {
 
 export function bindKeyboardEvents({ store, ephemeral }) {
   window.addEventListener('keydown', (event) => {
+    if (ephemeral?.labelInputActive) return;
+
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       if (event.shiftKey) {
         performRedo();

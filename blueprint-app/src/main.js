@@ -47,6 +47,13 @@ const previewCanvas = document.getElementById('cursor-preview');
 const appMain = document.querySelector('.app-main');
 const canvasPanel = document.querySelector('.canvas-panel');
 const appShell = document.querySelector('.app-shell');
+const labelEditor = document.createElement('textarea');
+labelEditor.className = 'canvas-label-editor';
+labelEditor.setAttribute('aria-label', 'Edit label text');
+labelEditor.rows = 1;
+labelEditor.spellcheck = false;
+labelEditor.hidden = true;
+canvasPanel.appendChild(labelEditor);
 
 const routeContainer = document.createElement('section');
 routeContainer.className = 'route-page';
@@ -96,7 +103,98 @@ const ephemeral = {
   cursorWorld: null,
   editingLabelId: null,
   editingLabelDirty: false,
+  labelInputActive: false,
 };
+
+function findShapeById(documentData, id) {
+  return documentData.shapes.find((shape) => shape.id === id);
+}
+
+function focusLabelEditor() {
+  if (document.activeElement !== labelEditor) {
+    labelEditor.focus({ preventScroll: true });
+  }
+  const end = labelEditor.value.length;
+  labelEditor.setSelectionRange(end, end);
+}
+
+function hideLabelEditor() {
+  labelEditor.hidden = true;
+  labelEditor.value = '';
+  ephemeral.labelInputActive = false;
+}
+
+function syncLabelEditor() {
+  const labelId = ephemeral.editingLabelId;
+  if (!labelId) {
+    hideLabelEditor();
+    return;
+  }
+
+  const shape = findShapeById(store.documentData, labelId);
+  if (!shape || shape.type !== 'label') {
+    hideLabelEditor();
+    ephemeral.editingLabelId = null;
+    ephemeral.editingLabelDirty = false;
+    return;
+  }
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const scaleX = canvasRect.width / canvas.width;
+  const scaleY = canvasRect.height / canvas.height;
+  const textSize = shape.style.textSize || 14;
+  const fontFamily = shape.style.fontFamily || 'Inter, Segoe UI, Tahoma, sans-serif';
+  const paddingX = 4;
+  const minWidth = 120;
+  const width = Math.max(minWidth, (shape.text.length * (textSize * 0.58)) + (paddingX * 2));
+
+  labelEditor.hidden = false;
+  labelEditor.style.left = `${shape.x * scaleX}px`;
+  labelEditor.style.top = `${(shape.y - textSize) * scaleY}px`;
+  labelEditor.style.width = `${Math.max(48, width * scaleX)}px`;
+  labelEditor.style.height = `${Math.max(28, (textSize + 10) * scaleY)}px`;
+  labelEditor.style.fontSize = `${textSize * scaleY}px`;
+  labelEditor.style.fontFamily = fontFamily;
+  labelEditor.style.lineHeight = `${textSize * scaleY}px`;
+  labelEditor.style.color = shape.style.fill || '#111827';
+  labelEditor.style.padding = `${Math.max(2, 3 * scaleY)}px ${Math.max(2, paddingX * scaleX)}px`;
+
+  if (labelEditor.value !== shape.text) {
+    labelEditor.value = shape.text;
+  }
+
+  ephemeral.labelInputActive = document.activeElement === labelEditor;
+  if (!ephemeral.labelInputActive) {
+    focusLabelEditor();
+    ephemeral.labelInputActive = true;
+  }
+}
+
+labelEditor.addEventListener('input', () => {
+  if (!ephemeral.editingLabelId) return;
+  const shape = findShapeById(store.documentData, ephemeral.editingLabelId);
+  if (!shape || shape.type !== 'label') return;
+  shape.text = labelEditor.value;
+  ephemeral.editingLabelDirty = true;
+  store.notify();
+});
+
+labelEditor.addEventListener('keydown', (event) => {
+  if (!ephemeral.editingLabelId) return;
+  if (event.key === 'Enter' || event.key === 'Escape') {
+    event.preventDefault();
+    const activeTool = getTool(store.appState.activeTool);
+    activeTool?.onKeyDown?.({ store, ephemeral }, event.key, event);
+    store.notify();
+    return;
+  }
+
+  event.stopPropagation();
+});
+
+labelEditor.addEventListener('blur', () => {
+  ephemeral.labelInputActive = false;
+});
 
 function syncCanvasSize() {
   const rect = canvas.getBoundingClientRect();
@@ -164,7 +262,9 @@ function draw() {
       activeTool,
       interactionContext: { ctx, canvas, previewCanvas, store, ephemeral },
     });
+    syncLabelEditor();
   } else {
+    hideLabelEditor();
     renderRoutePage(route);
   }
 
