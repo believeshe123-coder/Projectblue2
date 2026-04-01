@@ -11,6 +11,7 @@ export const labelTool = {
       x: point.x,
       y: point.y,
       text: 'Text',
+      style: context.store.appState.toolStyle,
     });
     addShape(shape);
     setSelection([shape.id]);

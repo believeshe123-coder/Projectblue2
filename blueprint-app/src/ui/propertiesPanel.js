@@ -155,9 +155,9 @@ function renderMeasurePreview(mode) {
   `;
 }
 
-function lineTypeOptions(selected) {
+function lineTypeOptions(selected, fallbackLineType = 'solid') {
   const isTape = selected?.type === 'tape';
-  const current = isTape ? 'tape' : (selected?.style?.lineType ?? 'solid');
+  const current = isTape ? 'tape' : (selected?.style?.lineType ?? fallbackLineType);
   return `
     <label>Line type
       <select id="style-line-type">
@@ -177,18 +177,24 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
   container.appendChild(panel);
 
 
+  const updateToolStyle = (partial) => {
+    patchState({ toolStyle: { ...(store.appState.toolStyle ?? {}), ...partial } });
+  };
+
   panel.addEventListener('change', (event) => {
     const target = event.target;
 
     if (target.id === 'style-stroke') {
       const value = toColorInputValue(target.value, FALLBACK_STROKE);
       target.value = value;
-      updateSelectedStyles({ stroke: value });
+      updateToolStyle({ stroke: value });
+      if (store.appState.selectedIds.length) updateSelectedStyles({ stroke: value });
       rememberColor('stroke', value);
     }
     if (target.id === 'style-fill') {
       const value = toColorInputValue(target.value, FALLBACK_FILL);
       target.value = value;
+      updateToolStyle({ fill: value });
       if (store.appState.activeTool === 'fill') {
         patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), fill: value } });
       }
@@ -201,6 +207,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       const fillAlpha = Number.parseFloat(target.value);
       if (Number.isFinite(fillAlpha)) {
         const nextFillAlpha = Math.min(1, Math.max(0, fillAlpha));
+        updateToolStyle({ fillAlpha: nextFillAlpha });
         if (store.appState.activeTool === 'fill') {
           patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), fillAlpha: nextFillAlpha } });
         }
@@ -230,21 +237,32 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     }
     if (target.id === 'style-stroke-width') {
       const width = Number.parseFloat(target.value);
-      if (Number.isFinite(width)) updateSelectedStyles({ strokeWidth: Math.max(1, width) });
+      if (Number.isFinite(width)) {
+        const strokeWidth = Math.max(1, width);
+        updateToolStyle({ strokeWidth });
+        if (store.appState.selectedIds.length) updateSelectedStyles({ strokeWidth });
+      }
     }
     if (target.id === 'style-text-size') {
       const size = Number.parseFloat(target.value);
-      if (Number.isFinite(size)) updateSelectedStyles({ textSize: Math.max(8, size) });
+      if (Number.isFinite(size)) {
+        const textSize = Math.max(8, size);
+        updateToolStyle({ textSize });
+        if (store.appState.selectedIds.length) updateSelectedStyles({ textSize });
+      }
     }
     if (target.id === 'style-font-family') {
-      updateSelectedStyles({ fontFamily: target.value || FONT_OPTIONS[0] });
+      const fontFamily = target.value || FONT_OPTIONS[0];
+      updateToolStyle({ fontFamily });
+      if (store.appState.selectedIds.length) updateSelectedStyles({ fontFamily });
     }
     if (target.id === 'style-line-type') {
       if (target.value === 'tape') {
         setSelectedShapeType('tape');
       } else {
         setSelectedShapeType('line');
-        updateSelectedStyles({ lineType: target.value });
+        updateToolStyle({ lineType: target.value });
+        if (store.appState.selectedIds.length) updateSelectedStyles({ lineType: target.value });
       }
     }
     if (target.id === 'shape-locked') updateSelectedShapes({ locked: target.checked });
@@ -274,9 +292,11 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       }
 
       if (kind === 'stroke') {
-        updateSelectedStyles({ stroke: color });
+        updateToolStyle({ stroke: color });
+        if (store.appState.selectedIds.length) updateSelectedStyles({ stroke: color });
       } else {
-        updateSelectedStyles({ fill: color });
+        updateToolStyle({ fill: color });
+        if (store.appState.selectedIds.length) updateSelectedStyles({ fill: color });
       }
       rememberColor(kind, color);
       return;
@@ -342,10 +362,12 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       fillMode: 'color',
       textureId: null,
     };
+    const toolStyle = store.appState.toolStyle ?? {};
     const fillToolStyle = store.appState.fillStyle ?? {};
     const effectiveStyle = activeTool === 'fill'
       ? {
           ...defaultStyle,
+          ...toolStyle,
           ...style,
           fill: style?.fill ?? fillToolStyle.fill ?? defaultStyle.fill,
           fillAlpha: Number.isFinite(style?.fillAlpha) ? style.fillAlpha : (
@@ -354,7 +376,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           fillMode: style?.fillMode ?? fillToolStyle.fillMode ?? defaultStyle.fillMode,
           textureId: style?.textureId ?? fillToolStyle.textureId ?? defaultStyle.textureId,
         }
-      : { ...defaultStyle, ...style };
+      : { ...defaultStyle, ...toolStyle, ...style };
 
     const strokeValue = toColorInputValue(effectiveStyle.stroke, FALLBACK_STROKE);
     const fillValue = toColorInputValue(effectiveStyle.fill, FALLBACK_FILL);
@@ -391,9 +413,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       body += `
         <div class="property-group">
           <h3>Line / Pen</h3>
-          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
-          ${lineTypeOptions(selected)}
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
+          ${lineTypeOptions(selected, effectiveStyle.lineType ?? 'solid')}
         </div>
       `;
     }
@@ -402,11 +424,11 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       body += `
         <div class="property-group">
           <h3>Room</h3>
-          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
-          ${lineTypeOptions(selected)}
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
+          ${lineTypeOptions(selected, effectiveStyle.lineType ?? 'solid')}
           <label class="property-toggle"><input id="room-auto-fill" type="checkbox" ${allSelectedRoomsFilled ? 'checked' : ''} ${selectedRooms.length ? '' : 'disabled'} /> Auto fill</label>
-          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: false, historyKind: 'fill' })}
         </div>
       `;
     }
@@ -415,9 +437,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       body += `
         <div class="property-group">
           <h3>Curve</h3>
-          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
-          ${lineTypeOptions(selected)}
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
+          ${lineTypeOptions(selected, effectiveStyle.lineType ?? 'solid')}
         </div>
       `;
     }
@@ -426,10 +448,10 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       body += `
         <div class="property-group">
           <h3>Label</h3>
-          ${renderColorField({ label: 'Font color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
-          <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${effectiveStyle.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Font color', inputId: 'style-fill', value: fillValue, disabled: false, historyKind: 'fill' })}
+          <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${effectiveStyle.textSize ?? 14}" /></label>
           <label>Font
-            <select id="style-font-family" ${count ? '' : 'disabled'}>
+            <select id="style-font-family">
               ${FONT_OPTIONS.map((font) => `<option value="${font}" ${(effectiveStyle.fontFamily ?? FONT_OPTIONS[0]) === font ? 'selected' : ''}>${font.split(',')[0]}</option>`).join('')}
             </select>
           </label>
@@ -455,8 +477,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
               <option value="drag" ${drawMode === 'drag' ? 'selected' : ''}>Click and drag</option>
             </select>
           </label>
-          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
-          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
           ${renderMeasurePreview(tapeMeasureMode)}
         </div>
       `;

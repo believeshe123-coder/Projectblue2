@@ -56,10 +56,10 @@ function finalizeRoom(context, endPoint, forceSquare = false) {
   ];
 
   const created = [
-    createLineShape({ layerId, start: corners[0], end: corners[1] }),
-    createLineShape({ layerId, start: corners[1], end: corners[2] }),
-    createLineShape({ layerId, start: corners[2], end: corners[3] }),
-    createLineShape({ layerId, start: corners[3], end: corners[0] }),
+    createLineShape({ layerId, start: corners[0], end: corners[1], style: appState.toolStyle }),
+    createLineShape({ layerId, start: corners[1], end: corners[2], style: appState.toolStyle }),
+    createLineShape({ layerId, start: corners[2], end: corners[3], style: appState.toolStyle }),
+    createLineShape({ layerId, start: corners[3], end: corners[0], style: appState.toolStyle }),
   ];
 
   for (const shape of created) {

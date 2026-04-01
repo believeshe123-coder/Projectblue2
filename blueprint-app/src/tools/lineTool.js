@@ -28,6 +28,7 @@ function finalizeLine(context, endPoint) {
     layerId: documentData.layers[0].id,
     start: preview.start,
     end: endPoint,
+    style: context.store.appState.toolStyle,
   });
 
   addShape(shape);

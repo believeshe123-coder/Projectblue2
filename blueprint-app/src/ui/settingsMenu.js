@@ -1,4 +1,4 @@
-import { setActiveTool, updateDocumentSettings } from '../app/actions.js';
+import { resetPreferences, setActiveTool, updateDocumentSettings } from '../app/actions.js';
 import { resolveMeasurementMode } from '../utils/measurement.js';
 
 const GRID_MIN = 5;
@@ -20,18 +20,6 @@ const SETTING_DEFINITIONS = [
     section: 'Canvas',
     label: 'Show grid',
     description: 'Draw the grid in the workspace.',
-  },
-  {
-    id: 'settings-draw-mode',
-    key: 'drawMode',
-    type: 'select',
-    section: 'Canvas',
-    label: 'Drawing interaction',
-    description: 'Choose between click-click drawing or click-drag drawing.',
-    options: [
-      { value: 'click', label: 'Click start, click end' },
-      { value: 'drag', label: 'Click and drag' },
-    ],
   },
   {
     id: 'settings-grid-size',
@@ -137,18 +125,6 @@ const SETTING_DEFINITIONS = [
       { value: 'always', label: 'At all times' },
       { value: 'drawing', label: 'Only while drawing' },
       { value: 'off', label: 'Off' },
-    ],
-  },
-  {
-    id: 'settings-tape-measure-mode',
-    key: 'tapeMeasureMode',
-    type: 'select',
-    section: 'Measurements',
-    label: 'Measure tool type',
-    description: 'Choose direct line measurement or 3-point offset dimensioning.',
-    options: [
-      { value: 'direct', label: 'Direct dotted line' },
-      { value: 'offset-3-point', label: '3-point pulled dimension' },
     ],
   },
   {
@@ -306,9 +282,7 @@ function renderSettingField(definition, settings, measurementMode) {
 
   const selectedValue = definition.key === 'measurementMode'
     ? measurementMode
-    : definition.key === 'drawMode'
-      ? (settings.drawMode ?? 'click')
-      : definition.key === 'selectionOutlineMode'
+    : definition.key === 'selectionOutlineMode'
         ? (settings.selectionOutlineMode ?? (settings.showSelectionOutline === false ? 'off' : 'always'))
         : settings[definition.key];
 
@@ -360,6 +334,9 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
         <span>Search settings</span>
         <input id="settings-search-input" type="search" placeholder="Search by name, area, or description" />
       </label>
+      <div class="settings-reset-row">
+        <button id="settings-reset-all" type="button">Reset all settings & properties</button>
+      </div>
       ${sections.map((sectionName) => renderSettingGroup(sectionName, settings, measurementMode)).join('')}
     </div>
   `;
@@ -368,7 +345,7 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
   const rows = [...container.querySelectorAll('.settings-row')];
   const groups = [...container.querySelectorAll('.settings-group')];
 
-  searchInput?.addEventListener('input', () => {
+  searchInput.oninput = () => {
     const query = searchInput.value.trim().toLowerCase();
 
     rows.forEach((row) => {
@@ -380,9 +357,9 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
       const visibleRows = group.querySelectorAll('.settings-row:not([hidden])').length;
       group.hidden = visibleRows === 0;
     });
-  });
+  };
 
-  container.addEventListener('change', (event) => {
+  container.onchange = (event) => {
     const target = event.target;
     if (!target?.id) return;
 
@@ -401,8 +378,6 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     if (target.id === 'settings-selection-outline-mode') updateDocumentSettings({
       selectionOutlineMode: ['off', 'selection-tool', 'always'].includes(target.value) ? target.value : 'always',
     });
-    if (target.id === 'settings-draw-mode') updateDocumentSettings({ drawMode: target.value === 'drag' ? 'drag' : 'click' });
-
     if (target.id === 'settings-grid-size') {
       const parsed = Number.parseInt(target.value, 10);
       if (Number.isFinite(parsed)) {
@@ -442,9 +417,6 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     if (target.id === 'settings-measurement-mode') {
       updateDocumentSettings({ measurementMode: target.value });
     }
-    if (target.id === 'settings-tape-measure-mode') {
-      updateDocumentSettings({ tapeMeasureMode: target.value === 'offset-3-point' ? 'offset-3-point' : 'direct' });
-    }
     if (target.id === 'settings-measurement-label-size') {
       const parsed = Number.parseInt(target.value, 10);
       if (Number.isFinite(parsed)) {
@@ -464,7 +436,14 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     if (target.id === 'settings-measurement-label-border') {
       updateDocumentSettings({ measurementLabelBorderColor: target.value });
     }
-  });
+  };
+
+  container.onclick = (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id !== 'settings-reset-all') return;
+    resetPreferences();
+  };
 
   if (previewCanvas) {
     const showPreview = settings.showCursorPreview !== false;

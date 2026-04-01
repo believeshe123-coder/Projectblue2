@@ -32,6 +32,7 @@ function finalizeCurve(context, endPoint) {
     start: preview.start,
     control: preview.control,
     end: endPoint,
+    style: context.store.appState.toolStyle,
   });
 
   addShape(shape);
