@@ -2,6 +2,8 @@ import { patchState, pushDocumentHistory, setActiveTool, setZoom } from '../app/
 import { createDocumentModel } from '../document/documentModel.js';
 import { createLayer } from '../document/layerModel.js';
 import { seedIdGeneratorFromDocument } from '../utils/idGenerator.js';
+import { drawShapes } from '../canvas/drawShapes.js';
+import { getShapeBehavior } from '../shapes/shapeRegistry.js';
 
 const PROJECT_FILE_VERSION = 1;
 const PROJECT_FILE_TYPE = 'blueprint-project';
@@ -166,6 +168,113 @@ function supportsNativeSave() {
   return typeof window.showSaveFilePicker === 'function';
 }
 
+function clampExportScale(bounds, preferredScale = 2, maxDimension = 4096) {
+  const maxBoundDimension = Math.max(1, bounds.width, bounds.height);
+  return Math.max(1, Math.min(preferredScale, maxDimension / maxBoundDimension));
+}
+
+function getVisibleShapesBounds(documentData) {
+  const bounds = documentData.shapes
+    .filter((shape) => shape.visible !== false)
+    .map((shape) => getShapeBehavior(shape.type)?.getBounds?.(shape))
+    .filter((value) => value && Number.isFinite(value.width) && Number.isFinite(value.height));
+
+  if (!bounds.length) return null;
+
+  const minX = Math.min(...bounds.map((item) => item.x));
+  const minY = Math.min(...bounds.map((item) => item.y));
+  const maxX = Math.max(...bounds.map((item) => item.x + item.width));
+  const maxY = Math.max(...bounds.map((item) => item.y + item.height));
+  return { x: minX, y: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
+}
+
+function renderDrawingExportCanvas({ store, fallbackCanvas, padding = 24 }) {
+  const drawingBounds = getVisibleShapesBounds(store.documentData);
+  const fallbackBounds = drawingBounds ?? {
+    x: 0,
+    y: 0,
+    width: Math.max(1, fallbackCanvas?.width ?? 1200),
+    height: Math.max(1, fallbackCanvas?.height ?? 900),
+  };
+
+  const paddedBounds = {
+    x: fallbackBounds.x - padding,
+    y: fallbackBounds.y - padding,
+    width: fallbackBounds.width + (padding * 2),
+    height: fallbackBounds.height + (padding * 2),
+  };
+  const scale = clampExportScale(paddedBounds);
+
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = Math.max(1, Math.round(paddedBounds.width * scale));
+  exportCanvas.height = Math.max(1, Math.round(paddedBounds.height * scale));
+
+  const ctx = exportCanvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  ctx.scale(scale, scale);
+  ctx.translate(-paddedBounds.x, -paddedBounds.y);
+  drawShapes(ctx, store.documentData, { library: store.library });
+
+  return exportCanvas;
+}
+
+function buildPdfFromJpegDataUrl(jpegDataUrl, widthPx, heightPx) {
+  const base64 = String(jpegDataUrl).split(',')[1] ?? '';
+  const binary = atob(base64);
+  const imageBytes = Array.from(binary, (char) => char.charCodeAt(0));
+  const contentStream = `q\n${widthPx} 0 0 ${heightPx} 0 0 cm\n/Im0 Do\nQ`;
+
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${widthPx} ${heightPx}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
+    `<< /Type /XObject /Subtype /Image /Width ${widthPx} /Height ${heightPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n__IMAGE_STREAM__\nendstream`,
+    `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
+  ];
+
+  const encoder = new TextEncoder();
+  const chunks = [encoder.encode('%PDF-1.4\n')];
+  const offsets = [0];
+  let byteLength = chunks[0].length;
+
+  objects.forEach((objectBody, index) => {
+    offsets.push(byteLength);
+    const header = encoder.encode(`${index + 1} 0 obj\n`);
+    const footer = encoder.encode('\nendobj\n');
+
+    if (index === 3) {
+      const [before, after] = objectBody.split('__IMAGE_STREAM__');
+      const beforeBytes = encoder.encode(before);
+      const afterBytes = encoder.encode(after);
+      chunks.push(header, beforeBytes, new Uint8Array(imageBytes), afterBytes, footer);
+      byteLength += header.length + beforeBytes.length + imageBytes.length + afterBytes.length + footer.length;
+      return;
+    }
+
+    const body = encoder.encode(`${objectBody}\n`);
+    chunks.push(header, body, footer);
+    byteLength += header.length + body.length + footer.length;
+  });
+
+  const xrefOffset = byteLength;
+  const xrefHeader = encoder.encode(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`);
+  chunks.push(xrefHeader);
+  byteLength += xrefHeader.length;
+
+  offsets.slice(1).forEach((offset) => {
+    const entry = encoder.encode(`${String(offset).padStart(10, '0')} 00000 n \n`);
+    chunks.push(entry);
+    byteLength += entry.length;
+  });
+
+  const trailer = encoder.encode(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+  chunks.push(trailer);
+  return new Blob(chunks, { type: 'application/pdf' });
+}
+
 export function renderFilePage({ container, store, canvas }) {
   const initialProjectName = sanitizeProjectName(localStorage.getItem(PROJECT_NAME_KEY) ?? 'blueprint-project');
 
@@ -180,7 +289,8 @@ export function renderFilePage({ container, store, canvas }) {
       <div class="button-row">
         <button class="menu-item" data-file-action="save" type="button">Save Project</button>
         <button class="menu-item" data-file-action="save-as" type="button">Save Project As</button>
-        <button class="menu-item" data-file-action="save-canvas" type="button">Save Canvas Photo</button>
+        <button class="menu-item" data-file-action="save-canvas-jpg" type="button">Save Drawing JPG</button>
+        <button class="menu-item" data-file-action="save-canvas-pdf" type="button">Save Drawing PDF</button>
         <button class="menu-item" data-file-action="load" type="button">Load Project</button>
         <button class="menu-item" data-file-action="reset-view" type="button">Reset Canvas View</button>
         <button class="menu-item" data-file-action="reset-doc" type="button">Reset Blueprint</button>
@@ -303,18 +413,35 @@ export function renderFilePage({ container, store, canvas }) {
       await saveProject({ forceSaveAs: true });
     }
 
-    if (action === 'save-canvas') {
+    if (action === 'save-canvas-jpg' || action === 'save-canvas-pdf') {
       if (!(canvas instanceof HTMLCanvasElement)) {
         setStatus('Canvas export unavailable.');
         return;
       }
 
-      const imageDataUrl = canvas.toDataURL('image/png');
+      const exportCanvas = renderDrawingExportCanvas({ store, fallbackCanvas: canvas });
+      if (!exportCanvas) {
+        setStatus('Could not render drawing export.');
+        return;
+      }
+
       const anchor = document.createElement('a');
-      anchor.href = imageDataUrl;
-      anchor.download = 'blueprint-canvas.png';
+      if (action === 'save-canvas-jpg') {
+        anchor.href = exportCanvas.toDataURL('image/jpeg', 0.92);
+        anchor.download = 'blueprint-drawing.jpg';
+        anchor.click();
+        setStatus('Drawing saved as JPG (grid hidden).');
+        return;
+      }
+
+      const jpegDataUrl = exportCanvas.toDataURL('image/jpeg', 0.92);
+      const pdfBlob = buildPdfFromJpegDataUrl(jpegDataUrl, exportCanvas.width, exportCanvas.height);
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      anchor.href = pdfUrl;
+      anchor.download = 'blueprint-drawing.pdf';
       anchor.click();
-      setStatus('Canvas photo saved as PNG.');
+      URL.revokeObjectURL(pdfUrl);
+      setStatus('Drawing saved as PDF (grid hidden).');
     }
 
     if (action === 'load') {
