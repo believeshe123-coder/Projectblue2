@@ -7,6 +7,7 @@ const defaultStyle = {
   fillAlpha: 0.12,
   textSize: 14,
   fontFamily: 'Inter, Segoe UI, Tahoma, sans-serif',
+  textureColorMode: 'original',
 };
 
 export function createLineShape({ layerId, start, end, style = {} }) {

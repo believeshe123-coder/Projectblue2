@@ -37,7 +37,25 @@ function getImage(texture) {
   return image;
 }
 
-export function applyTextureFill(ctx, library, textureId, fallbackFill) {
+function tintSource(source, tintColor) {
+  if (!tintColor) return source;
+  const canvas = document.createElement('canvas');
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return source;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, 0, 0);
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = tintColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = 'source-over';
+  return canvas;
+}
+
+export function applyTextureFill(ctx, library, textureId, fallbackFill, options = {}) {
+  const { tintColor = null, colorMode = 'original' } = options;
   const texture = getTextureById(library, textureId);
   if (!texture) {
     ctx.fillStyle = fallbackFill;
@@ -55,6 +73,10 @@ export function applyTextureFill(ctx, library, textureId, fallbackFill) {
 
   if (!source) {
     source = drawGridTextureToCanvas(texture);
+  }
+
+  if (texture.tintable && colorMode === 'selected' && tintColor) {
+    source = tintSource(source, tintColor);
   }
 
   const pattern = ctx.createPattern(source, 'repeat');

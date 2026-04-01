@@ -20,6 +20,7 @@ export const FILL_STYLE_DEFAULTS = {
   fillAlpha: 0.12,
   fillMode: 'color',
   textureId: null,
+  textureColorMode: 'original',
 };
 
 function loadUserPreferences() {

@@ -1,3 +1,4 @@
+import { BUILT_IN_TEXTURES } from '../canvas/texturePresets.js';
 const LIBRARY_STORAGE_KEY = 'blueprint.library.v1';
 
 function cloneGrid(grid, fallback = 10) {
@@ -32,6 +33,7 @@ function normalizeTexture(texture) {
     kind,
     grid: cloneGrid(texture.grid, 10),
     dataUrl,
+    tintable: Boolean(texture.tintable),
     updatedAt: Number(texture.updatedAt) || Date.now(),
   };
 }
@@ -40,16 +42,24 @@ function defaultLibrary() {
   return { shapes: [], textures: [] };
 }
 
+function withBuiltInTextures(textures = []) {
+  const byId = new Map(textures.map((texture) => [texture.id, texture]));
+  for (const preset of BUILT_IN_TEXTURES) {
+    byId.set(preset.id, { ...preset, ...(byId.get(preset.id) ?? {}) });
+  }
+  return [...byId.values()];
+}
+
 export function loadLibrary() {
   try {
     const raw = localStorage.getItem(LIBRARY_STORAGE_KEY);
-    if (!raw) return defaultLibrary();
+    if (!raw) return { ...defaultLibrary(), textures: withBuiltInTextures() };
     const parsed = JSON.parse(raw);
     const shapes = Array.isArray(parsed?.shapes) ? parsed.shapes.map(normalizeShape).filter(Boolean) : [];
     const textures = Array.isArray(parsed?.textures) ? parsed.textures.map(normalizeTexture).filter(Boolean) : [];
-    return { shapes, textures };
+    return { shapes, textures: withBuiltInTextures(textures) };
   } catch {
-    return defaultLibrary();
+    return { ...defaultLibrary(), textures: withBuiltInTextures() };
   }
 }
 

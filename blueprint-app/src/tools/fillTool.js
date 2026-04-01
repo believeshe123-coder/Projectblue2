@@ -256,6 +256,7 @@ function getActiveFillStyle(store) {
       : (Number.isFinite(configured.fillAlpha) ? configured.fillAlpha : 0.12),
     fillMode: selectedStyle.fillMode ?? configured.fillMode ?? 'color',
     textureId: selectedStyle.textureId ?? configured.textureId ?? null,
+    textureColorMode: selectedStyle.textureColorMode ?? configured.textureColorMode ?? 'original',
   };
 }
 

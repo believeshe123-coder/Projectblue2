@@ -235,6 +235,15 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         updateSelectedStyles({ textureId, fillMode });
       }
     }
+    if (target.id === 'style-texture-color-mode') {
+      const textureColorMode = target.value === 'selected' ? 'selected' : 'original';
+      if (store.appState.activeTool === 'fill') {
+        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureColorMode } });
+      }
+      if (store.appState.selectedIds.length) {
+        updateSelectedStyles({ textureColorMode });
+      }
+    }
     if (target.id === 'style-stroke-width') {
       const width = Number.parseFloat(target.value);
       if (Number.isFinite(width)) {
@@ -361,6 +370,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       fontFamily: FONT_OPTIONS[0],
       fillMode: 'color',
       textureId: null,
+      textureColorMode: 'original',
     };
     const toolStyle = store.appState.toolStyle ?? {};
     const fillToolStyle = store.appState.fillStyle ?? {};
@@ -375,6 +385,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           ),
           fillMode: style?.fillMode ?? fillToolStyle.fillMode ?? defaultStyle.fillMode,
           textureId: style?.textureId ?? fillToolStyle.textureId ?? defaultStyle.textureId,
+          textureColorMode: style?.textureColorMode ?? fillToolStyle.textureColorMode ?? defaultStyle.textureColorMode,
         }
       : { ...defaultStyle, ...toolStyle, ...style };
 
@@ -383,6 +394,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const fillAlpha = Number.isFinite(effectiveStyle.fillAlpha) ? effectiveStyle.fillAlpha : 0.12;
     const noSelectionLabel = count ? `${count} shape(s) selected.` : 'Select a shape to edit properties.';
     const fillMode = effectiveStyle.fillMode === 'texture' ? 'texture' : 'color';
+    const textureColorMode = effectiveStyle.textureColorMode === 'selected' ? 'selected' : 'original';
     const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${effectiveStyle.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
 
     let body = `<p>${noSelectionLabel}</p>`;
@@ -407,6 +419,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           <label>Text size <input id="style-text-size" type="number" min="8" step="1" value="${effectiveStyle.textSize ?? 14}" ${count ? '' : 'disabled'} /></label>
         </div>
       `;
+
     }
 
     if (activeTool === 'line' || activeTool === 'pen') {
@@ -496,10 +509,16 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
             </select>
           </label>
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: fillControlsDisabled || fillMode === 'texture', historyKind: 'fill' })}
-          <label>Texture
+          <label>Floor texture
             <select id="style-texture-id" ${fillControlsDisabled || !store.library.textures.length ? 'disabled' : ''}>
               <option value="">None</option>
               ${textureOptions}
+            </select>
+          </label>
+          <label>Texture color
+            <select id="style-texture-color-mode" ${fillControlsDisabled || fillMode !== 'texture' ? 'disabled' : ''}>
+              <option value="original" ${textureColorMode === 'original' ? 'selected' : ''}>Original (B/W preset)</option>
+              <option value="selected" ${textureColorMode === 'selected' ? 'selected' : ''}>Use selected fill color</option>
             </select>
           </label>
           <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${fillControlsDisabled ? 'disabled' : ''} /></label>
