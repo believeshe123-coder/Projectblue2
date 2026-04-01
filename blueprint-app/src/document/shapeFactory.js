@@ -9,20 +9,20 @@ const defaultStyle = {
   fontFamily: 'Inter, Segoe UI, Tahoma, sans-serif',
 };
 
-export function createLineShape({ layerId, start, end }) {
+export function createLineShape({ layerId, start, end, style = {} }) {
   return {
     id: generateId('shape'),
     type: 'line',
     layerId,
     start,
     end,
-    style: { ...defaultStyle },
+    style: { ...defaultStyle, ...style },
     visible: true,
     locked: false,
   };
 }
 
-export function createCurveShape({ layerId, start, end, control }) {
+export function createCurveShape({ layerId, start, end, control, style = {} }) {
   return {
     id: generateId('shape'),
     type: 'curve',
@@ -30,26 +30,26 @@ export function createCurveShape({ layerId, start, end, control }) {
     start,
     end,
     control,
-    style: { ...defaultStyle },
+    style: { ...defaultStyle, ...style },
     visible: true,
     locked: false,
   };
 }
 
-export function createPenShape({ layerId, points }) {
+export function createPenShape({ layerId, points, style = {} }) {
   return {
     id: generateId('shape'),
     type: 'pen',
     layerId,
     points: points.map((point) => ({ x: point.x, y: point.y })),
-    style: { ...defaultStyle },
+    style: { ...defaultStyle, ...style },
     visible: true,
     locked: false,
   };
 }
 
 
-export function createTapeShape({ layerId, start, end, mode = 'direct', offset = null }) {
+export function createTapeShape({ layerId, start, end, mode = 'direct', offset = null, style = {} }) {
   return {
     id: generateId('shape'),
     type: 'tape',
@@ -58,7 +58,7 @@ export function createTapeShape({ layerId, start, end, mode = 'direct', offset =
     end,
     mode,
     offset,
-    style: { ...defaultStyle, stroke: '#0f4c81' },
+    style: { ...defaultStyle, stroke: '#0f4c81', ...style },
     visible: true,
     locked: false,
   };
@@ -80,7 +80,7 @@ export function createRoomShape({ layerId, x, y, width, height }) {
   };
 }
 
-export function createLabelShape({ layerId, x, y, text = 'Text' }) {
+export function createLabelShape({ layerId, x, y, text = 'Text', style = {} }) {
   return {
     id: generateId('shape'),
     type: 'label',
@@ -88,7 +88,7 @@ export function createLabelShape({ layerId, x, y, text = 'Text' }) {
     x,
     y,
     text,
-    style: { ...defaultStyle, fill: '#1f2937' },
+    style: { ...defaultStyle, fill: '#1f2937', ...style },
     visible: true,
     locked: false,
   };

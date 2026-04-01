@@ -54,6 +54,7 @@ function finalizeTape(context, finalPoint) {
   const shape = createTapeShape({
     layerId: documentData.layers[0].id,
     ...buildTapeShapeArgs(preview, finalPoint),
+    style: context.store.appState.toolStyle,
   });
 
   addShape(shape);

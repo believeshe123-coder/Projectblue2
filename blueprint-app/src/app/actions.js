@@ -1,4 +1,4 @@
-import { store } from './store.js';
+import { FILL_STYLE_DEFAULTS, TOOL_STYLE_DEFAULTS, store } from './store.js';
 import { pushHistory, undo, redo } from './history.js';
 import { snapToGrid } from '../interaction/snapUtils.js';
 import { expandSelectionWithGroups } from '../interaction/selection.js';
@@ -261,6 +261,13 @@ export function setZoom(nextZoom) {
 
 export function updateDocumentSettings(partial) {
   Object.assign(store.documentData.settings, partial);
+  store.notify();
+}
+
+export function resetPreferences() {
+  store.documentData.settings = { ...store.defaultSettings };
+  store.appState.toolStyle = { ...TOOL_STYLE_DEFAULTS };
+  store.appState.fillStyle = { ...FILL_STYLE_DEFAULTS };
   store.notify();
 }
 

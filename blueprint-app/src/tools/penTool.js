@@ -34,6 +34,7 @@ function finalizeStroke(context) {
     const stroke = createPenShape({
       layerId,
       points: preview.points,
+      style: context.store.appState.toolStyle,
     });
     addShape(stroke);
     setSelection([stroke.id]);

@@ -168,6 +168,24 @@ function applyTransform(documentData, snapshot, fromBounds, toBounds) {
   }
 }
 
+function applyTranslation(documentData, snapshot, dx, dy) {
+  for (const shape of documentData.shapes) {
+    const original = snapshot[shape.id];
+    if (!original) continue;
+
+    if (original.start) shape.start = { x: original.start.x + dx, y: original.start.y + dy };
+    if (original.end) shape.end = { x: original.end.x + dx, y: original.end.y + dy };
+    if (original.control) shape.control = { x: original.control.x + dx, y: original.control.y + dy };
+    if (original.points) shape.points = original.points.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+
+    if (original.x != null) shape.x = original.x + dx;
+    if (original.y != null) shape.y = original.y + dy;
+    if (original.width != null) shape.width = original.width;
+    if (original.height != null) shape.height = original.height;
+    if (original.angle != null) shape.angle = original.angle;
+  }
+}
+
 function normalizeAngleDelta(deltaDeg) {
   let normalized = deltaDeg;
   while (normalized > 180) normalized -= 360;
@@ -293,9 +311,11 @@ export const selectTool = {
     }
 
     if (hit && store.appState.selectedIds.includes(hit.id)) {
+      const ids = expandSelectionWithGroups(store.documentData, store.appState.selectedIds);
       ephemeral.selectionMode = 'move';
       ephemeral.moveStartPoint = point;
       ephemeral.moveLastPoint = point;
+      ephemeral.transformSnapshot = captureTransformSnapshot(store.documentData, ids);
       ephemeral.moved = false;
       return;
     }
@@ -308,9 +328,11 @@ export const selectTool = {
       toggleSelection(store.appState, store.documentData, hit.id);
     } else {
       selectOne(store.appState, store.documentData, hit.id);
+      const ids = expandSelectionWithGroups(store.documentData, [hit.id]);
       ephemeral.selectionMode = 'move';
       ephemeral.moveStartPoint = point;
       ephemeral.moveLastPoint = point;
+      ephemeral.transformSnapshot = captureTransformSnapshot(store.documentData, ids);
       ephemeral.moved = false;
     }
 
@@ -350,29 +372,26 @@ export const selectTool = {
       return;
     }
 
-    if (ephemeral.selectionMode === 'move' && ephemeral.moveLastPoint) {
+    if (ephemeral.selectionMode === 'move' && ephemeral.moveLastPoint && ephemeral.moveStartPoint && ephemeral.transformSnapshot) {
       let nextPoint = point;
       const { settings } = store.documentData;
       const snappingEnabled = !event?.ctrlKey && !event?.metaKey;
+      const rawStartPoint = ephemeral.moveStartPoint;
+      const snappedStartPoint = snappingEnabled && settings.snap ? snapToGrid(rawStartPoint, store.documentData) : rawStartPoint;
+
+      if (snappingEnabled && settings.axisSnap) {
+        nextPoint = snapToAxis(nextPoint, snappedStartPoint);
+      }
 
       if (snappingEnabled && settings.snap) {
         nextPoint = snapToGrid(nextPoint, store.documentData);
       }
 
-      if (snappingEnabled && settings.axisSnap && ephemeral.moveStartPoint) {
-        nextPoint = snapToAxis(nextPoint, ephemeral.moveStartPoint);
-      }
-
-      const dx = nextPoint.x - ephemeral.moveLastPoint.x;
-      const dy = nextPoint.y - ephemeral.moveLastPoint.y;
+      const dx = nextPoint.x - snappedStartPoint.x;
+      const dy = nextPoint.y - snappedStartPoint.y;
       if (dx !== 0 || dy !== 0) {
         ephemeral.moved = true;
-        const selected = new Set(store.appState.selectedIds);
-        for (const shape of store.documentData.shapes) {
-          if (!selected.has(shape.id) || shape.locked) continue;
-          const behavior = getShapeBehavior(shape.type);
-          behavior?.move?.(shape, dx, dy);
-        }
+        applyTranslation(store.documentData, ephemeral.transformSnapshot, dx, dy);
         ephemeral.moveLastPoint = nextPoint;
         store.notify();
       }
