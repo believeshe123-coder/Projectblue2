@@ -26,17 +26,34 @@ function beginOffsetPreview(context, point) {
   };
 }
 
-function finalizeTape(context, pointOverride) {
+export function buildTapeShapeArgs(preview, finalPoint) {
+  if (preview.mode === 'offset') {
+    return {
+      start: preview.start,
+      end: preview.end,
+      mode: 'offset',
+      offset: finalPoint ?? preview.offset,
+    };
+  }
+
+  return {
+    start: preview.start,
+    end: finalPoint ?? preview.end,
+    mode: 'direct',
+    offset: null,
+  };
+}
+
+function finalizeTape(context, finalPoint) {
   const preview = context.ephemeral.preview;
   const { appState, documentData } = context.store;
   if (!preview || preview.type !== 'tape' || !appState.dragStart) return;
 
+  // In direct mode, finalPoint updates the end. In 3-point offset mode,
+  // finalPoint sets only the pull location while preserving the baseline end.
   const shape = createTapeShape({
     layerId: documentData.layers[0].id,
-    start: preview.start,
-    end: pointOverride ?? preview.end,
-    mode: preview.mode === 'offset' ? 'offset' : 'direct',
-    offset: preview.mode === 'offset' ? (pointOverride ?? preview.offset) : null,
+    ...buildTapeShapeArgs(preview, finalPoint),
   });
 
   addShape(shape);
