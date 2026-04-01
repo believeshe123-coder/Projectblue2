@@ -675,3 +675,48 @@ body {
   color: #475569;
   font-size: 0.72rem;
 }
+
+.texture-picker {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.texture-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.3rem;
+}
+
+.texture-picker-option.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.texture-picker-preview {
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  flex: 0 0 auto;
+  background: #f8fafc;
+}
+
+.texture-picker-preview-none,
+.texture-picker-preview-fallback {
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.texture-picker-name {
+  font-size: 0.82rem;
+}

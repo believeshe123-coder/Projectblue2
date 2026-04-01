@@ -136,3 +136,21 @@ test('diagonal wood and loop carpet presets keep seamless-ready deterministic ma
   assert.match(carpetSvg, /feTurbulence/);
   assert.match(carpetSvg, /stitchTiles="stitch"/);
 });
+
+test('new built-in floor preset ids are present and tintable', () => {
+  const expectedIds = [
+    'builtin-tile-ceramic-square',
+    'builtin-tile-large-format',
+    'builtin-herringbone',
+    'builtin-stone-speckle',
+    'builtin-hex-tile',
+  ];
+
+  for (const textureId of expectedIds) {
+    const texture = BUILT_IN_TEXTURES.find((entry) => entry.id === textureId);
+    assert.ok(texture, `missing texture ${textureId}`);
+    assert.equal(texture.kind, 'image');
+    assert.equal(texture.tintable, true);
+    assert.match(texture.dataUrl, /^data:image\/svg\+xml/);
+  }
+});
