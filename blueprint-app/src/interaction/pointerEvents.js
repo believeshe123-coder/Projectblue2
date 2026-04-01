@@ -1,5 +1,5 @@
 import { screenToWorld } from './coordinateUtils.js';
-import { snapToAxis, snapToGrid } from './snapUtils.js';
+import { findNearestSnapPoint, snapToAngle, snapToAxis, snapToGrid } from './snapUtils.js';
 import { getTool } from '../tools/toolRegistry.js';
 
 const MIN_ZOOM = 0.25;
@@ -25,11 +25,21 @@ function shouldPan(event) {
   return event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
 }
 
-function applyDrawingSnap(world, store, activeTool) {
+function resolveAnchorPoint(store, ephemeral) {
+  const preview = ephemeral?.preview;
+  if (preview?.type === 'line' || preview?.type === 'tape' || preview?.type === 'room' || preview?.type === 'curve') {
+    return preview.start ?? null;
+  }
+
+  return store.appState.dragStart;
+}
+
+function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
   if (activeTool?.id === 'select' || activeTool?.id === 'fill') return world;
 
   const { settings } = store.documentData;
-  const { dragStart, isDragging } = store.appState;
+  const { isDragging } = store.appState;
+  const dragStart = resolveAnchorPoint(store, ephemeral);
   let point = world;
 
   const shouldGridSnap = activeTool?.id === 'erase' || (settings.snap && activeTool?.id !== 'pen');
@@ -37,8 +47,24 @@ function applyDrawingSnap(world, store, activeTool) {
     point = snapToGrid(point, store.documentData);
   }
 
-  if (settings.axisSnap && activeTool?.id !== 'pen' && activeTool?.id !== 'erase' && isDragging && dragStart) {
+  const shouldObjectSnap = settings.objectSnap !== false && activeTool?.id !== 'erase';
+  if (shouldObjectSnap) {
+    const objectSnapTolerance = Number(settings.objectSnapTolerance) || 12;
+    const nearestPoint = findNearestSnapPoint(point, store.documentData.shapes, objectSnapTolerance);
+    if (nearestPoint) {
+      point = nearestPoint;
+    }
+  }
+
+  const shouldAxisSnap = (settings.axisSnap || event?.shiftKey) && activeTool?.id !== 'pen' && activeTool?.id !== 'erase';
+  if (shouldAxisSnap && isDragging && dragStart) {
     point = snapToAxis(point, dragStart);
+  }
+
+  const shouldAngleSnap = settings.angleSnap === true && activeTool?.id !== 'pen' && activeTool?.id !== 'erase';
+  if (shouldAngleSnap && isDragging && dragStart) {
+    const angleStep = Number(settings.angleSnapIncrement) || 15;
+    point = snapToAngle(point, dragStart, angleStep);
   }
 
   return point;
@@ -80,7 +106,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
     const activeTool = getTool(store.appState.activeTool);
     const screen = eventPointFromCanvas(canvas, event);
     const world = screenToWorld(screen, store.appState);
-    const point = applyDrawingSnap(world, store, activeTool);
+    const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);
 
     activeTool?.onPointerDown?.({ canvas, ctx: canvas.getContext('2d'), store, ephemeral }, point, event);
   });
@@ -96,7 +122,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
     const activeTool = getTool(store.appState.activeTool);
     const screen = eventPointFromCanvas(canvas, event);
     const world = screenToWorld(screen, store.appState);
-    const point = applyDrawingSnap(world, store, activeTool);
+    const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);
 
     ephemeral.cursorScreen = screen;
     ephemeral.cursorWorld = point;
@@ -121,7 +147,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
     const activeTool = getTool(store.appState.activeTool);
     const screen = eventPointFromCanvas(canvas, event);
     const world = screenToWorld(screen, store.appState);
-    const point = applyDrawingSnap(world, store, activeTool);
+    const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);
 
     activeTool?.onPointerUp?.({ canvas, ctx: canvas.getContext('2d'), store, ephemeral }, point, event);
   });

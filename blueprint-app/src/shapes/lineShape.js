@@ -1,5 +1,5 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
-import { formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
 
 function drawLineMeasurement(ctx, shape, settings) {
   const dx = shape.end.x - shape.start.x;
@@ -11,23 +11,7 @@ function drawLineMeasurement(ctx, shape, settings) {
   const midY = (shape.start.y + shape.end.y) / 2;
   const label = formatMeasurement(length, settings);
 
-  ctx.save();
-  ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  const metrics = ctx.measureText(label);
-  const width = metrics.width + 12;
-  const height = 18;
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#0f4c81';
-  ctx.lineWidth = 1;
-  ctx.fillRect(midX - width / 2, midY - height / 2, width, height);
-  ctx.strokeRect(midX - width / 2, midY - height / 2, width, height);
-
-  ctx.fillStyle = '#0f4c81';
-  ctx.fillText(label, midX, midY);
-  ctx.restore();
+  drawMeasurementLabel(ctx, midX, midY, label, settings);
 }
 
 function drawStyledLine(ctx, shape) {
