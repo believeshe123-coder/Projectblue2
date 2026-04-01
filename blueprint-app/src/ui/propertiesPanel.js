@@ -228,11 +228,15 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     if (target.id === 'style-texture-id') {
       const textureId = target.value || null;
       const fillMode = textureId ? 'texture' : 'color';
+      const selectedTexture = store.library.textures.find((texture) => texture.id === textureId) ?? null;
+      const textureColorMode = selectedTexture && selectedTexture.tintable === false
+        ? 'original'
+        : (store.appState.fillStyle?.textureColorMode ?? 'original');
       if (store.appState.activeTool === 'fill') {
-        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureId, fillMode } });
+        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureId, fillMode, textureColorMode } });
       }
       if (store.appState.selectedIds.length) {
-        updateSelectedStyles({ textureId, fillMode });
+        updateSelectedStyles({ textureId, fillMode, textureColorMode });
       }
     }
     if (target.id === 'style-texture-color-mode') {
@@ -415,6 +419,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       ? Math.min(4, Math.max(0.25, effectiveStyle.textureScale))
       : 1;
     const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${effectiveStyle.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
+    const selectedTexture = store.library.textures.find((texture) => texture.id === effectiveStyle.textureId) ?? null;
+    const selectedTextureTintable = selectedTexture ? selectedTexture.tintable !== false : true;
 
     let body = `<p>${noSelectionLabel}</p>`;
 
@@ -527,7 +533,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
               <option value="texture" ${fillMode === 'texture' ? 'selected' : ''}>Texture</option>
             </select>
           </label>
-          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: fillControlsDisabled || fillMode === 'texture', historyKind: 'fill' })}
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: fillControlsDisabled, historyKind: 'fill' })}
           <label>Floor texture
             <select id="style-texture-id" ${fillControlsDisabled || !store.library.textures.length ? 'disabled' : ''}>
               <option value="">None</option>
@@ -537,9 +543,10 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           <label>Texture color
             <select id="style-texture-color-mode" ${fillControlsDisabled || fillMode !== 'texture' ? 'disabled' : ''}>
               <option value="original" ${textureColorMode === 'original' ? 'selected' : ''}>Original (B/W preset)</option>
-              <option value="selected" ${textureColorMode === 'selected' ? 'selected' : ''}>Use selected fill color</option>
+              <option value="selected" ${textureColorMode === 'selected' ? 'selected' : ''} ${selectedTextureTintable ? '' : 'disabled'}>Use selected fill color</option>
             </select>
           </label>
+          ${fillMode === 'texture' && !selectedTextureTintable ? '<p class="muted-hint">Selected texture uses original colors only.</p>' : ''}
           <label>Texture scale (${textureScale.toFixed(2)}x)
             <input id="style-texture-scale" type="range" min="0.25" max="4" step="0.05" value="${textureScale}" ${fillControlsDisabled || fillMode !== 'texture' ? 'disabled' : ''} />
           </label>

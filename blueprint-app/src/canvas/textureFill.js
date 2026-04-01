@@ -47,9 +47,11 @@ function tintSource(source, tintColor) {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(source, 0, 0);
-  ctx.globalCompositeOperation = 'source-atop';
+  ctx.globalCompositeOperation = 'multiply';
   ctx.fillStyle = tintColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(source, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   return canvas;
 }
