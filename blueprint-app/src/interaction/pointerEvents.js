@@ -25,8 +25,12 @@ function shouldPan(event) {
   return event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
 }
 
-function resolveAnchorPoint(store, ephemeral) {
+export function resolveAnchorPoint(store, ephemeral) {
   const preview = ephemeral?.preview;
+  if (preview?.type === 'tape' && preview.mode === 'offset' && preview.phase === 'set-offset') {
+    return preview.end ?? preview.start ?? null;
+  }
+
   if (preview?.type === 'line' || preview?.type === 'tape' || preview?.type === 'room' || preview?.type === 'curve') {
     return preview.start ?? null;
   }
