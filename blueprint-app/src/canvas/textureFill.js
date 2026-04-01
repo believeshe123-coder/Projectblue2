@@ -55,7 +55,7 @@ function tintSource(source, tintColor) {
 }
 
 export function applyTextureFill(ctx, library, textureId, fallbackFill, options = {}) {
-  const { tintColor = null, colorMode = 'original' } = options;
+  const { tintColor = null, colorMode = 'original', textureScale = 1 } = options;
   const texture = getTextureById(library, textureId);
   if (!texture) {
     ctx.fillStyle = fallbackFill;
@@ -84,6 +84,13 @@ export function applyTextureFill(ctx, library, textureId, fallbackFill, options 
     ctx.fillStyle = fallbackFill;
     ctx.fill();
     return;
+  }
+
+  const safeScale = Number.isFinite(textureScale)
+    ? Math.min(4, Math.max(0.25, textureScale))
+    : 1;
+  if (safeScale !== 1 && typeof pattern.setTransform === 'function') {
+    pattern.setTransform(new DOMMatrix().scale(safeScale, safeScale));
   }
 
   ctx.fillStyle = pattern;

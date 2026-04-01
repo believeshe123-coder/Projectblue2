@@ -244,6 +244,18 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         updateSelectedStyles({ textureColorMode });
       }
     }
+    if (target.id === 'style-texture-scale') {
+      const parsed = Number.parseFloat(target.value);
+      if (Number.isFinite(parsed)) {
+        const textureScale = Math.min(4, Math.max(0.25, parsed));
+        if (store.appState.activeTool === 'fill') {
+          patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureScale } });
+        }
+        if (store.appState.selectedIds.length) {
+          updateSelectedStyles({ textureScale });
+        }
+      }
+    }
     if (target.id === 'style-stroke-width') {
       const width = Number.parseFloat(target.value);
       if (Number.isFinite(width)) {
@@ -371,6 +383,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       fillMode: 'color',
       textureId: null,
       textureColorMode: 'original',
+      textureScale: 1,
     };
     const toolStyle = store.appState.toolStyle ?? {};
     const fillToolStyle = store.appState.fillStyle ?? {};
@@ -386,6 +399,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           fillMode: style?.fillMode ?? fillToolStyle.fillMode ?? defaultStyle.fillMode,
           textureId: style?.textureId ?? fillToolStyle.textureId ?? defaultStyle.textureId,
           textureColorMode: style?.textureColorMode ?? fillToolStyle.textureColorMode ?? defaultStyle.textureColorMode,
+          textureScale: Number.isFinite(style?.textureScale)
+            ? style.textureScale
+            : (Number.isFinite(fillToolStyle.textureScale) ? fillToolStyle.textureScale : defaultStyle.textureScale),
         }
       : { ...defaultStyle, ...toolStyle, ...style };
 
@@ -395,6 +411,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const noSelectionLabel = count ? `${count} shape(s) selected.` : 'Select a shape to edit properties.';
     const fillMode = effectiveStyle.fillMode === 'texture' ? 'texture' : 'color';
     const textureColorMode = effectiveStyle.textureColorMode === 'selected' ? 'selected' : 'original';
+    const textureScale = Number.isFinite(effectiveStyle.textureScale)
+      ? Math.min(4, Math.max(0.25, effectiveStyle.textureScale))
+      : 1;
     const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${effectiveStyle.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
 
     let body = `<p>${noSelectionLabel}</p>`;
@@ -520,6 +539,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
               <option value="original" ${textureColorMode === 'original' ? 'selected' : ''}>Original (B/W preset)</option>
               <option value="selected" ${textureColorMode === 'selected' ? 'selected' : ''}>Use selected fill color</option>
             </select>
+          </label>
+          <label>Texture scale (${textureScale.toFixed(2)}x)
+            <input id="style-texture-scale" type="range" min="0.25" max="4" step="0.05" value="${textureScale}" ${fillControlsDisabled || fillMode !== 'texture' ? 'disabled' : ''} />
           </label>
           <label>Transparency <input id="style-fill-alpha" type="range" min="0" max="1" step="0.05" value="${fillAlpha}" ${fillControlsDisabled ? 'disabled' : ''} /></label>
           <button id="fill-remove" ${hasFilledSelection ? '' : 'disabled'}>Take away fill</button>

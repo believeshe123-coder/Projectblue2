@@ -48,6 +48,7 @@ export const regionShape = {
       applyTextureFill(ctx, options.library, shape.style.textureId, colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12), {
         tintColor: shape.style.fill,
         colorMode: shape.style.textureColorMode ?? 'original',
+        textureScale: shape.style.textureScale ?? 1,
       });
     } else {
       ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
