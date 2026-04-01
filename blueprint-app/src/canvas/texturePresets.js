@@ -2,6 +2,98 @@ function svgDataUrl(svg) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
+function createCeramicPatternSvg({ patternId, patternWidth, patternHeight, grout, background, tileMarkup }) {
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+      <defs>
+        <filter id="${patternId}-mottle" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="23" stitchTiles="stitch"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feComponentTransfer>
+            <feFuncR type="gamma" amplitude="0.9" exponent="1.1" offset="0.02"/>
+            <feFuncG type="gamma" amplitude="0.9" exponent="1.1" offset="0.02"/>
+            <feFuncB type="gamma" amplitude="0.9" exponent="1.1" offset="0.02"/>
+          </feComponentTransfer>
+        </filter>
+        <linearGradient id="${patternId}-tone" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#f6f6f6"/>
+          <stop offset="1" stop-color="#e7e7e7"/>
+        </linearGradient>
+        <pattern id="${patternId}" width="${patternWidth}" height="${patternHeight}" patternUnits="userSpaceOnUse">
+          <rect width="${patternWidth}" height="${patternHeight}" fill="${background}"/>
+          <g fill="url(#${patternId}-tone)" stroke="${grout}" stroke-width="1">
+            ${tileMarkup}
+          </g>
+          <rect width="${patternWidth}" height="${patternHeight}" fill="#000000" filter="url(#${patternId}-mottle)" opacity="0.1"/>
+        </pattern>
+      </defs>
+      <rect width="96" height="96" fill="${background}"/>
+      <rect width="96" height="96" fill="url(#${patternId})"/>
+      <rect width="96" height="96" fill="url(#${patternId})" opacity="0.22" transform="translate(0.6 0.4)"/>
+    </svg>
+  `;
+}
+
+function ceramicSquareSvg() {
+  return createCeramicPatternSvg({
+    patternId: 'ceramic-square',
+    patternWidth: 24,
+    patternHeight: 24,
+    grout: '#959595',
+    background: '#ededed',
+    tileMarkup: `
+      <rect x="1.5" y="1.5" width="21" height="21" rx="1.6" ry="1.6"/>
+      <rect x="6.8" y="6.8" width="10.4" height="10.4" rx="1.1" ry="1.1" fill="#efefef" stroke="none" opacity="0.3"/>
+    `,
+  });
+}
+
+function ceramicLargeFormatSvg() {
+  return createCeramicPatternSvg({
+    patternId: 'ceramic-large-format',
+    patternWidth: 48,
+    patternHeight: 32,
+    grout: '#979797',
+    background: '#ececec',
+    tileMarkup: `
+      <rect x="1.5" y="1.5" width="45" height="29" rx="1.8" ry="1.8"/>
+      <rect x="12" y="9.5" width="24" height="13" rx="1.2" ry="1.2" fill="#efefef" stroke="none" opacity="0.26"/>
+    `,
+  });
+}
+
+function ceramicHerringboneSvg() {
+  return createCeramicPatternSvg({
+    patternId: 'ceramic-herringbone',
+    patternWidth: 24,
+    patternHeight: 24,
+    grout: '#969696',
+    background: '#ececec',
+    tileMarkup: `
+      <path d="M0 0h8v16H0z"/>
+      <path d="M8 16h16v8H8z"/>
+      <path d="M16 0h8v16h-8z"/>
+      <path d="M0 16h16v8H0z" opacity="0.9"/>
+      <path d="M3 3h3v9H3zM18 3h3v9h-3zM3 18h9v3H3zM12 18h9v3h-9z" fill="#efefef" stroke="none" opacity="0.2"/>
+    `,
+  });
+}
+
+function ceramicHexSvg() {
+  return createCeramicPatternSvg({
+    patternId: 'ceramic-hex',
+    patternWidth: 24,
+    patternHeight: 42,
+    grout: '#969696',
+    background: '#ececec',
+    tileMarkup: `
+      <path d="M12 0.5L23.5 7.5L23.5 20.5L12 27.5L0.5 20.5L0.5 7.5Z" stroke-linejoin="round"/>
+      <path d="M12 21.5L23.5 28.5L23.5 41.5L12 48.5L0.5 41.5L0.5 28.5Z" stroke-linejoin="round"/>
+      <path d="M9 8.5h6M9 29.5h6" fill="none" stroke="#b2b2b2" stroke-width="0.7" stroke-linecap="round"/>
+    `,
+  });
+}
+
 export const BUILT_IN_TEXTURES = [
   {
     id: 'builtin-wood-planks',
@@ -145,19 +237,7 @@ export const BUILT_IN_TEXTURES = [
     name: 'Ceramic Tile (Square)',
     kind: 'image',
     tintable: true,
-    dataUrl: svgDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-        <defs>
-          <pattern id="ceramicSq" width="24" height="24" patternUnits="userSpaceOnUse">
-            <rect width="24" height="24" fill="#ebebeb"/>
-            <rect x="2.5" y="2.5" width="19" height="19" rx="1.5" ry="1.5" fill="#f8f8f8"/>
-            <rect x="5" y="5" width="14" height="14" rx="1" ry="1" fill="#e3e3e3" opacity="0.35"/>
-            <path d="M0 0H24V24H0Z" fill="none" stroke="#9a9a9a" stroke-width="1"/>
-          </pattern>
-        </defs>
-        <rect width="96" height="96" fill="url(#ceramicSq)"/>
-      </svg>
-    `),
+    dataUrl: svgDataUrl(ceramicSquareSvg()),
     grid: [],
     updatedAt: 0,
   },
@@ -166,45 +246,16 @@ export const BUILT_IN_TEXTURES = [
     name: 'Tile (Large Format)',
     kind: 'image',
     tintable: true,
-    dataUrl: svgDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-        <defs>
-          <pattern id="largeFormat" width="48" height="32" patternUnits="userSpaceOnUse">
-            <rect width="48" height="32" fill="#f2f2f2"/>
-            <rect x="2" y="2" width="44" height="28" rx="1.5" ry="1.5" fill="#e7e7e7"/>
-            <path d="M0 0H48V32H0Z" fill="none" stroke="#8f8f8f" stroke-width="1"/>
-            <path d="M6 10h10M20 22h14M35 14h8" stroke="#b3b3b3" stroke-width="0.8" stroke-linecap="round"/>
-          </pattern>
-        </defs>
-        <rect width="96" height="96" fill="#f5f5f5"/>
-        <rect width="96" height="96" fill="url(#largeFormat)"/>
-      </svg>
-    `),
+    dataUrl: svgDataUrl(ceramicLargeFormatSvg()),
     grid: [],
     updatedAt: 0,
   },
   {
     id: 'builtin-herringbone',
-    name: 'Wood (Herringbone)',
+    name: 'Tile (Herringbone)',
     kind: 'image',
     tintable: true,
-    dataUrl: svgDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-        <defs>
-          <pattern id="herringbone" width="32" height="32" patternUnits="userSpaceOnUse">
-            <rect width="32" height="32" fill="#f3f3f3"/>
-            <path d="M0 32L16 16L24 24L8 40Z" fill="#d9d9d9"/>
-            <path d="M0 16L16 0L24 8L8 24Z" fill="#e8e8e8"/>
-            <path d="M16 32L32 16L40 24L24 40Z" fill="#ececec"/>
-            <path d="M16 16L32 0L40 8L24 24Z" fill="#dbdbdb"/>
-            <path d="M0 0L16 16L8 24L-8 8Z" fill="#e4e4e4"/>
-            <path d="M16 0L32 16L24 24L8 8Z" fill="#d6d6d6"/>
-            <path d="M0 32L16 16M16 32L32 16M0 16L16 0M16 16L32 0M0 0L16 16M16 0L32 16" stroke="#8f8f8f" stroke-width="0.9"/>
-          </pattern>
-        </defs>
-        <rect width="96" height="96" fill="url(#herringbone)"/>
-      </svg>
-    `),
+    dataUrl: svgDataUrl(ceramicHerringboneSvg()),
     grid: [],
     updatedAt: 0,
   },
@@ -238,25 +289,7 @@ export const BUILT_IN_TEXTURES = [
     name: 'Tile (Hex)',
     kind: 'image',
     tintable: true,
-    dataUrl: svgDataUrl(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-        <defs>
-          <pattern id="hexPattern" width="24" height="42" patternUnits="userSpaceOnUse">
-            <rect width="24" height="42" fill="#f6f6f6"/>
-            <g fill="#e7e7e7">
-              <path d="M12 0L24 7L24 21L12 28L0 21L0 7Z"/>
-              <path d="M12 21L24 28L24 42L12 49L0 42L0 28Z"/>
-            </g>
-            <g stroke="#8f8f8f" stroke-width="1" stroke-linejoin="round" stroke-linecap="square" fill="none" shape-rendering="crispEdges">
-              <path d="M12 0.5L23.5 7.5L23.5 20.5L12 27.5L0.5 20.5L0.5 7.5Z"/>
-              <path d="M12 21.5L23.5 28.5L23.5 41.5L12 48.5L0.5 41.5L0.5 28.5Z"/>
-            </g>
-            <path d="M4.5 14.5H8.5M15.5 14.5H19.5M4.5 35.5H8.5M15.5 35.5H19.5" stroke="#b4b4b4" stroke-width="1" stroke-linecap="round" shape-rendering="crispEdges"/>
-          </pattern>
-        </defs>
-        <rect width="96" height="96" fill="url(#hexPattern)"/>
-      </svg>
-    `),
+    dataUrl: svgDataUrl(ceramicHexSvg()),
     grid: [],
     updatedAt: 0,
   },

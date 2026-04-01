@@ -6,6 +6,7 @@ import {
   getTexturePreviewDataUrl,
   renderTexturePickerOptions,
 } from './propertiesPanel.js';
+import { BUILT_IN_TEXTURES } from '../canvas/texturePresets.js';
 
 test('texture picker renders preview swatch + name and selected state', () => {
   const textures = [
@@ -83,4 +84,25 @@ test('non-tintable textures keep selected-color option explicit in UI state', ()
   assert.equal(state.selectedTextureTintable, false);
   assert.equal(state.showNonTintableHint, true);
   assert.equal(state.selectedMode, 'selected');
+});
+
+test('updated ceramic-family built-ins render previews and preserve selected state semantics', () => {
+  const updatedPresetIds = [
+    'builtin-tile-ceramic-square',
+    'builtin-tile-large-format',
+    'builtin-herringbone',
+    'builtin-hex-tile',
+  ];
+  const updatedTextures = BUILT_IN_TEXTURES.filter((texture) => updatedPresetIds.includes(texture.id));
+  assert.equal(updatedTextures.length, updatedPresetIds.length);
+
+  for (const texture of updatedTextures) {
+    const preview = getTexturePreviewDataUrl(texture);
+    assert.ok(preview.startsWith('data:image/svg+xml;utf8,'));
+  }
+
+  const selectedTextureId = 'builtin-hex-tile';
+  const html = renderTexturePickerOptions(updatedTextures, selectedTextureId);
+  assert.equal((html.match(/class="texture-picker-preview"/g) ?? []).length, updatedTextures.length);
+  assert.match(html, /class="texture-picker-option selected"[\s\S]*data-texture-id="builtin-hex-tile"/);
 });
