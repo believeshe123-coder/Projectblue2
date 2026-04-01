@@ -21,6 +21,7 @@ export const FILL_STYLE_DEFAULTS = {
   fillMode: 'color',
   textureId: null,
   textureColorMode: 'original',
+  textureScale: 1,
 };
 
 function loadUserPreferences() {

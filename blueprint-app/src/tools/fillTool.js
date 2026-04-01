@@ -257,6 +257,9 @@ function getActiveFillStyle(store) {
     fillMode: selectedStyle.fillMode ?? configured.fillMode ?? 'color',
     textureId: selectedStyle.textureId ?? configured.textureId ?? null,
     textureColorMode: selectedStyle.textureColorMode ?? configured.textureColorMode ?? 'original',
+    textureScale: Number.isFinite(selectedStyle.textureScale)
+      ? selectedStyle.textureScale
+      : (Number.isFinite(configured.textureScale) ? configured.textureScale : 1),
   };
 }
 
