@@ -14,7 +14,7 @@ export const labelTool = {
       style: context.store.appState.toolStyle,
     });
     addShape(shape);
-    setSelection([shape.id]);
+    setSelection([]);
     context.ephemeral.editingLabelId = shape.id;
     context.ephemeral.editingLabelDirty = false;
   },

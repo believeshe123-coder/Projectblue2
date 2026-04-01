@@ -367,6 +367,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         if (store.appState.selectedIds.length) updateSelectedStyles({ lineType: target.value });
       }
     }
+    if (target.id === 'selection-measure-enabled') {
+      setSelectedShapeType(target.checked ? 'tape' : 'line');
+    }
     if (target.id === 'shape-locked') updateSelectedShapes({ locked: target.checked });
     if (target.id === 'room-auto-fill') updateSelectedRoomsFilled(target.checked);
     if (target.id === 'measure-tool-type') {
@@ -469,8 +472,11 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const count = store.appState.selectedIds.length;
     const selected = firstSelectedShape(store);
     const selectedRooms = selectedRoomShapes(store);
+    const selectedLineLikeShapes = selectedShapes(store).filter((shape) => shape.type === 'line' || shape.type === 'tape');
     const allSelectedLocked = count > 0 && selectedShapes(store).every((shape) => shape.locked);
     const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
+    const hasSelectedLineLikeShapes = selectedLineLikeShapes.length > 0;
+    const allSelectedLineLikeAreTape = hasSelectedLineLikeShapes && selectedLineLikeShapes.every((shape) => shape.type === 'tape');
     const anyLockedShapes = store.documentData.shapes.some((shape) => shape.locked);
     const hasFilledSelection = selectedShapes(store).some((shape) => (shape.type === 'room' || shape.type === 'region') && shape.filled === true);
     const style = selected?.style ?? null;
@@ -536,6 +542,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           </div>
           <button id="selection-rotate" ${count ? '' : 'disabled'}>${store.appState.rotateSelection ? 'Exit rotate' : 'Rotate selection'}</button>
           <label class="property-toggle"><input id="shape-locked" type="checkbox" ${allSelectedLocked ? 'checked' : ''} ${count ? '' : 'disabled'} /> Lock</label>
+          <label class="property-toggle"><input id="selection-measure-enabled" type="checkbox" ${allSelectedLineLikeAreTape ? 'checked' : ''} ${hasSelectedLineLikeShapes ? '' : 'disabled'} /> Measure selected lines</label>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: !count, historyKind: 'fill' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>

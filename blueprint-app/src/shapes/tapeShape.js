@@ -1,5 +1,5 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
-import { drawMeasurementLabel, formatMeasurement } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
 
 function drawTapeMeasurement(ctx, lineStart, lineEnd, settings) {
   const dx = lineEnd.x - lineStart.x;
@@ -44,6 +44,8 @@ function resolveOffsetGeometry(shape) {
 
 export const tapeShape = {
   draw(ctx, shape, options = {}) {
+    const shouldRenderLabel = shouldRenderMeasurements(options.settings ?? {}, options.isPreview === true);
+
     if (shape.mode === 'offset') {
       const geometry = resolveOffsetGeometry(shape);
       if (!geometry) return;
@@ -66,7 +68,9 @@ export const tapeShape = {
       ctx.stroke();
       ctx.restore();
 
-      drawTapeMeasurement(ctx, geometry.dimension[0], geometry.dimension[1], options.settings ?? {});
+      if (shouldRenderLabel) {
+        drawTapeMeasurement(ctx, geometry.dimension[0], geometry.dimension[1], options.settings ?? {});
+      }
       return;
     }
 
@@ -80,7 +84,9 @@ export const tapeShape = {
     ctx.stroke();
     ctx.restore();
 
-    drawTapeMeasurement(ctx, shape.start, shape.end, options.settings ?? {});
+    if (shouldRenderLabel) {
+      drawTapeMeasurement(ctx, shape.start, shape.end, options.settings ?? {});
+    }
   },
 
   hitTest(shape, point) {

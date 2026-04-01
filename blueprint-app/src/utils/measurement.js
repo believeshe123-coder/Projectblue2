@@ -24,6 +24,12 @@ export function shouldRenderDrawingMeasurements(settings = {}) {
   return mode === 'always' || mode === 'drawing';
 }
 
+export function shouldRenderMeasurements(settings = {}, isPreview = false) {
+  return isPreview
+    ? shouldRenderDrawingMeasurements(settings)
+    : shouldRenderPersistedMeasurements(settings);
+}
+
 export function resolveMeasurementLabelStyle(settings = {}) {
   const fontSize = Math.min(48, Math.max(8, Number(settings.measurementLabelSize) || 12));
   const fontFamily = settings.measurementLabelFont || 'Inter, Segoe UI, Tahoma, sans-serif';

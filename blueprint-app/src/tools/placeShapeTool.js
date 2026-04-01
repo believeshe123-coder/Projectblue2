@@ -19,7 +19,7 @@ export const placeShapeTool = {
     });
 
     addShape(shape);
-    setSelection([shape.id]);
+    setSelection([]);
     patchState({ activeTool: 'select' });
   },
 
