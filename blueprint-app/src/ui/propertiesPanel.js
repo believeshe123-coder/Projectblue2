@@ -22,6 +22,80 @@ const FONT_OPTIONS = [
 const COLOR_HISTORY_LIMIT = 5;
 const STROKE_HISTORY_KEY = 'blueprint.colorHistory.stroke';
 const FILL_HISTORY_KEY = 'blueprint.colorHistory.fill';
+const TEXTURE_PREVIEW_SIZE = 36;
+const texturePreviewCache = new Map();
+
+function gridSignature(grid) {
+  if (!Array.isArray(grid)) return '';
+  return grid.map((row) => (Array.isArray(row) ? row.map((cell) => (cell ? '1' : '0')).join('') : '')).join('|');
+}
+
+export function getTexturePreviewDataUrl(texture, size = TEXTURE_PREVIEW_SIZE) {
+  if (!texture) return '';
+  if (texture.kind === 'image' && typeof texture.dataUrl === 'string' && texture.dataUrl) {
+    return texture.dataUrl;
+  }
+
+  const signature = gridSignature(texture.grid);
+  const cacheKey = `${texture.id}:${texture.updatedAt ?? 0}:${size}:${signature}`;
+  if (texturePreviewCache.has(cacheKey)) {
+    return texturePreviewCache.get(cacheKey);
+  }
+
+  if (typeof document === 'undefined') return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext?.('2d');
+  if (!ctx) return '';
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(0, 0, size, size);
+  const gridSize = Math.max(1, Array.isArray(texture.grid) ? texture.grid.length : 10);
+  const cell = size / gridSize;
+  for (let y = 0; y < gridSize; y += 1) {
+    for (let x = 0; x < gridSize; x += 1) {
+      if (!texture.grid?.[y]?.[x]) continue;
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(Math.floor(x * cell), Math.floor(y * cell), Math.ceil(cell), Math.ceil(cell));
+    }
+  }
+
+  const dataUrl = canvas.toDataURL('image/png');
+  texturePreviewCache.set(cacheKey, dataUrl);
+  return dataUrl;
+}
+
+export function renderTexturePickerOptions(textures, selectedTextureId) {
+  return textures.map((texture) => {
+    const selected = selectedTextureId === texture.id;
+    const preview = getTexturePreviewDataUrl(texture);
+    return `
+      <button
+        type="button"
+        class="texture-picker-option ${selected ? 'selected' : ''}"
+        data-texture-option="true"
+        data-texture-id="${texture.id}"
+        aria-pressed="${selected ? 'true' : 'false'}"
+        title="${texture.name}"
+      >
+        ${preview
+    ? `<img class="texture-picker-preview" src="${preview}" alt="" />`
+    : '<span class="texture-picker-preview texture-picker-preview-fallback" aria-hidden="true"></span>'}
+        <span class="texture-picker-name">${texture.name}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+export function getTextureColorModeUiState(fillMode, selectedTexture, textureColorMode) {
+  const selectedTextureTintable = selectedTexture ? selectedTexture.tintable !== false : true;
+  return {
+    selectedTextureTintable,
+    selectedMode: textureColorMode === 'selected' ? 'selected' : 'original',
+    showNonTintableHint: fillMode === 'texture' && !selectedTextureTintable,
+  };
+}
 
 function toColorInputValue(color, fallback) {
   if (typeof color !== 'string' || color.trim().length === 0) return fallback;
@@ -180,6 +254,20 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
   const updateToolStyle = (partial) => {
     patchState({ toolStyle: { ...(store.appState.toolStyle ?? {}), ...partial } });
   };
+  const applyTextureSelection = (rawTextureId) => {
+    const textureId = rawTextureId || null;
+    const fillMode = textureId ? 'texture' : 'color';
+    const selectedTexture = store.library.textures.find((texture) => texture.id === textureId) ?? null;
+    const textureColorMode = selectedTexture && selectedTexture.tintable === false
+      ? 'original'
+      : (store.appState.fillStyle?.textureColorMode ?? 'original');
+    if (store.appState.activeTool === 'fill') {
+      patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureId, fillMode, textureColorMode } });
+    }
+    if (store.appState.selectedIds.length) {
+      updateSelectedStyles({ textureId, fillMode, textureColorMode });
+    }
+  };
 
   panel.addEventListener('change', (event) => {
     const target = event.target;
@@ -226,18 +314,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       }
     }
     if (target.id === 'style-texture-id') {
-      const textureId = target.value || null;
-      const fillMode = textureId ? 'texture' : 'color';
-      const selectedTexture = store.library.textures.find((texture) => texture.id === textureId) ?? null;
-      const textureColorMode = selectedTexture && selectedTexture.tintable === false
-        ? 'original'
-        : (store.appState.fillStyle?.textureColorMode ?? 'original');
-      if (store.appState.activeTool === 'fill') {
-        patchState({ fillStyle: { ...(store.appState.fillStyle ?? {}), textureId, fillMode, textureColorMode } });
-      }
-      if (store.appState.selectedIds.length) {
-        updateSelectedStyles({ textureId, fillMode, textureColorMode });
-      }
+      applyTextureSelection(target.value);
     }
     if (target.id === 'style-texture-color-mode') {
       const textureColorMode = target.value === 'selected' ? 'selected' : 'original';
@@ -343,6 +420,13 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       render();
       return;
     }
+    const textureOptionButton = target.closest('button[data-texture-option="true"]');
+    if (textureOptionButton instanceof HTMLButtonElement) {
+      const nextTextureId = textureOptionButton.dataset.textureId ?? '';
+      applyTextureSelection(nextTextureId);
+      render();
+      return;
+    }
 
     if (target.id === 'selection-group') {
       const changed = updateSelectedShapes({ groupId: `group-${Date.now()}` });
@@ -364,6 +448,20 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       if (changed) showActionToast('Flipped selected objects up-down.');
     }
     if (target.id === 'fill-remove') removeSelectedFill();
+  });
+  panel.addEventListener('keydown', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement)) return;
+    if (target.dataset.textureOption !== 'true') return;
+    if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+
+    const options = [...panel.querySelectorAll('button[data-texture-option="true"]')];
+    const index = options.findIndex((entry) => entry === target);
+    if (index < 0) return;
+    const delta = (event.key === 'ArrowDown' || event.key === 'ArrowRight') ? 1 : -1;
+    const next = options[(index + delta + options.length) % options.length];
+    next?.focus();
+    event.preventDefault();
   });
 
   const render = () => {
@@ -418,9 +516,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const textureScale = Number.isFinite(effectiveStyle.textureScale)
       ? Math.min(4, Math.max(0.25, effectiveStyle.textureScale))
       : 1;
-    const textureOptions = store.library.textures.map((texture) => `<option value="${texture.id}" ${effectiveStyle.textureId === texture.id ? 'selected' : ''}>${texture.name}</option>`).join('');
+    const texturePickerOptions = renderTexturePickerOptions(store.library.textures, effectiveStyle.textureId);
     const selectedTexture = store.library.textures.find((texture) => texture.id === effectiveStyle.textureId) ?? null;
-    const selectedTextureTintable = selectedTexture ? selectedTexture.tintable !== false : true;
+    const textureColorState = getTextureColorModeUiState(fillMode, selectedTexture, textureColorMode);
 
     let body = `<p>${noSelectionLabel}</p>`;
 
@@ -534,19 +632,29 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
             </select>
           </label>
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: fillControlsDisabled, historyKind: 'fill' })}
-          <label>Floor texture
-            <select id="style-texture-id" ${fillControlsDisabled || !store.library.textures.length ? 'disabled' : ''}>
-              <option value="">None</option>
-              ${textureOptions}
-            </select>
-          </label>
+          <label id="style-texture-picker-label">Floor texture</label>
+          <input id="style-texture-id" type="hidden" value="${effectiveStyle.textureId ?? ''}" />
+          <div class="texture-picker" role="group" aria-labelledby="style-texture-picker-label">
+            <button
+              type="button"
+              class="texture-picker-option ${!effectiveStyle.textureId ? 'selected' : ''}"
+              data-texture-option="true"
+              data-texture-id=""
+              aria-pressed="${!effectiveStyle.textureId ? 'true' : 'false'}"
+              ${fillControlsDisabled || !store.library.textures.length ? 'disabled' : ''}
+            >
+              <span class="texture-picker-preview texture-picker-preview-none" aria-hidden="true">∅</span>
+              <span class="texture-picker-name">None</span>
+            </button>
+            ${texturePickerOptions}
+          </div>
           <label>Texture color
             <select id="style-texture-color-mode" ${fillControlsDisabled || fillMode !== 'texture' ? 'disabled' : ''}>
               <option value="original" ${textureColorMode === 'original' ? 'selected' : ''}>Original (B/W preset)</option>
-              <option value="selected" ${textureColorMode === 'selected' ? 'selected' : ''} ${selectedTextureTintable ? '' : 'disabled'}>Use selected fill color</option>
+              <option value="selected" ${textureColorState.selectedMode === 'selected' ? 'selected' : ''} ${textureColorState.selectedTextureTintable ? '' : 'disabled'}>Use selected fill color</option>
             </select>
           </label>
-          ${fillMode === 'texture' && !selectedTextureTintable ? '<p class="muted-hint">Selected texture uses original colors only.</p>' : ''}
+          ${textureColorState.showNonTintableHint ? '<p class="muted-hint">Selected texture uses original colors only.</p>' : ''}
           <label>Texture scale (${textureScale.toFixed(2)}x)
             <input id="style-texture-scale" type="range" min="0.25" max="4" step="0.05" value="${textureScale}" ${fillControlsDisabled || fillMode !== 'texture' ? 'disabled' : ''} />
           </label>

@@ -139,6 +139,121 @@ export const BUILT_IN_TEXTURES = [
     grid: [],
     updatedAt: 0,
   },
+
+  {
+    id: 'builtin-tile-ceramic-square',
+    name: 'Ceramic Tile (Square)',
+    kind: 'image',
+    tintable: true,
+    dataUrl: svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+        <defs>
+          <pattern id="ceramicSq" width="24" height="24" patternUnits="userSpaceOnUse">
+            <rect width="24" height="24" fill="#ebebeb"/>
+            <rect x="2.5" y="2.5" width="19" height="19" rx="1.5" ry="1.5" fill="#f8f8f8"/>
+            <rect x="5" y="5" width="14" height="14" rx="1" ry="1" fill="#e3e3e3" opacity="0.35"/>
+            <path d="M0 0H24V24H0Z" fill="none" stroke="#9a9a9a" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect width="96" height="96" fill="url(#ceramicSq)"/>
+      </svg>
+    `),
+    grid: [],
+    updatedAt: 0,
+  },
+  {
+    id: 'builtin-tile-large-format',
+    name: 'Tile (Large Format)',
+    kind: 'image',
+    tintable: true,
+    dataUrl: svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+        <defs>
+          <pattern id="largeFormat" width="48" height="32" patternUnits="userSpaceOnUse">
+            <rect width="48" height="32" fill="#f2f2f2"/>
+            <rect x="2" y="2" width="44" height="28" rx="1.5" ry="1.5" fill="#e7e7e7"/>
+            <path d="M0 0H48V32H0Z" fill="none" stroke="#8f8f8f" stroke-width="1"/>
+            <path d="M6 10h10M20 22h14M35 14h8" stroke="#b3b3b3" stroke-width="0.8" stroke-linecap="round"/>
+          </pattern>
+        </defs>
+        <rect width="96" height="96" fill="#f5f5f5"/>
+        <rect width="96" height="96" fill="url(#largeFormat)"/>
+      </svg>
+    `),
+    grid: [],
+    updatedAt: 0,
+  },
+  {
+    id: 'builtin-herringbone',
+    name: 'Wood (Herringbone)',
+    kind: 'image',
+    tintable: true,
+    dataUrl: svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+        <defs>
+          <pattern id="herringbone" width="32" height="32" patternUnits="userSpaceOnUse">
+            <rect width="32" height="32" fill="#f3f3f3"/>
+            <path d="M0 32L16 16L24 24L8 40Z" fill="#d9d9d9"/>
+            <path d="M0 16L16 0L24 8L8 24Z" fill="#e8e8e8"/>
+            <path d="M16 32L32 16L40 24L24 40Z" fill="#ececec"/>
+            <path d="M16 16L32 0L40 8L24 24Z" fill="#dbdbdb"/>
+            <path d="M0 0L16 16L8 24L-8 8Z" fill="#e4e4e4"/>
+            <path d="M16 0L32 16L24 24L8 8Z" fill="#d6d6d6"/>
+            <path d="M0 32L16 16M16 32L32 16M0 16L16 0M16 16L32 0M0 0L16 16M16 0L32 16" stroke="#8f8f8f" stroke-width="0.9"/>
+          </pattern>
+        </defs>
+        <rect width="96" height="96" fill="url(#herringbone)"/>
+      </svg>
+    `),
+    grid: [],
+    updatedAt: 0,
+  },
+  {
+    id: 'builtin-stone-speckle',
+    name: 'Stone (Speckle)',
+    kind: 'image',
+    tintable: true,
+    dataUrl: svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+        <defs>
+          <filter id="stoneNoise" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" seed="19" stitchTiles="stitch"/>
+            <feColorMatrix type="saturate" values="0"/>
+          </filter>
+        </defs>
+        <rect width="96" height="96" fill="#ececec"/>
+        <rect width="96" height="96" filter="url(#stoneNoise)" opacity="0.28"/>
+        <g fill="#9c9c9c" opacity="0.38">
+          <circle cx="10" cy="12" r="1.3"/><circle cx="26" cy="18" r="1.1"/><circle cx="43" cy="10" r="1.4"/><circle cx="62" cy="22" r="1.2"/><circle cx="84" cy="14" r="1.1"/>
+          <circle cx="14" cy="44" r="1.2"/><circle cx="33" cy="36" r="1.3"/><circle cx="52" cy="48" r="1.1"/><circle cx="70" cy="40" r="1.4"/><circle cx="88" cy="46" r="1.2"/>
+          <circle cx="8" cy="74" r="1.2"/><circle cx="25" cy="82" r="1.1"/><circle cx="45" cy="70" r="1.3"/><circle cx="63" cy="84" r="1.1"/><circle cx="82" cy="76" r="1.2"/>
+        </g>
+      </svg>
+    `),
+    grid: [],
+    updatedAt: 0,
+  },
+  {
+    id: 'builtin-hex-tile',
+    name: 'Tile (Hex)',
+    kind: 'image',
+    tintable: true,
+    dataUrl: svgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+        <defs>
+          <pattern id="hexPattern" width="24" height="20.784" patternUnits="userSpaceOnUse">
+            <rect width="24" height="20.784" fill="#f4f4f4"/>
+            <path d="M6 0L18 0L24 10.392L18 20.784L6 20.784L0 10.392Z" fill="#e8e8e8"/>
+            <path d="M6 0L18 0L24 10.392L18 20.784L6 20.784L0 10.392Z" fill="none" stroke="#909090" stroke-width="0.9"/>
+            <path d="M3 10.392L9 10.392M15 10.392L21 10.392" stroke="#b1b1b1" stroke-width="0.7" stroke-linecap="round"/>
+          </pattern>
+        </defs>
+        <rect width="96" height="96" fill="url(#hexPattern)"/>
+      </svg>
+    `),
+    grid: [],
+    updatedAt: 0,
+  },
   {
     id: 'builtin-checker-bw',
     name: 'Checker (B/W)',
