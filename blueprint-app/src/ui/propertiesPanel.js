@@ -131,6 +131,30 @@ function selectedRoomShapes(store) {
   return selectedShapes(store).filter((shape) => shape.type === 'room' || shape.type === 'region');
 }
 
+
+function renderMeasurePreview(mode) {
+  const isOffset = mode === 'offset-3-point';
+  const baselineStroke = isOffset ? '#0f4c81' : '#1f2937';
+  const baselineDash = isOffset ? '' : "stroke-dasharray='4 4'";
+
+  return `
+    <div class="measure-preview" aria-label="Measurement preview">
+      <svg viewBox="0 0 140 68" role="img" aria-hidden="true">
+        ${isOffset ? `
+          <line x1="24" y1="16" x2="24" y2="44" stroke="#64748b" stroke-width="2" />
+          <line x1="110" y1="16" x2="110" y2="44" stroke="#64748b" stroke-width="2" />
+          <line x1="24" y1="44" x2="110" y2="44" stroke="#0f4c81" stroke-width="2" stroke-dasharray="5 4" />
+        ` : `
+          <line x1="24" y1="32" x2="110" y2="32" stroke="${baselineStroke}" stroke-width="2" ${baselineDash} />
+        `}
+        <circle cx="24" cy="${isOffset ? 16 : 32}" r="3" fill="#0f4c81" />
+        <circle cx="110" cy="${isOffset ? 16 : 32}" r="3" fill="#0f4c81" />
+      </svg>
+      <p>${isOffset ? '3 clicks: start, end, pull offset.' : '2 clicks (or drag): start and end.'}</p>
+    </div>
+  `;
+}
+
 function lineTypeOptions(selected) {
   const isTape = selected?.type === 'tape';
   const current = isTape ? 'tape' : (selected?.style?.lineType ?? 'solid');
@@ -433,6 +457,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           </label>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
+          ${renderMeasurePreview(tapeMeasureMode)}
         </div>
       `;
     }
