@@ -154,3 +154,15 @@ test('new built-in floor preset ids are present and tintable', () => {
     assert.match(texture.dataUrl, /^data:image\/svg\+xml/);
   }
 });
+
+test('hex tile preset keeps tintable image contract with seamless repeat metadata', () => {
+  const texture = BUILT_IN_TEXTURES.find((entry) => entry.id === 'builtin-hex-tile');
+  assert.ok(texture, 'missing texture builtin-hex-tile');
+  assert.equal(texture.kind, 'image');
+  assert.equal(texture.tintable, true);
+
+  const hexSvg = decodeSvg('builtin-hex-tile');
+  assert.match(hexSvg, /pattern id="hexPattern" width="24" height="42"/);
+  assert.match(hexSvg, /shape-rendering="crispEdges"/);
+  assert.match(hexSvg, /M12 21\.5L23\.5 28\.5L23\.5 41\.5L12 48\.5L0\.5 41\.5L0\.5 28\.5Z/);
+});

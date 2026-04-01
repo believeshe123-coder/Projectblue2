@@ -241,11 +241,17 @@ export const BUILT_IN_TEXTURES = [
     dataUrl: svgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
         <defs>
-          <pattern id="hexPattern" width="24" height="20.784" patternUnits="userSpaceOnUse">
-            <rect width="24" height="20.784" fill="#f4f4f4"/>
-            <path d="M6 0L18 0L24 10.392L18 20.784L6 20.784L0 10.392Z" fill="#e8e8e8"/>
-            <path d="M6 0L18 0L24 10.392L18 20.784L6 20.784L0 10.392Z" fill="none" stroke="#909090" stroke-width="0.9"/>
-            <path d="M3 10.392L9 10.392M15 10.392L21 10.392" stroke="#b1b1b1" stroke-width="0.7" stroke-linecap="round"/>
+          <pattern id="hexPattern" width="24" height="42" patternUnits="userSpaceOnUse">
+            <rect width="24" height="42" fill="#f6f6f6"/>
+            <g fill="#e7e7e7">
+              <path d="M12 0L24 7L24 21L12 28L0 21L0 7Z"/>
+              <path d="M12 21L24 28L24 42L12 49L0 42L0 28Z"/>
+            </g>
+            <g stroke="#8f8f8f" stroke-width="1" stroke-linejoin="round" stroke-linecap="square" fill="none" shape-rendering="crispEdges">
+              <path d="M12 0.5L23.5 7.5L23.5 20.5L12 27.5L0.5 20.5L0.5 7.5Z"/>
+              <path d="M12 21.5L23.5 28.5L23.5 41.5L12 48.5L0.5 41.5L0.5 28.5Z"/>
+            </g>
+            <path d="M4.5 14.5H8.5M15.5 14.5H19.5M4.5 35.5H8.5M15.5 35.5H19.5" stroke="#b4b4b4" stroke-width="1" stroke-linecap="round" shape-rendering="crispEdges"/>
           </pattern>
         </defs>
         <rect width="96" height="96" fill="url(#hexPattern)"/>
