@@ -85,7 +85,10 @@ export const roomShape = {
       ctx.beginPath();
       ctx.rect(-shape.width / 2, -shape.height / 2, shape.width, shape.height);
       if (shape.style?.fillMode === 'texture' && shape.style?.textureId) {
-        applyTextureFill(ctx, options.library, shape.style.textureId, colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12));
+        applyTextureFill(ctx, options.library, shape.style.textureId, colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12), {
+          tintColor: shape.style.fill,
+          colorMode: shape.style.textureColorMode ?? 'original',
+        });
       } else {
         ctx.fillStyle = colorWithAlpha(shape.style.fill, shape.style.fillAlpha ?? 0.12);
         ctx.fill();
