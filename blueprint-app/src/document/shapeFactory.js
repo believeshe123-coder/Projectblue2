@@ -49,13 +49,15 @@ export function createPenShape({ layerId, points }) {
 }
 
 
-export function createTapeShape({ layerId, start, end }) {
+export function createTapeShape({ layerId, start, end, mode = 'direct', offset = null }) {
   return {
     id: generateId('shape'),
     type: 'tape',
     layerId,
     start,
     end,
+    mode,
+    offset,
     style: { ...defaultStyle, stroke: '#0f4c81' },
     visible: true,
     locked: false,

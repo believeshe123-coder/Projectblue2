@@ -63,6 +63,8 @@ function previewToShape(preview, layerId = 'layer-1') {
       layerId,
       start: preview.start,
       end: preview.end,
+      mode: preview.mode === 'offset' ? 'offset' : 'direct',
+      offset: preview.mode === 'offset' ? (preview.offset ?? preview.end) : null,
       style: {
         stroke: isErasePreview ? '#dc2626' : '#1f2937',
         strokeWidth: 2,

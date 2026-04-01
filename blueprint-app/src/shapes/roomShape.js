@@ -1,5 +1,5 @@
 import { pointInRect } from '../utils/geometry.js';
-import { formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
 import { colorWithAlpha } from '../utils/color.js';
 import { applyTextureFill } from '../canvas/textureFill.js';
 
@@ -37,26 +37,6 @@ function roomCorners(room) {
   return baseCorners.map((point) => rotatePoint(point, center, radians));
 }
 
-function drawMeasurementLabel(ctx, x, y, text) {
-  ctx.save();
-  ctx.font = '12px Inter, Segoe UI, Tahoma, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  const metrics = ctx.measureText(text);
-  const width = metrics.width + 12;
-  const height = 18;
-  ctx.fillStyle = '#ffffff';
-  ctx.strokeStyle = '#0f4c81';
-  ctx.lineWidth = 1;
-  ctx.fillRect(x - width / 2, y - height / 2, width, height);
-  ctx.strokeRect(x - width / 2, y - height / 2, width, height);
-
-  ctx.fillStyle = '#0f4c81';
-  ctx.fillText(text, x, y);
-  ctx.restore();
-}
-
 export function drawRoomMeasurements(ctx, room, settings = {}) {
   if (room.width < 1 || room.height < 1) return;
 
@@ -68,10 +48,10 @@ export function drawRoomMeasurements(ctx, room, settings = {}) {
   const leftX = room.x - 12;
   const rightX = room.x + room.width + 12;
 
-  drawMeasurementLabel(ctx, room.x + room.width / 2, topY, horizontal);
-  drawMeasurementLabel(ctx, room.x + room.width / 2, bottomY, horizontal);
-  drawMeasurementLabel(ctx, leftX, room.y + room.height / 2, vertical);
-  drawMeasurementLabel(ctx, rightX, room.y + room.height / 2, vertical);
+  drawMeasurementLabel(ctx, room.x + room.width / 2, topY, horizontal, settings);
+  drawMeasurementLabel(ctx, room.x + room.width / 2, bottomY, horizontal, settings);
+  drawMeasurementLabel(ctx, leftX, room.y + room.height / 2, vertical, settings);
+  drawMeasurementLabel(ctx, rightX, room.y + room.height / 2, vertical, settings);
 }
 
 function strokeRoom(ctx, shape) {
