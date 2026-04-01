@@ -70,30 +70,28 @@ export const BUILT_IN_TEXTURES = [
     tintable: true,
     dataUrl: svgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-        <rect width="96" height="96" fill="#ffffff" />
-        <g transform="rotate(45 48 48)">
-          <rect x="-56" y="-56" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="-48" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="-40" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="-32" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="-24" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="-16" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="-8" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="0" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="8" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="16" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="24" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="32" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="40" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="48" width="224" height="8" fill="#f2f2f2"/>
-          <rect x="-56" y="56" width="224" height="8" fill="#dadada"/>
-          <rect x="-56" y="64" width="224" height="8" fill="#f2f2f2"/>
-        </g>
-        <g stroke="#777" stroke-width="0.8" transform="rotate(45 48 48)">
-          <path d="M-56 -48h224M-56 -40h224M-56 -32h224M-56 -24h224M-56 -16h224M-56 -8h224M-56 0h224M-56 8h224M-56 16h224M-56 24h224M-56 32h224M-56 40h224M-56 48h224M-56 56h224"/>
-        </g>
-        <g stroke="#9a9a9a" stroke-width="0.7" transform="rotate(45 48 48)">
-          <path d="M-20 -52h10M40 -44h8M96 -36h12M0 -20h10M64 -12h9M114 -4h8M24 12h9M86 20h11M-8 28h8M52 36h10M108 44h9M12 52h10"/>
+        <defs>
+          <clipPath id="tileClip"><rect width="96" height="96"/></clipPath>
+        </defs>
+        <rect width="96" height="96" fill="#f6f6f6" />
+        <g clip-path="url(#tileClip)" stroke-linecap="butt">
+          <g stroke="#dddddd" stroke-width="8">
+            <path d="M-96 0L0 96"/><path d="M-80 0L16 96"/><path d="M-64 0L32 96"/><path d="M-48 0L48 96"/><path d="M-32 0L64 96"/><path d="M-16 0L80 96"/><path d="M0 0L96 96"/>
+            <path d="M16 0L112 96"/><path d="M32 0L128 96"/><path d="M48 0L144 96"/><path d="M64 0L160 96"/><path d="M80 0L176 96"/><path d="M96 0L192 96"/>
+          </g>
+          <g stroke="#f0f0f0" stroke-width="8">
+            <path d="M-88 0L8 96"/><path d="M-72 0L24 96"/><path d="M-56 0L40 96"/><path d="M-40 0L56 96"/><path d="M-24 0L72 96"/><path d="M-8 0L88 96"/>
+            <path d="M8 0L104 96"/><path d="M24 0L120 96"/><path d="M40 0L136 96"/><path d="M56 0L152 96"/><path d="M72 0L168 96"/><path d="M88 0L184 96"/>
+          </g>
+          <g stroke="#777" stroke-width="0.85">
+            <path d="M-92 0L4 96"/><path d="M-84 0L12 96"/><path d="M-76 0L20 96"/><path d="M-68 0L28 96"/><path d="M-60 0L36 96"/><path d="M-52 0L44 96"/><path d="M-44 0L52 96"/><path d="M-36 0L60 96"/>
+            <path d="M-28 0L68 96"/><path d="M-20 0L76 96"/><path d="M-12 0L84 96"/><path d="M-4 0L92 96"/><path d="M4 0L100 96"/><path d="M12 0L108 96"/><path d="M20 0L116 96"/><path d="M28 0L124 96"/>
+            <path d="M36 0L132 96"/><path d="M44 0L140 96"/><path d="M52 0L148 96"/><path d="M60 0L156 96"/><path d="M68 0L164 96"/><path d="M76 0L172 96"/><path d="M84 0L180 96"/><path d="M92 0L188 96"/>
+          </g>
+          <g stroke="#9c9c9c" stroke-width="0.7">
+            <path d="M-64 12h10"/><path d="M-22 22h9"/><path d="M18 30h11"/><path d="M56 44h10"/><path d="M92 58h8"/><path d="M132 74h9"/>
+            <path d="M-36 54h9"/><path d="M2 66h10"/><path d="M42 76h9"/><path d="M80 86h10"/>
+          </g>
         </g>
       </svg>
     `),
@@ -107,23 +105,34 @@ export const BUILT_IN_TEXTURES = [
     tintable: true,
     dataUrl: svgDataUrl(`
       <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-        <rect width="96" height="96" fill="#ffffff" />
-        <g fill="#8f8f8f" opacity="0.9">
-          <circle cx="6" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="30" cy="6" r="1.6"/><circle cx="42" cy="6" r="1.6"/><circle cx="54" cy="6" r="1.6"/><circle cx="66" cy="6" r="1.6"/><circle cx="78" cy="6" r="1.6"/><circle cx="90" cy="6" r="1.6"/>
-          <circle cx="12" cy="12" r="1.6"/><circle cx="24" cy="12" r="1.6"/><circle cx="36" cy="12" r="1.6"/><circle cx="48" cy="12" r="1.6"/><circle cx="60" cy="12" r="1.6"/><circle cx="72" cy="12" r="1.6"/><circle cx="84" cy="12" r="1.6"/>
-          <circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/><circle cx="30" cy="18" r="1.6"/><circle cx="42" cy="18" r="1.6"/><circle cx="54" cy="18" r="1.6"/><circle cx="66" cy="18" r="1.6"/><circle cx="78" cy="18" r="1.6"/><circle cx="90" cy="18" r="1.6"/>
-          <circle cx="12" cy="24" r="1.6"/><circle cx="24" cy="24" r="1.6"/><circle cx="36" cy="24" r="1.6"/><circle cx="48" cy="24" r="1.6"/><circle cx="60" cy="24" r="1.6"/><circle cx="72" cy="24" r="1.6"/><circle cx="84" cy="24" r="1.6"/>
-          <circle cx="6" cy="30" r="1.6"/><circle cx="18" cy="30" r="1.6"/><circle cx="30" cy="30" r="1.6"/><circle cx="42" cy="30" r="1.6"/><circle cx="54" cy="30" r="1.6"/><circle cx="66" cy="30" r="1.6"/><circle cx="78" cy="30" r="1.6"/><circle cx="90" cy="30" r="1.6"/>
-          <circle cx="12" cy="36" r="1.6"/><circle cx="24" cy="36" r="1.6"/><circle cx="36" cy="36" r="1.6"/><circle cx="48" cy="36" r="1.6"/><circle cx="60" cy="36" r="1.6"/><circle cx="72" cy="36" r="1.6"/><circle cx="84" cy="36" r="1.6"/>
-          <circle cx="6" cy="42" r="1.6"/><circle cx="18" cy="42" r="1.6"/><circle cx="30" cy="42" r="1.6"/><circle cx="42" cy="42" r="1.6"/><circle cx="54" cy="42" r="1.6"/><circle cx="66" cy="42" r="1.6"/><circle cx="78" cy="42" r="1.6"/><circle cx="90" cy="42" r="1.6"/>
-          <circle cx="12" cy="48" r="1.6"/><circle cx="24" cy="48" r="1.6"/><circle cx="36" cy="48" r="1.6"/><circle cx="48" cy="48" r="1.6"/><circle cx="60" cy="48" r="1.6"/><circle cx="72" cy="48" r="1.6"/><circle cx="84" cy="48" r="1.6"/>
-          <circle cx="6" cy="54" r="1.6"/><circle cx="18" cy="54" r="1.6"/><circle cx="30" cy="54" r="1.6"/><circle cx="42" cy="54" r="1.6"/><circle cx="54" cy="54" r="1.6"/><circle cx="66" cy="54" r="1.6"/><circle cx="78" cy="54" r="1.6"/><circle cx="90" cy="54" r="1.6"/>
-          <circle cx="12" cy="60" r="1.6"/><circle cx="24" cy="60" r="1.6"/><circle cx="36" cy="60" r="1.6"/><circle cx="48" cy="60" r="1.6"/><circle cx="60" cy="60" r="1.6"/><circle cx="72" cy="60" r="1.6"/><circle cx="84" cy="60" r="1.6"/>
-          <circle cx="6" cy="66" r="1.6"/><circle cx="18" cy="66" r="1.6"/><circle cx="30" cy="66" r="1.6"/><circle cx="42" cy="66" r="1.6"/><circle cx="54" cy="66" r="1.6"/><circle cx="66" cy="66" r="1.6"/><circle cx="78" cy="66" r="1.6"/><circle cx="90" cy="66" r="1.6"/>
-          <circle cx="12" cy="72" r="1.6"/><circle cx="24" cy="72" r="1.6"/><circle cx="36" cy="72" r="1.6"/><circle cx="48" cy="72" r="1.6"/><circle cx="60" cy="72" r="1.6"/><circle cx="72" cy="72" r="1.6"/><circle cx="84" cy="72" r="1.6"/>
-          <circle cx="6" cy="78" r="1.6"/><circle cx="18" cy="78" r="1.6"/><circle cx="30" cy="78" r="1.6"/><circle cx="42" cy="78" r="1.6"/><circle cx="54" cy="78" r="1.6"/><circle cx="66" cy="78" r="1.6"/><circle cx="78" cy="78" r="1.6"/><circle cx="90" cy="78" r="1.6"/>
-          <circle cx="12" cy="84" r="1.6"/><circle cx="24" cy="84" r="1.6"/><circle cx="36" cy="84" r="1.6"/><circle cx="48" cy="84" r="1.6"/><circle cx="60" cy="84" r="1.6"/><circle cx="72" cy="84" r="1.6"/><circle cx="84" cy="84" r="1.6"/>
-          <circle cx="6" cy="90" r="1.6"/><circle cx="18" cy="90" r="1.6"/><circle cx="30" cy="90" r="1.6"/><circle cx="42" cy="90" r="1.6"/><circle cx="54" cy="90" r="1.6"/><circle cx="66" cy="90" r="1.6"/><circle cx="78" cy="90" r="1.6"/><circle cx="90" cy="90" r="1.6"/>
+        <defs>
+          <filter id="loopNoise" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" stitchTiles="stitch"/>
+            <feColorMatrix type="saturate" values="0"/>
+            <feComponentTransfer>
+              <feFuncR type="gamma" amplitude="1" exponent="1.4" offset="0"/>
+              <feFuncG type="gamma" amplitude="1" exponent="1.4" offset="0"/>
+              <feFuncB type="gamma" amplitude="1" exponent="1.4" offset="0"/>
+            </feComponentTransfer>
+          </filter>
+        </defs>
+        <rect width="96" height="96" fill="#f6f6f6"/>
+        <rect width="96" height="96" filter="url(#loopNoise)" opacity="0.35"/>
+        <g stroke="#8d8d8d" stroke-linecap="round" fill="#8d8d8d">
+          <path d="M4 9l3 1" stroke-width="0.8" opacity="0.4"/><path d="M12 19l2 -1" stroke-width="0.7" opacity="0.32"/><path d="M22 8l3 0" stroke-width="0.75" opacity="0.42"/>
+          <path d="M29 22l2 1" stroke-width="0.8" opacity="0.35"/><path d="M38 11l2 0" stroke-width="0.7" opacity="0.36"/><path d="M46 17l3 -1" stroke-width="0.9" opacity="0.4"/>
+          <path d="M55 8l2 1" stroke-width="0.75" opacity="0.34"/><path d="M63 21l3 0" stroke-width="0.8" opacity="0.38"/><path d="M71 10l2 -1" stroke-width="0.7" opacity="0.33"/>
+          <path d="M81 18l3 1" stroke-width="0.85" opacity="0.43"/><path d="M89 7l2 0" stroke-width="0.75" opacity="0.31"/>
+          <circle cx="8" cy="34" r="0.9" opacity="0.45"/><circle cx="17" cy="41" r="1" opacity="0.36"/><circle cx="26" cy="31" r="0.8" opacity="0.32"/>
+          <circle cx="35" cy="39" r="1" opacity="0.4"/><circle cx="44" cy="33" r="0.9" opacity="0.35"/><circle cx="52" cy="43" r="1" opacity="0.42"/>
+          <circle cx="61" cy="30" r="0.8" opacity="0.3"/><circle cx="69" cy="40" r="0.95" opacity="0.38"/><circle cx="78" cy="33" r="0.9" opacity="0.34"/>
+          <circle cx="87" cy="42" r="1" opacity="0.41"/><path d="M6 58l3 -1" stroke-width="0.85" opacity="0.39"/><path d="M15 67l2 1" stroke-width="0.7" opacity="0.33"/>
+          <path d="M24 55l2 0" stroke-width="0.8" opacity="0.37"/><path d="M33 70l3 -1" stroke-width="0.85" opacity="0.43"/><path d="M41 59l2 1" stroke-width="0.7" opacity="0.31"/>
+          <path d="M50 69l3 0" stroke-width="0.9" opacity="0.42"/><path d="M59 57l2 -1" stroke-width="0.75" opacity="0.34"/><path d="M67 66l2 1" stroke-width="0.8" opacity="0.39"/>
+          <path d="M76 54l3 0" stroke-width="0.85" opacity="0.35"/><path d="M84 68l2 -1" stroke-width="0.75" opacity="0.32"/><circle cx="92" cy="60" r="0.9" opacity="0.37"/>
+          <circle cx="10" cy="83" r="1" opacity="0.43"/><circle cx="19" cy="76" r="0.9" opacity="0.34"/><circle cx="28" cy="86" r="0.8" opacity="0.31"/>
+          <circle cx="37" cy="79" r="0.95" opacity="0.39"/><circle cx="46" cy="88" r="0.9" opacity="0.35"/><circle cx="54" cy="80" r="1" opacity="0.4"/>
+          <circle cx="63" cy="90" r="0.85" opacity="0.36"/><circle cx="72" cy="82" r="1" opacity="0.42"/><circle cx="81" cy="89" r="0.9" opacity="0.33"/><circle cx="90" cy="78" r="0.95" opacity="0.38"/>
         </g>
       </svg>
     `),
