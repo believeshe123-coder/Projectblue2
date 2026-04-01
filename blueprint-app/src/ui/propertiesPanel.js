@@ -8,6 +8,7 @@ import {
   updateSelectedRoomsFilled,
   unlockAllShapes,
   patchState,
+  updateDocumentSettings,
 } from '../app/actions.js';
 
 const FALLBACK_STROKE = '#1f2937';
@@ -224,6 +225,12 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     }
     if (target.id === 'shape-locked') updateSelectedShapes({ locked: target.checked });
     if (target.id === 'room-auto-fill') updateSelectedRoomsFilled(target.checked);
+    if (target.id === 'measure-tool-type') {
+      updateDocumentSettings({ tapeMeasureMode: target.value === 'offset-3-point' ? 'offset-3-point' : 'direct' });
+    }
+    if (target.id === 'measure-draw-mode') {
+      updateDocumentSettings({ drawMode: target.value === 'drag' ? 'drag' : 'click' });
+    }
   });
 
   panel.addEventListener('click', (event) => {
@@ -402,6 +409,30 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
               ${FONT_OPTIONS.map((font) => `<option value="${font}" ${(effectiveStyle.fontFamily ?? FONT_OPTIONS[0]) === font ? 'selected' : ''}>${font.split(',')[0]}</option>`).join('')}
             </select>
           </label>
+        </div>
+      `;
+    }
+
+    if (activeTool === 'tape') {
+      const tapeMeasureMode = store.documentData.settings.tapeMeasureMode === 'offset-3-point' ? 'offset-3-point' : 'direct';
+      const drawMode = store.documentData.settings.drawMode === 'drag' ? 'drag' : 'click';
+      body += `
+        <div class="property-group">
+          <h3>Measure</h3>
+          <label>Measure type
+            <select id="measure-tool-type">
+              <option value="direct" ${tapeMeasureMode === 'direct' ? 'selected' : ''}>Direct dotted line</option>
+              <option value="offset-3-point" ${tapeMeasureMode === 'offset-3-point' ? 'selected' : ''}>3-point pulled dimension</option>
+            </select>
+          </label>
+          <label>Drawing interaction
+            <select id="measure-draw-mode">
+              <option value="click" ${drawMode === 'click' ? 'selected' : ''}>Click start, click end</option>
+              <option value="drag" ${drawMode === 'drag' ? 'selected' : ''}>Click and drag</option>
+            </select>
+          </label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: !count, historyKind: 'stroke' })}
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" ${count ? '' : 'disabled'} /></label>
         </div>
       `;
     }
