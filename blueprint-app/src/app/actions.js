@@ -6,7 +6,7 @@ import { generateId } from '../utils/idGenerator.js';
 import { saveLibrary } from './libraryStore.js';
 import { createLayer, resolveActiveLayerId } from '../document/layerModel.js';
 
-const MIN_ZOOM = 0.25;
+const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const CLIPBOARD_OFFSET_GRID_STEPS = 2;
 let shapeClipboard = [];

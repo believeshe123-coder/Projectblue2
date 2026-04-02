@@ -86,6 +86,24 @@ function mountLayoutMenu({ container, layoutState, onApplyState, showActionToast
   fullCanvasButton.type = 'button';
   fullCanvasButton.textContent = 'Full Canvas';
 
+  const historyControls = document.createElement('div');
+  historyControls.className = 'history-controls';
+  historyControls.setAttribute('aria-label', 'History controls');
+
+  const undoButton = document.createElement('button');
+  undoButton.className = 'layout-button';
+  undoButton.id = 'undo-button';
+  undoButton.type = 'button';
+  undoButton.textContent = 'Undo';
+
+  const redoButton = document.createElement('button');
+  redoButton.className = 'layout-button';
+  redoButton.id = 'redo-button';
+  redoButton.type = 'button';
+  redoButton.textContent = 'Redo';
+
+  historyControls.append(undoButton, redoButton);
+
   const applyPreset = (preset) => {
     layoutState.preset = preset;
     if (preset === 'draw') {
@@ -119,6 +137,7 @@ function mountLayoutMenu({ container, layoutState, onApplyState, showActionToast
 
   menu.appendChild(presetSelect);
   menu.appendChild(fullCanvasButton);
+  menu.appendChild(historyControls);
   container.appendChild(menu);
 
   return () => {
