@@ -12,6 +12,28 @@ import { renderFilePage } from './ui/fileMenu.js';
 import { renderLibraryPage } from './ui/libraryPage.js';
 import { getTool } from './tools/toolRegistry.js';
 
+const LAYOUT_STORAGE_KEY = 'blueprint-editor-layout';
+
+function readLayoutState() {
+  try {
+    const raw = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      leftCollapsed: Boolean(parsed.leftCollapsed),
+      rightCollapsed: Boolean(parsed.rightCollapsed),
+      fullCanvas: Boolean(parsed.fullCanvas),
+      preset: typeof parsed.preset === 'string' ? parsed.preset : 'edit',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeLayoutState(state) {
+  localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(state));
+}
+
 function mountTopNavigation({ container }) {
   const routes = [
     { label: 'Home', route: 'home' },
@@ -38,6 +60,70 @@ function mountTopNavigation({ container }) {
     buttons.forEach(({ route, button }) => {
       button.setAttribute('aria-current', activeRoute === route ? 'page' : 'false');
     });
+  };
+}
+
+function mountLayoutMenu({ container, layoutState, onApplyState, showActionToast }) {
+  const menu = document.createElement('div');
+  menu.className = 'layout-menu';
+
+  const presetSelect = document.createElement('select');
+  presetSelect.className = 'layout-select';
+  presetSelect.setAttribute('aria-label', 'Layout preset');
+  [
+    { value: 'draw', label: 'Draw' },
+    { value: 'edit', label: 'Edit' },
+    { value: 'review', label: 'Review' },
+  ].forEach(({ value, label }) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    presetSelect.appendChild(option);
+  });
+
+  const fullCanvasButton = document.createElement('button');
+  fullCanvasButton.className = 'layout-button';
+  fullCanvasButton.type = 'button';
+  fullCanvasButton.textContent = 'Full Canvas';
+
+  const applyPreset = (preset) => {
+    layoutState.preset = preset;
+    if (preset === 'draw') {
+      layoutState.leftCollapsed = false;
+      layoutState.rightCollapsed = true;
+      layoutState.fullCanvas = false;
+    } else if (preset === 'edit') {
+      layoutState.leftCollapsed = false;
+      layoutState.rightCollapsed = false;
+      layoutState.fullCanvas = false;
+    } else {
+      layoutState.leftCollapsed = true;
+      layoutState.rightCollapsed = true;
+      layoutState.fullCanvas = true;
+    }
+    onApplyState();
+  };
+
+  presetSelect.addEventListener('change', () => {
+    applyPreset(presetSelect.value);
+  });
+
+  fullCanvasButton.addEventListener('click', () => {
+    layoutState.fullCanvas = !layoutState.fullCanvas;
+    if (layoutState.fullCanvas) {
+      layoutState.preset = 'review';
+      showActionToast?.('Full canvas mode enabled. Press Esc to exit.');
+    }
+    onApplyState();
+  });
+
+  menu.appendChild(presetSelect);
+  menu.appendChild(fullCanvasButton);
+  container.appendChild(menu);
+
+  return () => {
+    presetSelect.value = layoutState.preset;
+    fullCanvasButton.textContent = layoutState.fullCanvas ? 'Exit Full Canvas' : 'Full Canvas';
   };
 }
 
@@ -84,6 +170,48 @@ const layersRefresh = mountLayersPanel({
 
 const navRefresh = mountTopNavigation({
   container: document.getElementById('header-controls'),
+});
+
+const layoutState = readLayoutState() ?? {
+  leftCollapsed: false,
+  rightCollapsed: false,
+  fullCanvas: false,
+  preset: 'edit',
+};
+
+function applyLayoutState() {
+  appShell.dataset.leftCollapsed = layoutState.leftCollapsed ? 'true' : 'false';
+  appShell.dataset.rightCollapsed = layoutState.rightCollapsed ? 'true' : 'false';
+  appShell.dataset.fullCanvas = layoutState.fullCanvas ? 'true' : 'false';
+  writeLayoutState(layoutState);
+}
+
+const layoutRefresh = mountLayoutMenu({
+  container: document.getElementById('header-controls'),
+  layoutState,
+  onApplyState: () => {
+    applyLayoutState();
+    draw();
+  },
+  showActionToast,
+});
+
+document.getElementById('left-sidebar-toggle')?.addEventListener('click', () => {
+  layoutState.leftCollapsed = !layoutState.leftCollapsed;
+  if (!layoutState.leftCollapsed && !layoutState.rightCollapsed) {
+    layoutState.preset = 'edit';
+  }
+  applyLayoutState();
+  draw();
+});
+
+document.getElementById('right-sidebar-toggle')?.addEventListener('click', () => {
+  layoutState.rightCollapsed = !layoutState.rightCollapsed;
+  if (!layoutState.leftCollapsed && !layoutState.rightCollapsed) {
+    layoutState.preset = 'edit';
+  }
+  applyLayoutState();
+  draw();
 });
 
 const undoButton = document.getElementById('undo-button');
@@ -210,6 +338,47 @@ function syncCanvasSize() {
 bindPointerEvents({ canvas, store, ephemeral });
 bindKeyboardEvents({ store, ephemeral });
 
+window.addEventListener('keydown', (event) => {
+  if (event.key === '[') {
+    event.preventDefault();
+    layoutState.leftCollapsed = !layoutState.leftCollapsed;
+    applyLayoutState();
+    draw();
+    return;
+  }
+
+  if (event.key === ']') {
+    event.preventDefault();
+    layoutState.rightCollapsed = !layoutState.rightCollapsed;
+    applyLayoutState();
+    draw();
+    return;
+  }
+
+  if (event.key.toLowerCase() === 'f' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault();
+    layoutState.fullCanvas = !layoutState.fullCanvas;
+    if (layoutState.fullCanvas) {
+      layoutState.preset = 'review';
+      showActionToast('Full canvas mode enabled. Press Esc to exit.');
+    }
+    applyLayoutState();
+    draw();
+    return;
+  }
+
+  if (event.key === 'Escape' && layoutState.fullCanvas) {
+    layoutState.fullCanvas = false;
+    if (layoutState.leftCollapsed && layoutState.rightCollapsed) {
+      layoutState.preset = 'draw';
+      layoutState.leftCollapsed = false;
+      layoutState.rightCollapsed = true;
+    }
+    applyLayoutState();
+    draw();
+  }
+});
+
 function getRoute() {
   const route = window.location.hash.replace('#', '');
   if (!route || route === 'home') return 'home';
@@ -272,6 +441,7 @@ function draw() {
   propsRefresh();
   layersRefresh();
   navRefresh(route);
+  layoutRefresh();
 }
 
 window.addEventListener('hashchange', () => {
@@ -290,4 +460,5 @@ window.addEventListener('library-texture-loaded', () => {
   if (getRoute() === 'home') draw();
 });
 
+applyLayoutState();
 draw();
