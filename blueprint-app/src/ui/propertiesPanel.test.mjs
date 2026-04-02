@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  formatMeasurePreviewScale,
   getTextureColorModeUiState,
   getTexturePreviewDataUrl,
   renderTexturePickerOptions,
@@ -105,4 +106,24 @@ test('updated ceramic-family built-ins render previews and preserve selected sta
   const html = renderTexturePickerOptions(updatedTextures, selectedTextureId);
   assert.equal((html.match(/class="texture-picker-preview"/g) ?? []).length, updatedTextures.length);
   assert.match(html, /class="texture-picker-option selected"[\s\S]*data-texture-id="builtin-hex-tile"/);
+});
+
+test('measure preview scale uses custom measurement when enabled', () => {
+  const label = formatMeasurePreviewScale({
+    settings: { unitsPerGrid: 1, units: 'ft' },
+    tapeCustomMeasurementEnabled: true,
+    tapeCustomMeasurementValue: 2.5,
+  });
+
+  assert.equal(label, '2.5 ft per grid box');
+});
+
+test('measure preview scale falls back to global settings when custom measurement is disabled', () => {
+  const label = formatMeasurePreviewScale({
+    settings: { unitsPerGrid: 3, units: 'm' },
+    tapeCustomMeasurementEnabled: false,
+    tapeCustomMeasurementValue: 7,
+  });
+
+  assert.equal(label, '3 m per grid box');
 });

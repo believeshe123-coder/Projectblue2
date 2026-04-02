@@ -315,7 +315,17 @@ function selectedTapeShapes(store) {
 }
 
 
-function renderMeasurePreview(mode) {
+export function formatMeasurePreviewScale({ settings, tapeCustomMeasurementEnabled, tapeCustomMeasurementValue }) {
+  const normalizedCustom = normalizeMeasurementUnitsPerGrid(tapeCustomMeasurementValue);
+  const normalizedGlobal = normalizeMeasurementUnitsPerGrid(settings?.unitsPerGrid);
+  const unitsPerGrid = tapeCustomMeasurementEnabled
+    ? (normalizedCustom ?? normalizedGlobal ?? 1)
+    : (normalizedGlobal ?? 1);
+  const unitsLabel = String(settings?.units ?? '').trim() || 'ft';
+  return `${unitsPerGrid} ${unitsLabel} per grid box`;
+}
+
+function renderMeasurePreview(mode, scaleLabel) {
   const isOffset = mode === 'offset-3-point';
   const baselineStroke = isOffset ? '#0f4c81' : '#1f2937';
   const baselineDash = isOffset ? '' : "stroke-dasharray='4 4'";
@@ -334,6 +344,7 @@ function renderMeasurePreview(mode) {
         <circle cx="110" cy="${isOffset ? 16 : 32}" r="3" fill="#0f4c81" />
       </svg>
       <p>${isOffset ? '3 clicks: start, end, pull offset.' : '2 clicks (or drag): start and end.'}</p>
+      <p class="muted-hint">Preview scale: ${scaleLabel}</p>
     </div>
   `;
 }
@@ -821,6 +832,11 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       const drawMode = store.documentData.settings.drawMode === 'drag' ? 'drag' : 'click';
       const hasSelectedTapes = selectedTapes.length > 0;
       const activeTapeMeasurementValue = hasSelectedTapes ? (tapeMeasurementUnitsPerGrid || String(tapeCustomMeasurementValue)) : String(tapeCustomMeasurementValue);
+      const measurePreviewScaleLabel = formatMeasurePreviewScale({
+        settings: store.documentData.settings,
+        tapeCustomMeasurementEnabled,
+        tapeCustomMeasurementValue,
+      });
       body += `
         <div class="property-group">
           <h3>Measure</h3>
@@ -849,7 +865,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     label: 'Units per grid (measure tool)',
     hint: 'When enabled, new measurements save with this units-per-grid value.',
   })}
-          ${renderMeasurePreview(tapeMeasureMode)}
+          ${renderMeasurePreview(tapeMeasureMode, measurePreviewScaleLabel)}
         </div>
       `;
     }
