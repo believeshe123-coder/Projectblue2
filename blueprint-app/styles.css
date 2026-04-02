@@ -204,13 +204,12 @@ body {
 }
 
 .cursor-preview-dock {
-  position: absolute;
+  position: fixed;
   left: 1rem;
   bottom: 1rem;
-  z-index: 10;
+  z-index: 30;
   display: grid;
   place-items: center;
-  gap: 0.45rem;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.55rem;
@@ -231,15 +230,6 @@ body {
 .history-controls {
   display: flex;
   gap: 0.35rem;
-}
-
-.history-controls button {
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 6px;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.8rem;
-  cursor: pointer;
 }
 
 .canvas-panel {
@@ -342,10 +332,6 @@ body {
   transform: rotate(180deg);
 }
 
-.app-shell[data-full-canvas='true'] .app-header {
-  display: none;
-}
-
 .app-shell[data-full-canvas='true'] .app-main {
   grid-template-columns: 1fr;
 }
@@ -356,7 +342,7 @@ body {
 }
 
 .app-shell[data-full-canvas='true'] #blueprint-canvas {
-  height: calc(100vh - 1.5rem);
+  height: calc(100vh - 76px);
 }
 
 .canvas-label-editor {

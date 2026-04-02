@@ -2,7 +2,7 @@ import { screenToWorld } from './coordinateUtils.js';
 import { findNearestSnapPoint, snapToAngle, snapToAxis, snapToGrid } from './snapUtils.js';
 import { getTool } from '../tools/toolRegistry.js';
 
-const MIN_ZOOM = 0.25;
+const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.1;
 
