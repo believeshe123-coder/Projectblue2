@@ -297,6 +297,78 @@ body {
   font-size: 0.92rem;
 }
 
+.layers-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.layers-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.layers-item {
+  margin: 0;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.layers-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.layers-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+.layers-item-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.layers-item-buttons button {
+  max-width: 100%;
+}
+
+.layers-opacity-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  margin-top: 0.35rem;
+  min-width: 0;
+}
+
+.layers-opacity-row input[type='range'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.layers-opacity-value {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.layers-item-meta {
+  display: block;
+  margin-top: 0.25rem;
+}
+
 .toolbar-buttons {
   display: grid;
   gap: 0.45rem;
