@@ -349,6 +349,27 @@ export function moveLayerDown(layerId) {
   return true;
 }
 
+export function mergeLayerWithLower(layerId) {
+  const layers = store.documentData.layers;
+  const index = findLayerIndexById(layerId);
+  if (index <= 0) return false;
+
+  const layer = layers[index];
+  const lowerLayer = layers[index - 1];
+  for (const shape of store.documentData.shapes) {
+    if (shape.layerId === layer.id) {
+      shape.layerId = lowerLayer.id;
+    }
+  }
+
+  layers.splice(index, 1);
+  if (store.appState.activeLayerId === layer.id) {
+    store.appState.activeLayerId = lowerLayer.id;
+  }
+  commitLayerMutation();
+  return true;
+}
+
 export function toggleLayerVisibility(layerId) {
   const index = findLayerIndexById(layerId);
   if (index < 0) return false;
@@ -409,22 +430,14 @@ export function deleteLayer(layerId) {
   if (layers.length <= 1) return false;
 
   const [removedLayer] = layers.splice(index, 1);
-  const targetLayer = layers[Math.min(index, layers.length - 1)] ?? layers[layers.length - 1];
-  if (!targetLayer) {
-    const replacement = createLayer();
-    layers.push(replacement);
+  if (!layers.length) {
+    layers.push(createLayer());
   }
-  const reassignedLayerId = targetLayer?.id ?? layers[0].id;
-
-  for (const shape of store.documentData.shapes) {
-    if (shape.layerId === removedLayer.id) {
-      shape.layerId = reassignedLayerId;
-    }
-  }
+  store.documentData.shapes = store.documentData.shapes.filter((shape) => shape.layerId !== removedLayer.id);
 
   store.appState.activeLayerId = resolveActiveLayerId(
     store.documentData,
-    removedLayer.id === store.appState.activeLayerId ? reassignedLayerId : store.appState.activeLayerId,
+    removedLayer.id === store.appState.activeLayerId ? null : store.appState.activeLayerId,
   );
   commitLayerMutation();
   return true;

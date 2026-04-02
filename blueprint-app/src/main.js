@@ -9,7 +9,6 @@ import { mountActionToast } from './ui/actionToast.js';
 import { mountLayersPanel } from './ui/layersPanel.js';
 import { renderSettingsPage } from './ui/settingsMenu.js';
 import { renderFilePage } from './ui/fileMenu.js';
-import { renderLibraryPage } from './ui/libraryPage.js';
 import { getTool } from './tools/toolRegistry.js';
 
 const LAYOUT_STORAGE_KEY = 'blueprint-editor-layout';
@@ -39,7 +38,7 @@ function mountTopNavigation({ container }) {
     { label: 'Home', route: 'home' },
     { label: 'Settings', route: 'settings' },
     { label: 'File', route: 'file' },
-    { label: 'Library', route: 'library' },
+    { label: 'Layers', route: 'layers' },
   ];
 
   const buttons = routes.map(({ label, route }) => {
@@ -184,7 +183,7 @@ const propsRefresh = mountPropertiesPanel({
 const layersRefresh = mountLayersPanel({
   container: document.getElementById('layers-panel'),
   store,
-  canvas,
+  mode: 'main',
 });
 
 const navRefresh = mountTopNavigation({
@@ -401,7 +400,7 @@ window.addEventListener('keydown', (event) => {
 function getRoute() {
   const route = window.location.hash.replace('#', '');
   if (!route || route === 'home') return 'home';
-  if (route === 'file' || route === 'settings' || route === 'library') return route;
+  if (route === 'file' || route === 'settings' || route === 'layers') return route;
   return 'home';
 }
 
@@ -418,8 +417,9 @@ function renderRoutePage(route) {
     return;
   }
 
-  if (route === 'library') {
-    renderLibraryPage({ container: routeContainer, store });
+  if (route === 'layers') {
+    const refreshLayersPage = mountLayersPanel({ container: routeContainer, store, mode: 'manage' });
+    refreshLayersPage();
   }
 }
 
