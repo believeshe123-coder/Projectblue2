@@ -76,7 +76,7 @@ function reversePoints(points) {
   return [...points].reverse().map((point) => ({ x: point.x, y: point.y }));
 }
 
-function buildBoundaryGraph(documentData) {
+function buildBoundaryGraph(documentData, activeLayerId) {
   const byKey = new Map();
   const adjacency = new Map();
   const directedPaths = new Map();
@@ -105,6 +105,8 @@ function buildBoundaryGraph(documentData) {
 
   for (const shape of documentData.shapes) {
     if (!shape.visible || shape.locked) continue;
+    const shapeLayerId = shape.layerId ?? activeLayerId;
+    if (shapeLayerId !== activeLayerId) continue;
 
     if (shape.type === 'line' || shape.type === 'curve') {
       const start = upsertVertex(shape.start);
@@ -160,8 +162,8 @@ function pathToPolygon(path, graph) {
   return polygon;
 }
 
-function findClosedPolygons(documentData, point) {
-  const graph = buildBoundaryGraph(documentData);
+function findClosedPolygons(documentData, point, activeLayerId) {
+  const graph = buildBoundaryGraph(documentData, activeLayerId);
   const { byKey, adjacency } = graph;
   const vertices = [...byKey.values()];
   const seenCycles = new Set();
@@ -269,8 +271,9 @@ export const fillTool = {
 
   onPointerDown(context, point) {
     const { store } = context;
+    const activeLayerId = resolveActiveLayerId(store.documentData, store.appState.activeLayerId);
     const activeFillStyle = getActiveFillStyle(store);
-    const polygons = findClosedPolygons(store.documentData, point);
+    const polygons = findClosedPolygons(store.documentData, point, activeLayerId);
     const target = polygons[0];
     if (target) {
       const existing = findMatchingRegion(store.documentData, target.points);
@@ -296,7 +299,7 @@ export const fillTool = {
       return;
     }
 
-    const hit = findShapeAtPoint(store.documentData, point);
+    const hit = findShapeAtPoint(store.documentData, point, { activeLayerId });
     if (!(hit && isClosedShape(hit))) return;
 
     hit.filled = true;

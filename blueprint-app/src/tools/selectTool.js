@@ -10,6 +10,7 @@ import {
 import { normalizeRect } from '../utils/geometry.js';
 import { snapToAxis, snapToGrid } from '../interaction/snapUtils.js';
 import { pushDocumentHistory } from '../app/actions.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 const TRANSFORM_HANDLE_SIZE = 10;
 const SELECTION_PADDING = 4;
@@ -24,6 +25,11 @@ function boundsIntersect(a, b) {
 
 function findShapeById(documentData, id) {
   return documentData.shapes.find((shape) => shape.id === id);
+}
+
+function isShapeOnActiveLayer(activeLayerId, shape) {
+  const shapeLayerId = shape?.layerId ?? activeLayerId;
+  return shapeLayerId === activeLayerId;
 }
 
 function finishLabelEditing(context) {
@@ -274,6 +280,7 @@ export const selectTool = {
 
   onPointerDown(context, point, event) {
     const { store, ephemeral } = context;
+    const activeLayerId = resolveActiveLayerId(store.documentData, store.appState.activeLayerId);
 
     if (store.appState.rotateSelection) {
       const bounds = getSelectionBounds(store.documentData, store.appState);
@@ -303,7 +310,7 @@ export const selectTool = {
       }
     }
 
-    const hit = findShapeAtPoint(store.documentData, point);
+    const hit = findShapeAtPoint(store.documentData, point, { activeLayerId });
     const multi = event?.ctrlKey || event?.metaKey;
 
     if (!hit || hit.type !== 'label' || multi) {
@@ -341,6 +348,7 @@ export const selectTool = {
 
   onPointerMove(context, point, event) {
     const { store, ephemeral } = context;
+    const activeLayerId = resolveActiveLayerId(store.documentData, store.appState.activeLayerId);
 
     if (ephemeral.selectionMode === 'rotate' && ephemeral.rotateCenter && ephemeral.transformSnapshot) {
       const currentPointerAngle = angleFromCenter(ephemeral.rotateCenter, point);
@@ -405,6 +413,7 @@ export const selectTool = {
       const ids = store.documentData.shapes
         .filter((shape) => {
           if (shape.locked) return false;
+          if (!isShapeOnActiveLayer(activeLayerId, shape)) return false;
           const bounds = getShapeBehavior(shape.type)?.getBounds?.(shape);
           return bounds ? boundsIntersect(bounds, rect) : false;
         })
