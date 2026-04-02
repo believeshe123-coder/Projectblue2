@@ -12,7 +12,7 @@ import {
 
 export function mountLayersPanel({ container, store }) {
   const panel = document.createElement('div');
-  panel.className = 'panel';
+  panel.className = 'panel layers-panel';
   container.appendChild(panel);
 
   function countShapesOnLayer(layerId) {
@@ -35,6 +35,7 @@ export function mountLayersPanel({ container, store }) {
     panel.appendChild(addButton);
 
     const list = document.createElement('ul');
+    list.className = 'layers-list';
     const layers = store.documentData.layers;
     const activeLayerId = store.appState.activeLayerId;
 
@@ -45,11 +46,8 @@ export function mountLayersPanel({ container, store }) {
       const shapeCount = countShapesOnLayer(layer.id);
 
       const item = document.createElement('li');
-      item.style.margin = '8px 0';
-      item.style.padding = '6px';
+      item.className = 'layers-item';
       item.style.border = isActive ? '1px solid #0f4c81' : '1px solid #d1d5db';
-      item.style.borderRadius = '6px';
-      item.style.cursor = 'pointer';
       item.setAttribute('role', 'button');
       item.setAttribute('tabindex', '0');
       item.setAttribute('aria-current', isActive ? 'true' : 'false');
@@ -62,18 +60,15 @@ export function mountLayersPanel({ container, store }) {
       });
 
       const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.justifyContent = 'space-between';
-      row.style.alignItems = 'center';
-      row.style.gap = '8px';
+      row.className = 'layers-item-row';
 
       const label = document.createElement('strong');
+      label.className = 'layers-item-label';
       label.textContent = `${isActive ? '● ' : ''}${layer.name}`;
       row.appendChild(label);
 
       const buttonGroup = document.createElement('div');
-      buttonGroup.style.display = 'flex';
-      buttonGroup.style.gap = '4px';
+      buttonGroup.className = 'layers-item-buttons';
 
       const renameButton = document.createElement('button');
       renameButton.type = 'button';
@@ -135,10 +130,7 @@ export function mountLayersPanel({ container, store }) {
       item.appendChild(row);
 
       const opacityRow = document.createElement('label');
-      opacityRow.style.display = 'flex';
-      opacityRow.style.gap = '8px';
-      opacityRow.style.alignItems = 'center';
-      opacityRow.style.marginTop = '6px';
+      opacityRow.className = 'layers-opacity-row';
       opacityRow.textContent = 'Opacity';
 
       const opacityInput = document.createElement('input');
@@ -160,6 +152,7 @@ export function mountLayersPanel({ container, store }) {
       });
 
       const opacityValue = document.createElement('span');
+      opacityValue.className = 'layers-opacity-value';
       opacityValue.textContent = `${opacityInput.value}%`;
       opacityInput.addEventListener('input', () => {
         opacityValue.textContent = `${opacityInput.value}%`;
@@ -169,6 +162,7 @@ export function mountLayersPanel({ container, store }) {
       item.appendChild(opacityRow);
 
       const meta = document.createElement('small');
+      meta.className = 'layers-item-meta';
       meta.textContent = `${shapeCount} shape${shapeCount === 1 ? '' : 's'}`;
       item.appendChild(meta);
 
