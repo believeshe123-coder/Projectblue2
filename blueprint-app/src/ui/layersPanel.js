@@ -38,10 +38,13 @@ export function mountLayersPanel({ container, store }) {
     list.className = 'layers-list';
     const layers = store.documentData.layers;
     const activeLayerId = store.appState.activeLayerId;
+    const layersFromTopToBottom = [...layers].reverse();
+    const layerIndices = new Map(layers.map((layer, index) => [layer.id, index]));
 
-    layers.forEach((layer, index) => {
-      const isTop = index === layers.length - 1;
-      const isBottom = index === 0;
+    layersFromTopToBottom.forEach((layer) => {
+      const layerIndex = layerIndices.get(layer.id);
+      const isTop = layerIndex === layers.length - 1;
+      const isBottom = layerIndex === 0;
       const isActive = layer.id === activeLayerId;
       const shapeCount = countShapesOnLayer(layer.id);
 
@@ -65,6 +68,7 @@ export function mountLayersPanel({ container, store }) {
       const label = document.createElement('strong');
       label.className = 'layers-item-label';
       label.textContent = `${isActive ? '● ' : ''}${layer.name}`;
+      label.title = layer.name;
       row.appendChild(label);
 
       const buttonGroup = document.createElement('div');
