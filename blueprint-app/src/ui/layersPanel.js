@@ -7,6 +7,7 @@ import {
   renameLayer,
   setActiveLayer,
   setLayerOpacityPreview,
+  toggleLayerLock,
   toggleLayerVisibility,
 } from '../app/actions.js';
 
@@ -67,7 +68,7 @@ export function mountLayersPanel({ container, store }) {
 
       const label = document.createElement('strong');
       label.className = 'layers-item-label';
-      label.textContent = `${isActive ? '● ' : ''}${layer.name}`;
+      label.textContent = `${isActive ? '● ' : ''}${layer.locked ? '🔒 ' : ''}${layer.name}`;
       label.title = layer.name;
       row.appendChild(label);
 
@@ -114,6 +115,15 @@ export function mountLayersPanel({ container, store }) {
         toggleLayerVisibility(layer.id);
       });
 
+      const lockButton = document.createElement('button');
+      lockButton.type = 'button';
+      lockButton.textContent = layer.locked ? 'Unlock' : 'Lock';
+      lockButton.title = layer.locked ? 'Unlock layer' : 'Lock layer';
+      lockButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleLayerLock(layer.id);
+      });
+
       const deleteButton = document.createElement('button');
       deleteButton.type = 'button';
       deleteButton.textContent = 'Delete';
@@ -129,7 +139,7 @@ export function mountLayersPanel({ container, store }) {
         deleteLayer(layer.id);
       });
 
-      buttonGroup.append(renameButton, upButton, downButton, visibilityButton, deleteButton);
+      buttonGroup.append(renameButton, upButton, downButton, visibilityButton, lockButton, deleteButton);
       row.appendChild(buttonGroup);
       item.appendChild(row);
 

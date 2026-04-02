@@ -27,6 +27,9 @@ body {
   padding: 0.8rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
+  position: sticky;
+  top: 0;
+  z-index: 120;
 }
 
 .app-header h1 {
