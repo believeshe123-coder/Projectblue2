@@ -1,5 +1,5 @@
 import { pointInRect } from '../utils/geometry.js';
-import { drawMeasurementLabel, formatMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatShapeMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
 import { colorWithAlpha } from '../utils/color.js';
 import { applyTextureFill } from '../canvas/textureFill.js';
 
@@ -40,8 +40,8 @@ function roomCorners(room) {
 export function drawRoomMeasurements(ctx, room, settings = {}) {
   if (room.width < 1 || room.height < 1) return;
 
-  const horizontal = formatMeasurement(room.width, settings);
-  const vertical = formatMeasurement(room.height, settings);
+  const horizontal = formatShapeMeasurement(room.width, settings, room);
+  const vertical = formatShapeMeasurement(room.height, settings, room);
 
   const topY = room.y - 12;
   const bottomY = room.y + room.height + 12;

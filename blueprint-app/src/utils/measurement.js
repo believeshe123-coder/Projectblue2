@@ -9,10 +9,29 @@ export function pixelsToUnits(pixels, settings = {}) {
   return (pixels / gridSize) * unitsPerGrid;
 }
 
+export function resolveMeasurementSettingsForShape(settings = {}, shape = null) {
+  const override = Number(shape?.measurementUnitsPerGrid);
+  if (!Number.isFinite(override) || override <= 0) return settings;
+  return { ...settings, unitsPerGrid: override };
+}
+
 export function formatMeasurement(pixels, settings = {}) {
   const units = settings.units || 'ft';
   const converted = pixelsToUnits(pixels, settings);
   return `${converted.toFixed(1)} ${units}`;
+}
+
+export function formatShapeMeasurement(pixels, settings = {}, shape = null) {
+  return formatMeasurement(pixels, resolveMeasurementSettingsForShape(settings, shape));
+}
+
+export function formatShapeAreaMeasurement(squarePixels, settings = {}, shape = null) {
+  const resolved = resolveMeasurementSettingsForShape(settings, shape);
+  const gridSize = Number(resolved.gridSize) || 25;
+  const unitsPerGrid = Number(resolved.unitsPerGrid) || 1;
+  const units = resolved.units || 'ft';
+  const area = (squarePixels / (gridSize * gridSize)) * (unitsPerGrid * unitsPerGrid);
+  return `${area.toFixed(1)} ${units}²`;
 }
 
 export function shouldRenderPersistedMeasurements(settings = {}) {
