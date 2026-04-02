@@ -1,5 +1,5 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
-import { drawMeasurementLabel, formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
 
 function drawLineMeasurement(ctx, shape, settings) {
   const dx = shape.end.x - shape.start.x;
@@ -74,7 +74,7 @@ export const lineShape = {
     drawStyledLine(ctx, shape);
     ctx.restore();
 
-    if (shouldRenderPersistedMeasurements(options.settings)) {
+    if (shouldRenderMeasurements(options.settings, options.isPreview === true)) {
       drawLineMeasurement(ctx, shape, options.settings);
     }
   },

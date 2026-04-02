@@ -66,7 +66,7 @@ function finalizeRoom(context, endPoint, forceSquare = false) {
     documentData.shapes.push(shape);
   }
 
-  setSelection(created.map((shape) => shape.id));
+  setSelection([]);
   appState.transformSelection = false;
   appState.rotateSelection = false;
   pushDocumentHistory();

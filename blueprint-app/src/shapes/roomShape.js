@@ -1,5 +1,5 @@
 import { pointInRect } from '../utils/geometry.js';
-import { drawMeasurementLabel, formatMeasurement, shouldRenderPersistedMeasurements } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
 import { colorWithAlpha } from '../utils/color.js';
 import { applyTextureFill } from '../canvas/textureFill.js';
 
@@ -100,7 +100,7 @@ export const roomShape = {
     strokeRoom(ctx, shape);
     ctx.restore();
 
-    if (shouldRenderPersistedMeasurements(options.settings) && !radians) {
+    if (shouldRenderMeasurements(options.settings, options.isPreview === true) && !radians) {
       drawRoomMeasurements(ctx, shape, options.settings);
     }
   },

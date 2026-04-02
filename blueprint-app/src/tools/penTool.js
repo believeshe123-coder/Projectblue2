@@ -37,7 +37,7 @@ function finalizeStroke(context) {
       style: context.store.appState.toolStyle,
     });
     addShape(stroke);
-    setSelection([stroke.id]);
+    setSelection([]);
   }
 
   patchState({ isDragging: false, dragStart: null });

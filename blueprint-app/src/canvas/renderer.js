@@ -152,7 +152,7 @@ function drawPreviewShape(ctx, interactionContext) {
     return;
   }
 
-  behavior.draw(ctx, shape, { settings });
+  behavior.draw(ctx, shape, { settings, isPreview: true });
   ctx.restore();
 }
 

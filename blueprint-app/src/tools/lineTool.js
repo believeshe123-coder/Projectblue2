@@ -32,7 +32,7 @@ function finalizeLine(context, endPoint) {
   });
 
   addShape(shape);
-  setSelection([shape.id]);
+  setSelection([]);
   patchState({ isDragging: false, dragStart: null });
   context.ephemeral.preview = null;
 }

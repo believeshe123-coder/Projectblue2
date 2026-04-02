@@ -4,6 +4,9 @@ import { pushHistory } from './history.js';
 import { loadLibrary } from './libraryStore.js';
 
 const USER_PREFERENCES_KEY = 'blueprint.userPreferences.v1';
+const DOCUMENT_AUTOSAVE_KEY = 'blueprint.documentAutosave.v1';
+const DOCUMENT_AUTOSAVE_VERSION = 1;
+const DOCUMENT_AUTOSAVE_INTERVAL_MS = 5000;
 
 export const TOOL_STYLE_DEFAULTS = {
   stroke: '#1f2937',
@@ -43,13 +46,55 @@ function saveUserPreferences({ settings, toolStyle, fillStyle }) {
   }
 }
 
-const documentData = createDocumentModel();
+function loadAutosavedDocument() {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(DOCUMENT_AUTOSAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== DOCUMENT_AUTOSAVE_VERSION || typeof parsed.documentData !== 'object') {
+      return null;
+    }
+
+    const defaults = createDocumentModel();
+    const candidate = parsed.documentData;
+    const merged = {
+      ...defaults,
+      ...candidate,
+      settings: { ...defaults.settings, ...(candidate.settings ?? {}) },
+      layers: Array.isArray(candidate.layers) ? candidate.layers : [],
+      shapes: Array.isArray(candidate.shapes) ? candidate.shapes : [],
+    };
+    if (!merged.layers.length) merged.layers = [createLayer()];
+    return merged;
+  } catch {
+    return null;
+  }
+}
+
+function saveAutosavedDocument(documentData) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(DOCUMENT_AUTOSAVE_KEY, JSON.stringify({
+      version: DOCUMENT_AUTOSAVE_VERSION,
+      savedAt: Date.now(),
+      documentData,
+    }));
+  } catch {
+    // ignore autosave storage errors
+  }
+}
+
+const autosavedDocument = loadAutosavedDocument();
+const documentData = autosavedDocument ?? createDocumentModel();
 const defaultSettings = { ...documentData.settings };
 const savedPreferences = loadUserPreferences();
-if (savedPreferences?.settings && typeof savedPreferences.settings === 'object') {
+if (!autosavedDocument && savedPreferences?.settings && typeof savedPreferences.settings === 'object') {
   documentData.settings = { ...documentData.settings, ...savedPreferences.settings };
 }
-documentData.layers.push(createLayer());
+if (!Array.isArray(documentData.layers) || !documentData.layers.length) {
+  documentData.layers = [createLayer()];
+}
 pushHistory(documentData);
 
 const appState = {
@@ -71,6 +116,27 @@ const appState = {
 const library = loadLibrary();
 
 const listeners = new Set();
+let autosaveTimer = null;
+let lastAutosaveAt = 0;
+
+function scheduleAutosave() {
+  if (typeof localStorage === 'undefined') return;
+  const elapsed = Date.now() - lastAutosaveAt;
+  if (elapsed >= DOCUMENT_AUTOSAVE_INTERVAL_MS && !autosaveTimer) {
+    saveAutosavedDocument(documentData);
+    lastAutosaveAt = Date.now();
+    return;
+  }
+
+  if (autosaveTimer) return;
+  const delay = Math.max(0, DOCUMENT_AUTOSAVE_INTERVAL_MS - elapsed);
+  autosaveTimer = setTimeout(() => {
+    autosaveTimer = null;
+    saveAutosavedDocument(documentData);
+    lastAutosaveAt = Date.now();
+  }, delay);
+  autosaveTimer.unref?.();
+}
 
 export const store = {
   documentData,
@@ -89,6 +155,7 @@ export const store = {
       toolStyle: appState.toolStyle,
       fillStyle: appState.fillStyle,
     });
+    scheduleAutosave();
     listeners.forEach((listener) => listener());
   },
 };
