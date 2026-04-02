@@ -5,6 +5,7 @@ import { getTool } from '../tools/toolRegistry.js';
 const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.1;
+const LAYER_DRAW_TOOL_IDS = new Set(['pen', 'line', 'room', 'curve', 'label', 'tape', 'place-shape']);
 
 function eventPointFromCanvas(canvas, event) {
   const rect = canvas.getBoundingClientRect();
@@ -23,6 +24,12 @@ function clampZoom(zoom) {
 
 function shouldPan(event) {
   return event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
+}
+
+function isActiveLayerLocked(store) {
+  const activeLayerId = store.appState.activeLayerId;
+  if (!activeLayerId) return false;
+  return store.documentData.layers.some((layer) => layer.id === activeLayerId && layer.locked === true);
 }
 
 export function resolveAnchorPoint(store, ephemeral) {
@@ -108,6 +115,9 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
     }
 
     const activeTool = getTool(store.appState.activeTool);
+    if (LAYER_DRAW_TOOL_IDS.has(activeTool?.id) && isActiveLayerLocked(store)) {
+      return;
+    }
     const screen = eventPointFromCanvas(canvas, event);
     const world = screenToWorld(screen, store.appState);
     const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);

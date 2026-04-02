@@ -361,6 +361,15 @@ export function toggleLayerVisibility(layerId) {
   return true;
 }
 
+export function toggleLayerLock(layerId) {
+  const index = findLayerIndexById(layerId);
+  if (index < 0) return false;
+  const layer = store.documentData.layers[index];
+  layer.locked = layer.locked !== true;
+  commitLayerMutation();
+  return true;
+}
+
 export function setLayerOpacity(layerId, opacity) {
   return setLayerOpacityPreview(layerId, opacity, { commit: true });
 }

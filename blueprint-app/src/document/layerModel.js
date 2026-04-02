@@ -26,6 +26,7 @@ export function normalizeLayer(layer, index = 0) {
     name: typeof layer.name === 'string' && layer.name.trim() ? layer.name : fallback.name,
     visible: layer.visible !== false,
     opacity: clampOpacity(layer.opacity),
+    locked: layer.locked === true,
   };
 }
 
