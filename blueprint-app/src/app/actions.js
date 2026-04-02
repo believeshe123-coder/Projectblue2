@@ -7,6 +7,8 @@ import { saveLibrary } from './libraryStore.js';
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
+const CLIPBOARD_OFFSET_GRID_STEPS = 2;
+let shapeClipboard = [];
 
 function clampZoom(value) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
@@ -129,6 +131,60 @@ export function deleteSelectedShapes() {
   store.appState.selectedIds = [];
   pushDocumentHistory();
   store.notify();
+}
+
+function cloneShapeForClipboard(shape) {
+  return structuredClone(shape);
+}
+
+function cloneShapeWithOffset(shape, dx, dy) {
+  const cloned = structuredClone(shape);
+  cloned.id = generateId('shape');
+
+  if (cloned.start) {
+    cloned.start.x += dx;
+    cloned.start.y += dy;
+  }
+  if (cloned.end) {
+    cloned.end.x += dx;
+    cloned.end.y += dy;
+  }
+  if (cloned.control) {
+    cloned.control.x += dx;
+    cloned.control.y += dy;
+  }
+  if (cloned.points) {
+    cloned.points = cloned.points.map((point) => ({ x: point.x + dx, y: point.y + dy }));
+  }
+  if (cloned.x != null) cloned.x += dx;
+  if (cloned.y != null) cloned.y += dy;
+
+  return cloned;
+}
+
+export function copySelectedShapesToClipboard() {
+  const copied = selectedShapes()
+    .filter((shape) => !shape.locked)
+    .map(cloneShapeForClipboard);
+
+  if (!copied.length) return false;
+  shapeClipboard = copied;
+  return true;
+}
+
+export function pasteShapesFromClipboard() {
+  if (!shapeClipboard.length) return false;
+
+  const gridSize = Number(store.documentData.settings?.gridSize) || 25;
+  const offset = gridSize * CLIPBOARD_OFFSET_GRID_STEPS;
+  const pasted = shapeClipboard.map((shape) => cloneShapeWithOffset(shape, offset, offset));
+
+  store.documentData.shapes.push(...pasted);
+  store.appState.selectedIds = pasted.map((shape) => shape.id);
+  shapeClipboard = pasted.map(cloneShapeForClipboard);
+  pushDocumentHistory();
+  store.notify();
+  return true;
 }
 
 export function updateSelectedStyles(partialStyle) {

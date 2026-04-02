@@ -1,4 +1,10 @@
-import { deleteSelectedShapes, performRedo, performUndo } from '../app/actions.js';
+import {
+  copySelectedShapesToClipboard,
+  deleteSelectedShapes,
+  pasteShapesFromClipboard,
+  performRedo,
+  performUndo,
+} from '../app/actions.js';
 import { getTool } from '../tools/toolRegistry.js';
 import { selectTool } from '../tools/selectTool.js';
 
@@ -10,6 +16,18 @@ function isLabelEditingKey(event) {
 export function bindKeyboardEvents({ store, ephemeral }) {
   window.addEventListener('keydown', (event) => {
     if (ephemeral?.labelInputActive) return;
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      copySelectedShapesToClipboard();
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      pasteShapesFromClipboard();
+      return;
+    }
 
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
       if (event.shiftKey) {
