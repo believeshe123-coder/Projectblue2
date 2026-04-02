@@ -22,6 +22,8 @@ const FONT_OPTIONS = [
 const COLOR_HISTORY_LIMIT = 5;
 const STROKE_HISTORY_KEY = 'blueprint.colorHistory.stroke';
 const FILL_HISTORY_KEY = 'blueprint.colorHistory.fill';
+const MEASUREMENT_GRID_HISTORY_LIMIT = 6;
+const MEASUREMENT_GRID_HISTORY_KEY = 'blueprint.measurementHistory.unitsPerGrid';
 const TEXTURE_PREVIEW_SIZE = 36;
 const texturePreviewCache = new Map();
 
@@ -191,6 +193,89 @@ function renderColorField({ label, inputId, value, disabled, historyKind }) {
   `;
 }
 
+function normalizeMeasurementUnitsPerGrid(value) {
+  const parsed = Number.parseFloat(String(value ?? '').trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.min(1000, Math.max(0.01, parsed));
+}
+
+function loadMeasurementUnitsPerGridHistory() {
+  try {
+    const raw = localStorage.getItem(MEASUREMENT_GRID_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((entry) => normalizeMeasurementUnitsPerGrid(entry))
+      .filter((entry) => entry != null)
+      .slice(0, MEASUREMENT_GRID_HISTORY_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function saveMeasurementUnitsPerGridHistory(values) {
+  try {
+    localStorage.setItem(
+      MEASUREMENT_GRID_HISTORY_KEY,
+      JSON.stringify(values.slice(0, MEASUREMENT_GRID_HISTORY_LIMIT)),
+    );
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function rememberMeasurementUnitsPerGrid(value) {
+  const normalized = normalizeMeasurementUnitsPerGrid(value);
+  if (normalized == null) return;
+  const existing = loadMeasurementUnitsPerGridHistory().filter((entry) => entry !== normalized);
+  saveMeasurementUnitsPerGridHistory([normalized, ...existing]);
+}
+
+function renderMeasurementUnitsPerGridHistory(targetId, disabled) {
+  const values = loadMeasurementUnitsPerGridHistory();
+  if (!values.length) return '';
+  return `
+    <div class="measurement-history" aria-label="Recent units per grid values">
+      ${values.map((value) => `
+        <button
+          type="button"
+          class="measurement-history-chip"
+          data-measurement-history-value="${value}"
+          data-measurement-target="${targetId}"
+          ${disabled ? 'disabled' : ''}
+        >${value}</button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderMeasurementUnitsPerGridField({ inputId, value, disabled }) {
+  return `
+    <label>Units per grid (selected rooms/regions)
+      <div class="color-field-row">
+        <input
+          id="${inputId}"
+          type="number"
+          min="0.01"
+          step="0.01"
+          placeholder="Use drawing default"
+          value="${value}"
+          ${disabled ? 'disabled' : ''}
+        />
+        <button
+          type="button"
+          class="color-save-button"
+          data-save-measurement-grid-target="${inputId}"
+          ${disabled ? 'disabled' : ''}
+        >Save size</button>
+      </div>
+    </label>
+    ${renderMeasurementUnitsPerGridHistory(inputId, disabled)}
+    <p class="muted-hint">Leave blank to use the global measurement settings.</p>
+  `;
+}
+
 function firstSelectedShape(store) {
   const id = store.appState.selectedIds[0];
   return store.documentData.shapes.find((shape) => shape.id === id);
@@ -203,6 +288,20 @@ function selectedShapes(store) {
 
 function selectedRoomShapes(store) {
   return selectedShapes(store).filter((shape) => shape.type === 'room' || shape.type === 'region');
+}
+
+function sharedMeasurementUnitsPerGrid(shapes) {
+  if (!shapes.length) return '';
+  const [first, ...rest] = shapes;
+  const firstValue = Number(first.measurementUnitsPerGrid);
+  const normalizedFirst = Number.isFinite(firstValue) && firstValue > 0 ? firstValue : null;
+  const mixed = rest.some((shape) => {
+    const current = Number(shape.measurementUnitsPerGrid);
+    const normalized = Number.isFinite(current) && current > 0 ? current : null;
+    return normalized !== normalizedFirst;
+  });
+  if (mixed) return '';
+  return normalizedFirst == null ? '' : String(normalizedFirst);
 }
 
 
@@ -378,6 +477,18 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     if (target.id === 'measure-draw-mode') {
       updateDocumentSettings({ drawMode: target.value === 'drag' ? 'drag' : 'click' });
     }
+    if (target.id === 'shape-measurement-units-per-grid') {
+      const raw = target.value.trim();
+      if (!raw.length) {
+        updateSelectedShapes({ measurementUnitsPerGrid: null });
+        return;
+      }
+
+      const measurementUnitsPerGrid = normalizeMeasurementUnitsPerGrid(raw);
+      if (measurementUnitsPerGrid != null) {
+        updateSelectedShapes({ measurementUnitsPerGrid });
+      }
+    }
   });
 
   panel.addEventListener('click', (event) => {
@@ -421,6 +532,30 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       input.value = normalized;
       rememberColor(kind, normalized);
       render();
+      return;
+    }
+    const saveMeasurementButton = target.closest('button[data-save-measurement-grid-target]');
+    if (saveMeasurementButton instanceof HTMLButtonElement) {
+      const targetId = saveMeasurementButton.dataset.saveMeasurementGridTarget;
+      if (!targetId) return;
+      const input = panel.querySelector(`#${targetId}`);
+      if (!(input instanceof HTMLInputElement)) return;
+      const normalized = normalizeMeasurementUnitsPerGrid(input.value);
+      if (normalized == null) return;
+      input.value = String(normalized);
+      rememberMeasurementUnitsPerGrid(normalized);
+      render();
+      return;
+    }
+    const measurementHistoryButton = target.closest('button[data-measurement-history-value][data-measurement-target]');
+    if (measurementHistoryButton instanceof HTMLButtonElement) {
+      const targetId = measurementHistoryButton.dataset.measurementTarget;
+      const value = normalizeMeasurementUnitsPerGrid(measurementHistoryButton.dataset.measurementHistoryValue);
+      if (!targetId || value == null) return;
+      const input = panel.querySelector(`#${targetId}`);
+      if (input instanceof HTMLInputElement) input.value = String(value);
+      updateSelectedShapes({ measurementUnitsPerGrid: value });
+      rememberMeasurementUnitsPerGrid(value);
       return;
     }
     const textureOptionButton = target.closest('button[data-texture-option="true"]');
@@ -472,6 +607,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const count = store.appState.selectedIds.length;
     const selected = firstSelectedShape(store);
     const selectedRooms = selectedRoomShapes(store);
+    const roomMeasurementUnitsPerGrid = sharedMeasurementUnitsPerGrid(selectedRooms);
     const selectedLineLikeShapes = selectedShapes(store).filter((shape) => shape.type === 'line' || shape.type === 'tape');
     const allSelectedLocked = count > 0 && selectedShapes(store).every((shape) => shape.locked);
     const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
@@ -550,6 +686,19 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         </div>
       `;
 
+      if (selectedRooms.length) {
+        body += `
+          <div class="property-group">
+            <h3>Measurement</h3>
+            ${renderMeasurementUnitsPerGridField({
+    inputId: 'shape-measurement-units-per-grid',
+    value: roomMeasurementUnitsPerGrid,
+    disabled: false,
+  })}
+          </div>
+        `;
+      }
+
     }
 
     if (activeTool === 'line' || activeTool === 'pen') {
@@ -572,6 +721,11 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           ${lineTypeOptions(selected, effectiveStyle.lineType ?? 'solid')}
           <label class="property-toggle"><input id="room-auto-fill" type="checkbox" ${allSelectedRoomsFilled ? 'checked' : ''} ${selectedRooms.length ? '' : 'disabled'} /> Auto fill</label>
           ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: false, historyKind: 'fill' })}
+          ${renderMeasurementUnitsPerGridField({
+    inputId: 'shape-measurement-units-per-grid',
+    value: roomMeasurementUnitsPerGrid,
+    disabled: !selectedRooms.length,
+  })}
         </div>
       `;
     }

@@ -1,5 +1,10 @@
 import { colorWithAlpha } from '../utils/color.js';
 import { applyTextureFill } from '../canvas/textureFill.js';
+import {
+  drawMeasurementLabel,
+  formatShapeAreaMeasurement,
+  shouldRenderMeasurements,
+} from '../utils/measurement.js';
 function pointInPolygon(point, points) {
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
@@ -32,6 +37,39 @@ function polygonBounds(points) {
   };
 }
 
+function polygonArea(points) {
+  let twiceArea = 0;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+    twiceArea += (points[j].x * points[i].y) - (points[i].x * points[j].y);
+  }
+  return Math.abs(twiceArea) / 2;
+}
+
+function polygonCentroid(points) {
+  const areaFactor = points.reduce((sum, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return sum + ((point.x * next.y) - (next.x * point.y));
+  }, 0);
+
+  if (Math.abs(areaFactor) < 0.0001) {
+    const bounds = polygonBounds(points);
+    return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+  }
+
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    const cross = (current.x * next.y) - (next.x * current.y);
+    cx += (current.x + next.x) * cross;
+    cy += (current.y + next.y) * cross;
+  }
+
+  const scale = 1 / (3 * areaFactor);
+  return { x: cx * scale, y: cy * scale };
+}
+
 export const regionShape = {
   draw(ctx, shape, options = {}) {
     if (!shape.points?.length) return;
@@ -55,6 +93,13 @@ export const regionShape = {
       ctx.fill();
     }
     ctx.restore();
+
+    if (!shouldRenderMeasurements(options.settings, options.isPreview === true)) return;
+    const area = polygonArea(shape.points);
+    if (area < 1) return;
+    const centroid = polygonCentroid(shape.points);
+    const label = formatShapeAreaMeasurement(area, options.settings ?? {}, shape);
+    drawMeasurementLabel(ctx, centroid.x, centroid.y, label, options.settings ?? {});
   },
 
   hitTest(shape, point) {

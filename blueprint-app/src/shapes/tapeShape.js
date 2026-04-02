@@ -1,7 +1,7 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
-import { drawMeasurementLabel, formatMeasurement } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatShapeMeasurement } from '../utils/measurement.js';
 
-function drawTapeMeasurement(ctx, lineStart, lineEnd, settings) {
+function drawTapeMeasurement(ctx, shape, lineStart, lineEnd, settings) {
   const dx = lineEnd.x - lineStart.x;
   const dy = lineEnd.y - lineStart.y;
   const length = Math.hypot(dx, dy);
@@ -9,7 +9,7 @@ function drawTapeMeasurement(ctx, lineStart, lineEnd, settings) {
 
   const midX = (lineStart.x + lineEnd.x) / 2;
   const midY = (lineStart.y + lineEnd.y) / 2;
-  const label = formatMeasurement(length, settings);
+  const label = formatShapeMeasurement(length, settings, shape);
 
   drawMeasurementLabel(ctx, midX, midY, label, settings);
 }
@@ -69,7 +69,7 @@ export const tapeShape = {
       ctx.restore();
 
       if (shouldRenderLabel) {
-        drawTapeMeasurement(ctx, geometry.dimension[0], geometry.dimension[1], options.settings ?? {});
+        drawTapeMeasurement(ctx, shape, geometry.dimension[0], geometry.dimension[1], options.settings ?? {});
       }
       return;
     }
@@ -85,7 +85,7 @@ export const tapeShape = {
     ctx.restore();
 
     if (shouldRenderLabel) {
-      drawTapeMeasurement(ctx, shape.start, shape.end, options.settings ?? {});
+      drawTapeMeasurement(ctx, shape, shape.start, shape.end, options.settings ?? {});
     }
   },
 

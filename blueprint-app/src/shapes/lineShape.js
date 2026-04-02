@@ -1,5 +1,5 @@
 import { pointToSegmentDistance } from '../utils/geometry.js';
-import { drawMeasurementLabel, formatMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
+import { drawMeasurementLabel, formatShapeMeasurement, shouldRenderMeasurements } from '../utils/measurement.js';
 
 function drawLineMeasurement(ctx, shape, settings) {
   const dx = shape.end.x - shape.start.x;
@@ -9,7 +9,7 @@ function drawLineMeasurement(ctx, shape, settings) {
 
   const midX = (shape.start.x + shape.end.x) / 2;
   const midY = (shape.start.y + shape.end.y) / 2;
-  const label = formatMeasurement(length, settings);
+  const label = formatShapeMeasurement(length, settings, shape);
 
   drawMeasurementLabel(ctx, midX, midY, label, settings);
 }

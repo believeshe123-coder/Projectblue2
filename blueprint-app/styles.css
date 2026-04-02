@@ -721,6 +721,27 @@ body {
   opacity: 0.55;
 }
 
+.measurement-history {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: -0.05rem;
+}
+
+.measurement-history-chip {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.measurement-history-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .library-list {
   display: grid;
   gap: 0.5rem;
