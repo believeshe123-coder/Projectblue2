@@ -1,6 +1,6 @@
 import { patchState, pushDocumentHistory, setActiveTool, setZoom } from '../app/actions.js';
 import { createDocumentModel } from '../document/documentModel.js';
-import { createLayer } from '../document/layerModel.js';
+import { normalizeLayers, resolveActiveLayerId } from '../document/layerModel.js';
 import { seedIdGeneratorFromDocument } from '../utils/idGenerator.js';
 import { drawShapes } from '../canvas/drawShapes.js';
 import { getShapeBehavior } from '../shapes/shapeRegistry.js';
@@ -19,11 +19,9 @@ function ensureDocumentShape(candidate) {
     ...defaults,
     ...candidate,
     settings: { ...defaults.settings, ...(candidate.settings ?? {}) },
-    layers: Array.isArray(candidate.layers) ? candidate.layers : [],
+    layers: normalizeLayers(candidate.layers),
     shapes: Array.isArray(candidate.shapes) ? candidate.shapes : [],
   };
-
-  if (!next.layers.length) next.layers = [createLayer()];
   return next;
 }
 
@@ -36,6 +34,7 @@ function ensureAppStateShape(candidate) {
     panX: Number.isFinite(candidate.panX) ? candidate.panX : 0,
     panY: Number.isFinite(candidate.panY) ? candidate.panY : 0,
     selectedIds: Array.isArray(candidate.selectedIds) ? candidate.selectedIds : [],
+    activeLayerId: typeof candidate.activeLayerId === 'string' ? candidate.activeLayerId : null,
     hoveredId: null,
     isDragging: false,
     dragStart: null,
@@ -97,6 +96,7 @@ function applyProject(store, project) {
     panX: nextAppState.panX,
     panY: nextAppState.panY,
     selectedIds: nextAppState.selectedIds,
+    activeLayerId: resolveActiveLayerId(store.documentData, nextAppState.activeLayerId),
     hoveredId: nextAppState.hoveredId,
     isDragging: false,
     dragStart: null,
@@ -139,6 +139,7 @@ function createProjectSnapshot(store) {
       panX: store.appState.panX,
       panY: store.appState.panY,
       selectedIds: [...store.appState.selectedIds],
+      activeLayerId: store.appState.activeLayerId,
     },
     ui: {
       strokeHistory: Array.isArray(strokeHistory) ? strokeHistory : [],
@@ -456,7 +457,7 @@ export function renderFilePage({ container, store, canvas }) {
 
     if (action === 'reset-doc') {
       const nextDoc = createDocumentModel();
-      nextDoc.layers.push(createLayer());
+      nextDoc.layers = normalizeLayers(nextDoc.layers);
       applyProject(store, { documentData: nextDoc, appState: null, ui: null });
       setStatus('Blueprint reset.');
     }

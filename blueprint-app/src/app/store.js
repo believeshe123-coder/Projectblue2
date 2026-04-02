@@ -1,5 +1,5 @@
 import { createDocumentModel } from '../document/documentModel.js';
-import { createLayer } from '../document/layerModel.js';
+import { normalizeLayers, resolveActiveLayerId } from '../document/layerModel.js';
 import { pushHistory } from './history.js';
 import { loadLibrary } from './libraryStore.js';
 
@@ -62,10 +62,9 @@ function loadAutosavedDocument() {
       ...defaults,
       ...candidate,
       settings: { ...defaults.settings, ...(candidate.settings ?? {}) },
-      layers: Array.isArray(candidate.layers) ? candidate.layers : [],
+      layers: normalizeLayers(candidate.layers),
       shapes: Array.isArray(candidate.shapes) ? candidate.shapes : [],
     };
-    if (!merged.layers.length) merged.layers = [createLayer()];
     return merged;
   } catch {
     return null;
@@ -92,9 +91,7 @@ const savedPreferences = loadUserPreferences();
 if (!autosavedDocument && savedPreferences?.settings && typeof savedPreferences.settings === 'object') {
   documentData.settings = { ...documentData.settings, ...savedPreferences.settings };
 }
-if (!Array.isArray(documentData.layers) || !documentData.layers.length) {
-  documentData.layers = [createLayer()];
-}
+documentData.layers = normalizeLayers(documentData.layers);
 pushHistory(documentData);
 
 const appState = {
@@ -111,6 +108,7 @@ const appState = {
   placeShapeTemplateId: null,
   fillStyle: { ...FILL_STYLE_DEFAULTS, ...(savedPreferences?.fillStyle ?? {}) },
   toolStyle: { ...TOOL_STYLE_DEFAULTS, ...(savedPreferences?.toolStyle ?? {}) },
+  activeLayerId: resolveActiveLayerId(documentData, null),
 };
 
 const library = loadLibrary();
@@ -150,6 +148,8 @@ export const store = {
   },
 
   notify() {
+    documentData.layers = normalizeLayers(documentData.layers);
+    appState.activeLayerId = resolveActiveLayerId(documentData, appState.activeLayerId);
     saveUserPreferences({
       settings: documentData.settings,
       toolStyle: appState.toolStyle,

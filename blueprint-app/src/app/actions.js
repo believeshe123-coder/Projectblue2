@@ -4,6 +4,7 @@ import { snapToGrid } from '../interaction/snapUtils.js';
 import { expandSelectionWithGroups } from '../interaction/selection.js';
 import { generateId } from '../utils/idGenerator.js';
 import { saveLibrary } from './libraryStore.js';
+import { createLayer, resolveActiveLayerId } from '../document/layerModel.js';
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
@@ -303,6 +304,121 @@ export function unlockAllShapes() {
 export function setSelection(ids) {
   store.appState.selectedIds = expandSelectionWithGroups(store.documentData, ids);
   store.notify();
+}
+
+function findLayerIndexById(layerId) {
+  return store.documentData.layers.findIndex((layer) => layer.id === layerId);
+}
+
+function commitLayerMutation() {
+  pushDocumentHistory();
+  store.notify();
+}
+
+export function addLayer(name = 'Layer') {
+  const nextLayer = createLayer(name);
+  store.documentData.layers.push(nextLayer);
+  store.appState.activeLayerId = nextLayer.id;
+  commitLayerMutation();
+  return nextLayer;
+}
+
+export function setActiveLayer(layerId) {
+  const layerIndex = findLayerIndexById(layerId);
+  if (layerIndex < 0) return false;
+  store.appState.activeLayerId = store.documentData.layers[layerIndex].id;
+  store.notify();
+  return true;
+}
+
+export function moveLayerUp(layerId) {
+  const index = findLayerIndexById(layerId);
+  if (index < 0 || index >= store.documentData.layers.length - 1) return false;
+  const layers = store.documentData.layers;
+  [layers[index], layers[index + 1]] = [layers[index + 1], layers[index]];
+  commitLayerMutation();
+  return true;
+}
+
+export function moveLayerDown(layerId) {
+  const index = findLayerIndexById(layerId);
+  if (index <= 0) return false;
+  const layers = store.documentData.layers;
+  [layers[index], layers[index - 1]] = [layers[index - 1], layers[index]];
+  commitLayerMutation();
+  return true;
+}
+
+export function toggleLayerVisibility(layerId) {
+  const index = findLayerIndexById(layerId);
+  if (index < 0) return false;
+  const layer = store.documentData.layers[index];
+  layer.visible = layer.visible === false;
+  if (layer.visible === false && store.appState.activeLayerId === layer.id) {
+    store.appState.activeLayerId = resolveActiveLayerId(store.documentData, store.appState.activeLayerId);
+  }
+  commitLayerMutation();
+  return true;
+}
+
+export function setLayerOpacity(layerId, opacity) {
+  return setLayerOpacityPreview(layerId, opacity, { commit: true });
+}
+
+export function setLayerOpacityPreview(layerId, opacity, { commit = false } = {}) {
+  const index = findLayerIndexById(layerId);
+  if (index < 0) return false;
+  const clamped = Math.max(0, Math.min(1, Number(opacity)));
+  if (!Number.isFinite(clamped)) return false;
+  store.documentData.layers[index].opacity = clamped;
+  if (commit) {
+    commitLayerMutation();
+  } else {
+    store.notify();
+  }
+  return true;
+}
+
+export function commitLayerOpacity(layerId, opacity) {
+  return setLayerOpacityPreview(layerId, opacity, { commit: true });
+}
+
+export function renameLayer(layerId, name) {
+  const index = findLayerIndexById(layerId);
+  if (index < 0) return false;
+  const normalized = String(name ?? '').trim() || `Layer ${index + 1}`;
+  if (store.documentData.layers[index].name === normalized) return false;
+  store.documentData.layers[index].name = normalized;
+  commitLayerMutation();
+  return true;
+}
+
+export function deleteLayer(layerId) {
+  const layers = store.documentData.layers;
+  const index = findLayerIndexById(layerId);
+  if (index < 0) return false;
+  if (layers.length <= 1) return false;
+
+  const [removedLayer] = layers.splice(index, 1);
+  const targetLayer = layers[Math.min(index, layers.length - 1)] ?? layers[layers.length - 1];
+  if (!targetLayer) {
+    const replacement = createLayer();
+    layers.push(replacement);
+  }
+  const reassignedLayerId = targetLayer?.id ?? layers[0].id;
+
+  for (const shape of store.documentData.shapes) {
+    if (shape.layerId === removedLayer.id) {
+      shape.layerId = reassignedLayerId;
+    }
+  }
+
+  store.appState.activeLayerId = resolveActiveLayerId(
+    store.documentData,
+    removedLayer.id === store.appState.activeLayerId ? reassignedLayerId : store.appState.activeLayerId,
+  );
+  commitLayerMutation();
+  return true;
 }
 
 export function patchState(partial) {
