@@ -10,6 +10,14 @@ function isClickDrawMode(context) {
   return context.store.documentData.settings.drawMode !== 'drag';
 }
 
+function resolveMeasurementUnitsPerGridOverride(context) {
+  const toolStyle = context.store.appState.toolStyle ?? {};
+  if (!toolStyle.tapeCustomMeasurementEnabled) return null;
+  const parsed = Number(toolStyle.tapeMeasurementUnitsPerGrid);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
 function beginDirectPreview(context, point) {
   patchState({ isDragging: true, dragStart: point });
   context.ephemeral.preview = { type: 'tape', mode: 'direct', start: point, end: point, phase: 'drawing' };
@@ -56,6 +64,7 @@ function finalizeTape(context, finalPoint) {
     layerId: resolveActiveLayerId(documentData, context.store.appState.activeLayerId),
     ...buildTapeShapeArgs(preview, finalPoint),
     style: context.store.appState.toolStyle,
+    measurementUnitsPerGrid: resolveMeasurementUnitsPerGridOverride(context),
   });
 
   addShape(shape);

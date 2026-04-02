@@ -51,7 +51,20 @@ export function createPenShape({ layerId, points, style = {} }) {
 }
 
 
-export function createTapeShape({ layerId, start, end, mode = 'direct', offset = null, style = {} }) {
+export function createTapeShape({
+  layerId,
+  start,
+  end,
+  mode = 'direct',
+  offset = null,
+  style = {},
+  measurementUnitsPerGrid = null,
+}) {
+  const measurementOverride = Number(measurementUnitsPerGrid);
+  const normalizedMeasurementOverride = Number.isFinite(measurementOverride) && measurementOverride > 0
+    ? measurementOverride
+    : null;
+
   return {
     id: generateId('shape'),
     type: 'tape',
@@ -60,6 +73,7 @@ export function createTapeShape({ layerId, start, end, mode = 'direct', offset =
     end,
     mode,
     offset,
+    measurementUnitsPerGrid: normalizedMeasurementOverride,
     style: { ...defaultStyle, stroke: '#0f4c81', ...style },
     visible: true,
     locked: false,

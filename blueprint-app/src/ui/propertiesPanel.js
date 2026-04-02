@@ -250,9 +250,15 @@ function renderMeasurementUnitsPerGridHistory(targetId, disabled) {
   `;
 }
 
-function renderMeasurementUnitsPerGridField({ inputId, value, disabled }) {
+function renderMeasurementUnitsPerGridField({
+  inputId,
+  value,
+  disabled,
+  label = 'Units per grid (selected rooms/regions)',
+  hint = 'Leave blank to use the global measurement settings.',
+}) {
   return `
-    <label>Units per grid (selected rooms/regions)
+    <label>${label}
       <div class="color-field-row">
         <input
           id="${inputId}"
@@ -272,7 +278,7 @@ function renderMeasurementUnitsPerGridField({ inputId, value, disabled }) {
       </div>
     </label>
     ${renderMeasurementUnitsPerGridHistory(inputId, disabled)}
-    <p class="muted-hint">Leave blank to use the global measurement settings.</p>
+    <p class="muted-hint">${hint}</p>
   `;
 }
 
@@ -302,6 +308,10 @@ function sharedMeasurementUnitsPerGrid(shapes) {
   });
   if (mixed) return '';
   return normalizedFirst == null ? '' : String(normalizedFirst);
+}
+
+function selectedTapeShapes(store) {
+  return selectedShapes(store).filter((shape) => shape.type === 'tape');
 }
 
 
@@ -489,6 +499,41 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         updateSelectedShapes({ measurementUnitsPerGrid });
       }
     }
+    if (target.id === 'measure-custom-enabled') {
+      const tapeCustomMeasurementEnabled = target.checked;
+      updateToolStyle({ tapeCustomMeasurementEnabled });
+
+      if (!tapeCustomMeasurementEnabled) {
+        const selectedTapes = selectedTapeShapes(store);
+        if (selectedTapes.length) {
+          updateSelectedShapes({ measurementUnitsPerGrid: null });
+        }
+      } else {
+        const parsed = normalizeMeasurementUnitsPerGrid(store.appState.toolStyle?.tapeMeasurementUnitsPerGrid);
+        if (parsed != null) {
+          const selectedTapes = selectedTapeShapes(store);
+          if (selectedTapes.length) {
+            updateSelectedShapes({ measurementUnitsPerGrid: parsed });
+          }
+        }
+      }
+      render();
+    }
+    if (target.id === 'measure-custom-units-per-grid') {
+      const raw = target.value.trim();
+      if (!raw.length) return;
+      const measurementUnitsPerGrid = normalizeMeasurementUnitsPerGrid(raw);
+      if (measurementUnitsPerGrid == null) return;
+
+      updateToolStyle({ tapeMeasurementUnitsPerGrid: measurementUnitsPerGrid });
+
+      if (store.appState.toolStyle?.tapeCustomMeasurementEnabled) {
+        const selectedTapes = selectedTapeShapes(store);
+        if (selectedTapes.length) {
+          updateSelectedShapes({ measurementUnitsPerGrid });
+        }
+      }
+    }
   });
 
   panel.addEventListener('click', (event) => {
@@ -544,6 +589,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       if (normalized == null) return;
       input.value = String(normalized);
       rememberMeasurementUnitsPerGrid(normalized);
+      if (targetId === 'measure-custom-units-per-grid') {
+        updateToolStyle({ tapeMeasurementUnitsPerGrid: normalized });
+      }
       render();
       return;
     }
@@ -554,7 +602,15 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       if (!targetId || value == null) return;
       const input = panel.querySelector(`#${targetId}`);
       if (input instanceof HTMLInputElement) input.value = String(value);
-      updateSelectedShapes({ measurementUnitsPerGrid: value });
+      if (targetId === 'measure-custom-units-per-grid') {
+        updateToolStyle({ tapeMeasurementUnitsPerGrid: value });
+        if (store.appState.toolStyle?.tapeCustomMeasurementEnabled) {
+          const selectedTapes = selectedTapeShapes(store);
+          if (selectedTapes.length) updateSelectedShapes({ measurementUnitsPerGrid: value });
+        }
+      } else {
+        updateSelectedShapes({ measurementUnitsPerGrid: value });
+      }
       rememberMeasurementUnitsPerGrid(value);
       return;
     }
@@ -607,7 +663,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const count = store.appState.selectedIds.length;
     const selected = firstSelectedShape(store);
     const selectedRooms = selectedRoomShapes(store);
+    const selectedTapes = selectedTapeShapes(store);
     const roomMeasurementUnitsPerGrid = sharedMeasurementUnitsPerGrid(selectedRooms);
+    const tapeMeasurementUnitsPerGrid = sharedMeasurementUnitsPerGrid(selectedTapes);
     const selectedLineLikeShapes = selectedShapes(store).filter((shape) => shape.type === 'line' || shape.type === 'tape');
     const allSelectedLocked = count > 0 && selectedShapes(store).every((shape) => shape.locked);
     const allSelectedRoomsFilled = selectedRooms.length > 0 && selectedRooms.every((shape) => shape.filled);
@@ -661,6 +719,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     const texturePickerOptions = renderTexturePickerOptions(store.library.textures, effectiveStyle.textureId);
     const selectedTexture = store.library.textures.find((texture) => texture.id === effectiveStyle.textureId) ?? null;
     const textureColorState = getTextureColorModeUiState(fillMode, selectedTexture, textureColorMode);
+    const tapeCustomMeasurementEnabled = Boolean(store.appState.toolStyle?.tapeCustomMeasurementEnabled);
+    const tapeCustomMeasurementValue = normalizeMeasurementUnitsPerGrid(store.appState.toolStyle?.tapeMeasurementUnitsPerGrid) ?? 1;
 
     let body = `<p>${noSelectionLabel}</p>`;
 
@@ -759,6 +819,8 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     if (activeTool === 'tape') {
       const tapeMeasureMode = store.documentData.settings.tapeMeasureMode === 'offset-3-point' ? 'offset-3-point' : 'direct';
       const drawMode = store.documentData.settings.drawMode === 'drag' ? 'drag' : 'click';
+      const hasSelectedTapes = selectedTapes.length > 0;
+      const activeTapeMeasurementValue = hasSelectedTapes ? (tapeMeasurementUnitsPerGrid || String(tapeCustomMeasurementValue)) : String(tapeCustomMeasurementValue);
       body += `
         <div class="property-group">
           <h3>Measure</h3>
@@ -776,6 +838,17 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           </label>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
+          <label class="property-toggle">
+            <input id="measure-custom-enabled" type="checkbox" ${tapeCustomMeasurementEnabled ? 'checked' : ''} />
+            Custom measurement
+          </label>
+          ${renderMeasurementUnitsPerGridField({
+    inputId: 'measure-custom-units-per-grid',
+    value: activeTapeMeasurementValue,
+    disabled: !tapeCustomMeasurementEnabled,
+    label: 'Units per grid (measure tool)',
+    hint: 'When enabled, new measurements save with this units-per-grid value.',
+  })}
           ${renderMeasurePreview(tapeMeasureMode)}
         </div>
       `;

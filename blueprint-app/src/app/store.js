@@ -16,6 +16,8 @@ export const TOOL_STYLE_DEFAULTS = {
   textSize: 14,
   fontFamily: 'Inter, Segoe UI, Tahoma, sans-serif',
   lineType: 'solid',
+  tapeCustomMeasurementEnabled: false,
+  tapeMeasurementUnitsPerGrid: 1,
 };
 
 export const FILL_STYLE_DEFAULTS = {
