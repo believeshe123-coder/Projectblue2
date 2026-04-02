@@ -1,3 +1,5 @@
+import { createLayer } from './layerModel.js';
+
 /** Blueprint document model (persisted data only). */
 export function createDocumentModel() {
   return {
@@ -30,7 +32,8 @@ export function createDocumentModel() {
       showTapeTool: true,
       showActionToasts: true,
     },
-    layers: [],
+    // Array order represents z-order from bottom (index 0) to top (last index).
+    layers: [createLayer()],
     shapes: [],
   };
 }

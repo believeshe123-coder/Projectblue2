@@ -1,5 +1,6 @@
 import { addShape, patchState, setSelection } from '../app/actions.js';
 import { createPenShape } from '../document/shapeFactory.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 function samePoint(a, b) {
   return Boolean(a && b && a.x === b.x && a.y === b.y);
@@ -27,7 +28,10 @@ function appendPoint(context, point) {
 
 function finalizeStroke(context) {
   const preview = context.ephemeral.preview;
-  const layerId = context.store.documentData.layers[0]?.id;
+  const layerId = resolveActiveLayerId(
+    context.store.documentData,
+    context.store.appState.activeLayerId,
+  );
   if (!preview || preview.type !== 'pen' || !layerId) return;
 
   if (preview.points.length >= 2) {

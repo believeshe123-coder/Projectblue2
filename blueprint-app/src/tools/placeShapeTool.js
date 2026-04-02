@@ -1,5 +1,6 @@
 import { addShape, patchState, setSelection } from '../app/actions.js';
 import { createLibraryShape } from '../document/shapeFactory.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 export const placeShapeTool = {
   id: 'place-shape',
@@ -12,7 +13,10 @@ export const placeShapeTool = {
     if (!template) return;
 
     const shape = createLibraryShape({
-      layerId: context.store.documentData.layers[0].id,
+      layerId: resolveActiveLayerId(
+        context.store.documentData,
+        context.store.appState.activeLayerId,
+      ),
       x: point.x,
       y: point.y,
       grid: template.grid,

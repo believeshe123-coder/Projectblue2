@@ -1,5 +1,6 @@
 import { createLineShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 function isClickDrawMode(context) {
   return context.store.documentData.settings.drawMode !== 'drag';
@@ -25,7 +26,7 @@ function finalizeLine(context, endPoint) {
   if (!preview || preview.type !== 'line') return;
 
   const shape = createLineShape({
-    layerId: documentData.layers[0].id,
+    layerId: resolveActiveLayerId(documentData, context.store.appState.activeLayerId),
     start: preview.start,
     end: endPoint,
     style: context.store.appState.toolStyle,

@@ -2,6 +2,7 @@ import { drawGrid } from './drawGrid.js';
 import { drawShapes } from './drawShapes.js';
 import { drawSelection } from './drawSelection.js';
 import { getShapeBehavior } from '../shapes/shapeRegistry.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 function drawCursorPreview(sourceCanvas, interactionContext) {
   const previewCanvas = interactionContext?.previewCanvas;
@@ -128,8 +129,9 @@ function drawPenPreview(ctx, preview, layerId, settings) {
 
 function drawPreviewShape(ctx, interactionContext) {
   const preview = interactionContext?.ephemeral?.preview;
-  const layerId = interactionContext?.store?.documentData?.layers?.[0]?.id;
-  const settings = interactionContext?.store?.documentData?.settings ?? {};
+  const { documentData, appState } = interactionContext?.store ?? {};
+  const layerId = resolveActiveLayerId(documentData, appState?.activeLayerId);
+  const settings = documentData?.settings ?? {};
 
   ctx.save();
   ctx.globalAlpha = 0.7;

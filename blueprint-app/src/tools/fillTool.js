@@ -1,6 +1,7 @@
 import { pushDocumentHistory, setSelection } from '../app/actions.js';
 import { findShapeAtPoint } from '../interaction/hitTest.js';
 import { createRegionShape } from '../document/shapeFactory.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 function isClosedShape(shape) {
   return shape?.type === 'room' || shape?.type === 'region';
@@ -283,7 +284,7 @@ export const fillTool = {
       }
 
       const region = createRegionShape({
-        layerId: store.documentData.layers[0].id,
+        layerId: resolveActiveLayerId(store.documentData, store.appState.activeLayerId),
         points: target.points,
       });
       region.style = { ...region.style, ...activeFillStyle };

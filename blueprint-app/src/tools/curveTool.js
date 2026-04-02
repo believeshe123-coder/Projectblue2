@@ -1,5 +1,6 @@
 import { createCurveShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 function beginPreview(context, point) {
   context.ephemeral.preview = {
@@ -28,7 +29,7 @@ function finalizeCurve(context, endPoint) {
   if (!preview || preview.type !== 'curve') return;
 
   const shape = createCurveShape({
-    layerId: documentData.layers[0].id,
+    layerId: resolveActiveLayerId(documentData, context.store.appState.activeLayerId),
     start: preview.start,
     control: preview.control,
     end: endPoint,

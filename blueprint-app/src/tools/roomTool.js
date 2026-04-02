@@ -1,4 +1,5 @@
 import { createLineShape } from '../document/shapeFactory.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 import { normalizeRect } from '../utils/geometry.js';
 import { patchState, pushDocumentHistory, setSelection } from '../app/actions.js';
 
@@ -47,7 +48,7 @@ function finalizeRoom(context, endPoint, forceSquare = false) {
     return;
   }
 
-  const layerId = documentData.layers[0].id;
+  const layerId = resolveActiveLayerId(documentData, appState.activeLayerId);
   const corners = [
     { x: rect.x, y: rect.y },
     { x: rect.x + rect.width, y: rect.y },

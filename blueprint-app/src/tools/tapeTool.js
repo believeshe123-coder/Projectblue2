@@ -1,5 +1,6 @@
 import { createTapeShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
+import { resolveActiveLayerId } from '../document/layerModel.js';
 
 function usesOffsetMode(context) {
   return context.store.documentData.settings.tapeMeasureMode === 'offset-3-point';
@@ -52,7 +53,7 @@ function finalizeTape(context, finalPoint) {
   // In direct mode, finalPoint updates the end. In 3-point offset mode,
   // finalPoint sets only the pull location while preserving the baseline end.
   const shape = createTapeShape({
-    layerId: documentData.layers[0].id,
+    layerId: resolveActiveLayerId(documentData, context.store.appState.activeLayerId),
     ...buildTapeShapeArgs(preview, finalPoint),
     style: context.store.appState.toolStyle,
   });
