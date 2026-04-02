@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { deleteLayer, mergeLayerWithLower } from './actions.js';
+import { deleteLayer, eraseLinesAlongSegment, mergeLayerWithLower } from './actions.js';
 import { store } from './store.js';
 
 function withStoreSnapshot(run) {
@@ -69,5 +69,24 @@ test('mergeLayerWithLower moves shapes into lower layer and removes merged layer
     assert.equal(store.documentData.layers.length, 1);
     assert.equal(store.documentData.shapes[0].layerId, 'layer-a');
     assert.equal(store.appState.activeLayerId, 'layer-a');
+  });
+});
+
+test('eraseLinesAlongSegment only erases lines on the active layer', () => {
+  withStoreSnapshot(() => {
+    store.documentData.layers = [
+      { id: 'layer-a', name: 'Layer A', visible: true, locked: false, opacity: 1 },
+      { id: 'layer-b', name: 'Layer B', visible: true, locked: false, opacity: 1 },
+    ];
+    store.appState.activeLayerId = 'layer-a';
+    store.documentData.shapes = [
+      { id: 'shape-a', type: 'line', layerId: 'layer-a', visible: true, locked: false, start: { x: 0, y: 0 }, end: { x: 100, y: 0 }, style: {} },
+      { id: 'shape-b', type: 'line', layerId: 'layer-b', visible: true, locked: false, start: { x: 0, y: 0 }, end: { x: 100, y: 0 }, style: {} },
+    ];
+
+    const erased = eraseLinesAlongSegment({ x: 20, y: 0 }, { x: 80, y: 0 });
+    assert.equal(erased, 1);
+    const remainingShapeIds = store.documentData.shapes.map((shape) => shape.id);
+    assert.equal(remainingShapeIds.includes('shape-b'), true);
   });
 });

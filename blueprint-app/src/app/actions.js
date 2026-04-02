@@ -568,13 +568,14 @@ function cloneAsLineSegment(shape, start, end) {
 export function eraseLinesAlongSegment(start, end) {
   const eraseLength = Math.hypot(end.x - start.x, end.y - start.y);
   if (eraseLength < 1) return 0;
+  const activeLayerId = resolveActiveLayerId(store.documentData, store.appState.activeLayerId);
 
   const nextShapes = [];
   let changed = false;
   const maxAngle = Math.cos((20 * Math.PI) / 180);
 
   for (const shape of store.documentData.shapes) {
-    if (shape.type !== 'line' || shape.locked || !shape.visible) {
+    if (shape.type !== 'line' || shape.locked || !shape.visible || shape.layerId !== activeLayerId) {
       nextShapes.push(shape);
       continue;
     }
