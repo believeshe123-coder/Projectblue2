@@ -2,6 +2,7 @@ import {
   addLayer,
   commitLayerOpacity,
   deleteLayer,
+  mergeLayerWithLower,
   moveLayerDown,
   moveLayerUp,
   renameLayer,
@@ -11,7 +12,8 @@ import {
   toggleLayerVisibility,
 } from '../app/actions.js';
 
-export function mountLayersPanel({ container, store }) {
+export function mountLayersPanel({ container, store, mode = 'main' }) {
+  const isManageMode = mode === 'manage';
   const panel = document.createElement('div');
   panel.className = 'panel layers-panel';
   container.appendChild(panel);
@@ -31,7 +33,10 @@ export function mountLayersPanel({ container, store }) {
     addButton.type = 'button';
     addButton.textContent = 'Add Layer';
     addButton.addEventListener('click', () => {
-      addLayer(`Layer ${store.documentData.layers.length + 1}`);
+      const suggested = `Layer ${store.documentData.layers.length + 1}`;
+      const enteredName = window.prompt('New layer name', suggested);
+      if (enteredName == null) return;
+      addLayer(String(enteredName).trim() || suggested);
     });
     panel.appendChild(addButton);
 
@@ -75,17 +80,6 @@ export function mountLayersPanel({ container, store }) {
       const buttonGroup = document.createElement('div');
       buttonGroup.className = 'layers-item-buttons';
 
-      const renameButton = document.createElement('button');
-      renameButton.type = 'button';
-      renameButton.textContent = 'Rename';
-      renameButton.title = 'Rename layer';
-      renameButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const nextName = window.prompt('Layer name', layer.name);
-        if (nextName == null) return;
-        renameLayer(layer.id, nextName);
-      });
-
       const upButton = document.createElement('button');
       upButton.type = 'button';
       upButton.textContent = '↑';
@@ -124,22 +118,47 @@ export function mountLayersPanel({ container, store }) {
         toggleLayerLock(layer.id);
       });
 
-      const deleteButton = document.createElement('button');
-      deleteButton.type = 'button';
-      deleteButton.textContent = 'Delete';
-      deleteButton.disabled = layers.length <= 1;
-      deleteButton.title = layers.length <= 1 ? 'At least one layer is required' : 'Delete layer';
-      deleteButton.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (layers.length <= 1) return;
-        if (shapeCount > 0) {
-          const confirmed = window.confirm(`Delete "${layer.name}" and move ${shapeCount} shape(s) to a nearby layer?`);
-          if (!confirmed) return;
-        }
-        deleteLayer(layer.id);
-      });
+      buttonGroup.append(upButton, downButton, visibilityButton, lockButton);
 
-      buttonGroup.append(renameButton, upButton, downButton, visibilityButton, lockButton, deleteButton);
+      if (isManageMode) {
+        const renameButton = document.createElement('button');
+        renameButton.type = 'button';
+        renameButton.textContent = 'Rename';
+        renameButton.title = 'Rename layer';
+        renameButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const nextName = window.prompt('Layer name', layer.name);
+          if (nextName == null) return;
+          renameLayer(layer.id, nextName);
+        });
+
+        const mergeButton = document.createElement('button');
+        mergeButton.type = 'button';
+        mergeButton.textContent = 'Merge ↓';
+        mergeButton.title = isBottom ? 'No lower layer to merge into' : 'Merge this layer into lower layer';
+        mergeButton.disabled = isBottom;
+        mergeButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          mergeLayerWithLower(layer.id);
+        });
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Delete';
+        deleteButton.disabled = layers.length <= 1;
+        deleteButton.title = layers.length <= 1 ? 'At least one layer is required' : 'Delete layer';
+        deleteButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (layers.length <= 1) return;
+          if (shapeCount > 0) {
+            const confirmed = window.confirm(`Delete "${layer.name}" and permanently delete ${shapeCount} shape(s) on this layer?`);
+            if (!confirmed) return;
+          }
+          deleteLayer(layer.id);
+        });
+
+        buttonGroup.append(renameButton, mergeButton, deleteButton);
+      }
       row.appendChild(buttonGroup);
       item.appendChild(row);
 

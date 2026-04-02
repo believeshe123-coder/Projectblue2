@@ -1,6 +1,7 @@
 import { screenToWorld } from './coordinateUtils.js';
 import { findNearestSnapPoint, snapToAngle, snapToAxis, snapToGrid } from './snapUtils.js';
 import { getTool } from '../tools/toolRegistry.js';
+import { normalizeLayers, resolveActiveLayerId } from '../document/layerModel.js';
 
 const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
@@ -45,6 +46,21 @@ export function resolveAnchorPoint(store, ephemeral) {
   return store.appState.dragStart;
 }
 
+export function resolveObjectSnapShapes(store) {
+  const layers = normalizeLayers(store.documentData.layers);
+  const activeLayerId = resolveActiveLayerId(store.documentData, store.appState.activeLayerId);
+  if (!activeLayerId) return [];
+
+  const visibleLayerIds = new Set(layers.filter((layer) => layer.visible !== false).map((layer) => layer.id));
+  const layerIds = new Set(layers.map((layer) => layer.id));
+
+  return store.documentData.shapes.filter((shape) => {
+    if (!shape || shape.visible === false || shape.locked === true) return false;
+    const shapeLayerId = layerIds.has(shape.layerId) ? shape.layerId : activeLayerId;
+    return shapeLayerId === activeLayerId && visibleLayerIds.has(shapeLayerId);
+  });
+}
+
 function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
   if (activeTool?.id === 'select' || activeTool?.id === 'fill') return world;
 
@@ -61,7 +77,8 @@ function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
   const shouldObjectSnap = settings.objectSnap !== false && activeTool?.id !== 'erase';
   if (shouldObjectSnap) {
     const objectSnapTolerance = Number(settings.objectSnapTolerance) || 12;
-    const nearestPoint = findNearestSnapPoint(point, store.documentData.shapes, objectSnapTolerance);
+    const snapShapes = resolveObjectSnapShapes(store);
+    const nearestPoint = findNearestSnapPoint(point, snapShapes, objectSnapTolerance);
     if (nearestPoint) {
       point = nearestPoint;
     }
