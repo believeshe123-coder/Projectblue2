@@ -177,7 +177,7 @@ body {
 .app-main {
   flex: 1;
   display: grid;
-  grid-template-columns: 170px 1fr 240px;
+  grid-template-columns: clamp(56px, 16vw, 220px) 1fr clamp(56px, 24vw, 300px);
   min-height: 0;
 }
 
@@ -200,12 +200,23 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .cursor-preview-dock {
-  margin-top: auto;
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 10;
   display: grid;
-  place-items: start;
+  place-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.55rem;
+  background: color-mix(in srgb, #ffffff 85%, transparent);
+  backdrop-filter: blur(3px);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
 }
 
 #cursor-preview {
@@ -218,7 +229,6 @@ body {
 }
 
 .history-controls {
-  margin-top: 0.5rem;
   display: flex;
   gap: 0.35rem;
 }
@@ -236,15 +246,117 @@ body {
   overflow: auto;
   padding: 0.75rem;
   position: relative;
+  min-width: 0;
+  background: #f3f6fa;
 }
 
 #blueprint-canvas {
   border: 1px solid var(--border);
   background: #fff;
   width: 100%;
-  height: calc(100vh - 130px);
+  height: calc(100vh - 76px);
   display: block;
   cursor: crosshair;
+  box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.sidebar-toggle {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 30px;
+  height: 26px;
+  font-size: 0.95rem;
+}
+
+.layout-menu {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.layout-select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: 32px;
+  padding: 0 0.45rem;
+}
+
+.layout-button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  height: 32px;
+  padding: 0 0.6rem;
+  cursor: pointer;
+}
+
+.app-shell[data-left-collapsed='true'] .app-main {
+  grid-template-columns: 56px 1fr clamp(56px, 24vw, 300px);
+}
+
+.app-shell[data-right-collapsed='true'] .app-main {
+  grid-template-columns: clamp(56px, 16vw, 220px) 1fr 56px;
+}
+
+.app-shell[data-left-collapsed='true'][data-right-collapsed='true'] .app-main {
+  grid-template-columns: 56px 1fr 56px;
+}
+
+.app-shell[data-left-collapsed='true'] .left-sidebar #toolbar,
+.app-shell[data-left-collapsed='true'] .left-sidebar .sidebar-header strong,
+.app-shell[data-right-collapsed='true'] .right-sidebar > :not(.sidebar-header) {
+  display: none;
+}
+
+.app-shell[data-right-collapsed='true'] .right-sidebar .sidebar-header strong {
+  display: none;
+}
+
+.app-shell[data-left-collapsed='true'] .left-sidebar,
+.app-shell[data-right-collapsed='true'] .right-sidebar {
+  align-items: center;
+  padding: 0.5rem 0.35rem;
+}
+
+.app-shell[data-left-collapsed='true'] .left-sidebar .sidebar-header,
+.app-shell[data-right-collapsed='true'] .right-sidebar .sidebar-header {
+  justify-content: center;
+}
+
+.app-shell[data-left-collapsed='true'] #left-sidebar-toggle {
+  transform: rotate(180deg);
+}
+
+.app-shell[data-right-collapsed='true'] #right-sidebar-toggle {
+  transform: rotate(180deg);
+}
+
+.app-shell[data-full-canvas='true'] .app-header {
+  display: none;
+}
+
+.app-shell[data-full-canvas='true'] .app-main {
+  grid-template-columns: 1fr;
+}
+
+.app-shell[data-full-canvas='true'] .left-sidebar,
+.app-shell[data-full-canvas='true'] .right-sidebar {
+  display: none;
+}
+
+.app-shell[data-full-canvas='true'] #blueprint-canvas {
+  height: calc(100vh - 1.5rem);
 }
 
 .canvas-label-editor {
