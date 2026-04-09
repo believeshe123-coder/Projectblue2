@@ -1,9 +1,25 @@
 :root {
   --bg: #f3f5f8;
   --panel: #ffffff;
+  --panel-elevated: #ffffff;
+  --surface-muted: #f3f4f6;
+  --canvas-panel: #f3f6fa;
+  --text-muted: #4a5565;
   --border: #d5dbe5;
   --text: #1f2a37;
   --accent: #0f4c81;
+}
+
+body[data-theme='dark'] {
+  --bg: #0f172a;
+  --panel: #111827;
+  --panel-elevated: #1f2937;
+  --surface-muted: #334155;
+  --canvas-panel: #0b1220;
+  --text: #e5e7eb;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --accent: #60a5fa;
 }
 
 * {
@@ -15,6 +31,20 @@ body {
   font-family: Inter, Segoe UI, Tahoma, sans-serif;
   color: var(--text);
   background: var(--bg);
+}
+
+button,
+input,
+select,
+textarea {
+  color: var(--text);
+}
+
+body[data-theme='dark'] input,
+body[data-theme='dark'] select,
+body[data-theme='dark'] textarea {
+  background: var(--panel-elevated);
+  border-color: var(--border);
 }
 
 .app-shell {
@@ -59,7 +89,7 @@ body {
 .menu-trigger {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--panel-elevated);
   color: var(--text);
   padding: 0.4rem 0.65rem;
   cursor: pointer;
@@ -71,7 +101,7 @@ body {
   right: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel-elevated);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
   padding: 0.5rem;
   z-index: 55;
@@ -98,7 +128,7 @@ body {
 .menu-item {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #f3f4f6;
+  background: var(--surface-muted);
   color: var(--text);
   padding: 0.5rem 0.6rem;
   text-align: left;
@@ -112,7 +142,7 @@ body {
 .settings-trigger {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--panel-elevated);
   color: var(--text);
   padding: 0.4rem 0.65rem;
   min-width: 112px;
@@ -127,7 +157,7 @@ body {
   width: 320px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel-elevated);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
   padding: 0.65rem;
   z-index: 50;
@@ -169,7 +199,7 @@ body {
 .settings-close {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--panel-elevated);
   color: var(--text);
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
@@ -226,7 +256,7 @@ body {
   height: 132px;
   display: block;
   border-radius: 50%;
-  background: #fff;
+  background: var(--panel-elevated);
   border: 2px solid #0f4c81;
 }
 
@@ -240,12 +270,12 @@ body {
   padding: 0.75rem;
   position: relative;
   min-width: 0;
-  background: #f3f6fa;
+  background: var(--canvas-panel);
 }
 
 #blueprint-canvas {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-elevated);
   width: 100%;
   height: calc(100vh - 76px);
   display: block;
@@ -263,7 +293,7 @@ body {
 
 .sidebar-toggle {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-elevated);
   border-radius: 6px;
   cursor: pointer;
   width: 30px;
@@ -287,7 +317,7 @@ body {
 .layout-button {
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--panel-elevated);
   color: var(--text);
   height: 32px;
   padding: 0 0.6rem;
@@ -390,7 +420,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.65rem;
-  background: #fff;
+  background: var(--panel-elevated);
 }
 
 .panel h2 {
@@ -479,7 +509,7 @@ body {
 
 .toolbar-button {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-elevated);
   border-radius: 6px;
   padding: 0.5rem;
   text-align: left;
@@ -489,7 +519,7 @@ body {
 .toolbar-button.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: #f0f7ff;
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel-elevated));
 }
 
 .property-group {
@@ -553,7 +583,7 @@ body {
 
 .button-row button {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-elevated);
   border-radius: 6px;
   padding: 0.35rem 0.45rem;
   font-size: 0.8rem;
@@ -586,7 +616,7 @@ body {
 }
 
 .settings-page-card {
-  background: #fff;
+  background: var(--panel-elevated);
 }
 
 .settings-page-subtitle {
@@ -619,7 +649,7 @@ body {
   padding: 0.75rem;
   display: grid;
   gap: 0.6rem;
-  background: #fff;
+  background: var(--panel-elevated);
 }
 
 .settings-group h3 {
@@ -668,7 +698,7 @@ body {
 .settings-row-description {
   margin: 0;
   font-size: 0.8rem;
-  color: #4a5565;
+  color: var(--text-muted);
 }
 
 .app-shell[data-active-route='route'] .app-main {
@@ -687,7 +717,7 @@ body {
 
 .color-save-button {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-elevated);
   border-radius: 6px;
   padding: 0.2rem 0.45rem;
   font-size: 0.75rem;
@@ -730,7 +760,7 @@ body {
 
 .measurement-history-chip {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel-elevated);
   border-radius: 999px;
   padding: 0.15rem 0.45rem;
   font-size: 0.75rem;
@@ -771,7 +801,7 @@ body {
 
 .library-editor-dialog {
   width: 520px;
-  background: #fff;
+  background: var(--panel-elevated);
   border-radius: 10px;
   border: 1px solid var(--border);
   padding: 0.8rem;
@@ -817,7 +847,7 @@ body {
   margin: 0;
   min-height: 1.2rem;
   font-size: 0.78rem;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 #lib-grid {
@@ -856,7 +886,7 @@ body {
   margin-top: 0.15rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #f8fafc;
+  background: color-mix(in srgb, var(--panel-elevated) 88%, var(--text) 12%);
   padding: 0.4rem;
 }
 
@@ -868,7 +898,7 @@ body {
 
 .measure-preview p {
   margin: 0.25rem 0 0;
-  color: #475569;
+  color: var(--text-muted);
   font-size: 0.72rem;
 }
 
@@ -886,7 +916,7 @@ body {
   text-align: left;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel-elevated);
   padding: 0.3rem;
 }
 

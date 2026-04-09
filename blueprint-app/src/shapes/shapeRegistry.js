@@ -6,6 +6,7 @@ import { tapeShape } from './tapeShape.js';
 import { regionShape } from './regionShape.js';
 import { libraryShape } from './libraryShape.js';
 import { penShape } from './penShape.js';
+import { ellipseShape } from './ellipseShape.js';
 
 export const shapeRegistry = {
   line: lineShape,
@@ -16,6 +17,7 @@ export const shapeRegistry = {
   region: regionShape,
   'library-shape': libraryShape,
   pen: penShape,
+  ellipse: ellipseShape,
 };
 
 export function getShapeBehavior(type) {

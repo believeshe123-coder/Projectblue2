@@ -81,6 +81,18 @@ function extractShapeSnapPoints(shape) {
     ];
   }
 
+  if (shape.type === 'ellipse') {
+    const cx = shape.x + (shape.width / 2);
+    const cy = shape.y + (shape.height / 2);
+    return [
+      { x: cx, y: cy },
+      { x: shape.x, y: cy },
+      { x: shape.x + shape.width, y: cy },
+      { x: cx, y: shape.y },
+      { x: cx, y: shape.y + shape.height },
+    ];
+  }
+
   if (Number.isFinite(shape.x) && Number.isFinite(shape.y)) {
     return [{ x: shape.x, y: shape.y }];
   }

@@ -14,6 +14,53 @@ function drawTapeMeasurement(ctx, shape, lineStart, lineEnd, settings) {
   drawMeasurementLabel(ctx, midX, midY, label, settings);
 }
 
+function drawTapeAngleMeasurement(ctx, shape, settings) {
+  const vertex = shape.start;
+  const armA = shape.end;
+  const armB = shape.offset;
+  if (!vertex || !armA || !armB) return;
+
+  const v1x = armA.x - vertex.x;
+  const v1y = armA.y - vertex.y;
+  const v2x = armB.x - vertex.x;
+  const v2y = armB.y - vertex.y;
+  const len1 = Math.hypot(v1x, v1y);
+  const len2 = Math.hypot(v2x, v2y);
+  if (len1 < 0.01 || len2 < 0.01) return;
+
+  const dot = (v1x * v2x) + (v1y * v2y);
+  const cos = Math.max(-1, Math.min(1, dot / (len1 * len2)));
+  const angleRad = Math.acos(cos);
+  const angleDeg = (angleRad * 180) / Math.PI;
+  const label = `${angleDeg.toFixed(1)}°`;
+
+  const startAngle = Math.atan2(v1y, v1x);
+  let endAngle = Math.atan2(v2y, v2x);
+  let sweep = endAngle - startAngle;
+  while (sweep <= -Math.PI) sweep += Math.PI * 2;
+  while (sweep > Math.PI) sweep -= Math.PI * 2;
+
+  const radius = Math.max(14, Math.min(28, Math.min(len1, len2) * 0.35));
+  ctx.save();
+  ctx.strokeStyle = shape.style.stroke;
+  ctx.lineWidth = Math.max(1, shape.style.strokeWidth - 0.5);
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(vertex.x, vertex.y, radius, startAngle, startAngle + sweep, sweep < 0);
+  ctx.stroke();
+  ctx.restore();
+
+  const midAngle = startAngle + (sweep / 2);
+  const labelRadius = radius + 12;
+  drawMeasurementLabel(
+    ctx,
+    vertex.x + Math.cos(midAngle) * labelRadius,
+    vertex.y + Math.sin(midAngle) * labelRadius,
+    label,
+    settings,
+  );
+}
+
 function resolveOffsetGeometry(shape) {
   const dx = shape.end.x - shape.start.x;
   const dy = shape.end.y - shape.start.y;
@@ -45,6 +92,27 @@ function resolveOffsetGeometry(shape) {
 export const tapeShape = {
   draw(ctx, shape, options = {}) {
     const shouldRenderLabel = true;
+
+    if (shape.mode === 'angle') {
+      if (!shape.offset) return;
+
+      ctx.save();
+      ctx.strokeStyle = shape.style.stroke;
+      ctx.lineWidth = shape.style.strokeWidth;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(shape.start.x, shape.start.y);
+      ctx.lineTo(shape.end.x, shape.end.y);
+      ctx.moveTo(shape.start.x, shape.start.y);
+      ctx.lineTo(shape.offset.x, shape.offset.y);
+      ctx.stroke();
+      ctx.restore();
+
+      if (shouldRenderLabel) {
+        drawTapeAngleMeasurement(ctx, shape, options.settings ?? {});
+      }
+      return;
+    }
 
     if (shape.mode === 'offset') {
       const geometry = resolveOffsetGeometry(shape);
@@ -90,6 +158,14 @@ export const tapeShape = {
   },
 
   hitTest(shape, point) {
+    if (shape.mode === 'angle') {
+      if (!shape.offset) return false;
+      return (
+        pointToSegmentDistance(point, shape.start, shape.end) <= 6
+        || pointToSegmentDistance(point, shape.start, shape.offset) <= 6
+      );
+    }
+
     if (shape.mode === 'offset') {
       const geometry = resolveOffsetGeometry(shape);
       if (!geometry) return false;

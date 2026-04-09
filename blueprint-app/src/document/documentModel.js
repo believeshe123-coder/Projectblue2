@@ -31,6 +31,7 @@ export function createDocumentModel() {
       selectionOutlineMode: 'always',
       showTapeTool: true,
       showActionToasts: true,
+      theme: 'light',
     },
     // Array order represents z-order from bottom (index 0) to top (last index).
     layers: [createLayer()],

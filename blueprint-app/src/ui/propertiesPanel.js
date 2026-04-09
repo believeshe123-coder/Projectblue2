@@ -327,6 +327,7 @@ export function formatMeasurePreviewScale({ settings, tapeCustomMeasurementEnabl
 
 function renderMeasurePreview(mode, scaleLabel) {
   const isOffset = mode === 'offset-3-point';
+  const isAngle = mode === 'angle-3-point';
   const baselineStroke = isOffset ? '#0f4c81' : '#1f2937';
   const baselineDash = isOffset ? '' : "stroke-dasharray='4 4'";
 
@@ -337,13 +338,18 @@ function renderMeasurePreview(mode, scaleLabel) {
           <line x1="24" y1="16" x2="24" y2="44" stroke="#64748b" stroke-width="2" />
           <line x1="110" y1="16" x2="110" y2="44" stroke="#64748b" stroke-width="2" />
           <line x1="24" y1="44" x2="110" y2="44" stroke="#0f4c81" stroke-width="2" stroke-dasharray="5 4" />
+        ` : isAngle ? `
+          <line x1="24" y1="50" x2="74" y2="34" stroke="#0f4c81" stroke-width="2" stroke-dasharray="5 4" />
+          <line x1="24" y1="50" x2="78" y2="54" stroke="#0f4c81" stroke-width="2" stroke-dasharray="5 4" />
+          <path d="M45 45 A12 12 0 0 1 50 53" fill="none" stroke="#64748b" stroke-width="1.5" />
         ` : `
           <line x1="24" y1="32" x2="110" y2="32" stroke="${baselineStroke}" stroke-width="2" ${baselineDash} />
         `}
-        <circle cx="24" cy="${isOffset ? 16 : 32}" r="3" fill="#0f4c81" />
-        <circle cx="110" cy="${isOffset ? 16 : 32}" r="3" fill="#0f4c81" />
+        <circle cx="24" cy="${isOffset ? 16 : isAngle ? 50 : 32}" r="3" fill="#0f4c81" />
+        <circle cx="${isAngle ? 74 : 110}" cy="${isOffset ? 16 : isAngle ? 34 : 32}" r="3" fill="#0f4c81" />
+        ${isAngle ? '<circle cx="78" cy="54" r="3" fill="#0f4c81" />' : ''}
       </svg>
-      <p>${isOffset ? '3 clicks: start, end, pull offset.' : '2 clicks (or drag): start and end.'}</p>
+      <p>${isOffset ? '3 clicks: start, end, pull offset.' : isAngle ? '3 clicks: vertex, arm one, arm two.' : '2 clicks (or drag): start and end.'}</p>
       <p class="muted-hint">Preview scale: ${scaleLabel}</p>
     </div>
   `;
@@ -493,7 +499,10 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     if (target.id === 'shape-locked') updateSelectedShapes({ locked: target.checked });
     if (target.id === 'room-auto-fill') updateSelectedRoomsFilled(target.checked);
     if (target.id === 'measure-tool-type') {
-      updateDocumentSettings({ tapeMeasureMode: target.value === 'offset-3-point' ? 'offset-3-point' : 'direct' });
+      const nextTapeMeasureMode = ['direct', 'offset-3-point', 'angle-3-point'].includes(target.value)
+        ? target.value
+        : 'direct';
+      updateDocumentSettings({ tapeMeasureMode: nextTapeMeasureMode });
     }
     if (target.id === 'measure-draw-mode') {
       updateDocumentSettings({ drawMode: target.value === 'drag' ? 'drag' : 'click' });
@@ -812,6 +821,15 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       `;
     }
 
+    if (activeTool === 'pan') {
+      body += `
+        <div class="property-group">
+          <h3>Pan</h3>
+          <p class="muted-hint">Drag on the canvas to move around. Use your touchpad or mouse wheel to zoom in and out.</p>
+        </div>
+      `;
+    }
+
     if (activeTool === 'label') {
       body += `
         <div class="property-group">
@@ -828,7 +846,9 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
     }
 
     if (activeTool === 'tape') {
-      const tapeMeasureMode = store.documentData.settings.tapeMeasureMode === 'offset-3-point' ? 'offset-3-point' : 'direct';
+      const tapeMeasureMode = ['direct', 'offset-3-point', 'angle-3-point'].includes(store.documentData.settings.tapeMeasureMode)
+        ? store.documentData.settings.tapeMeasureMode
+        : 'direct';
       const drawMode = store.documentData.settings.drawMode === 'drag' ? 'drag' : 'click';
       const hasSelectedTapes = selectedTapes.length > 0;
       const activeTapeMeasurementValue = hasSelectedTapes ? (tapeMeasurementUnitsPerGrid || String(tapeCustomMeasurementValue)) : String(tapeCustomMeasurementValue);
@@ -844,6 +864,7 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
             <select id="measure-tool-type">
               <option value="direct" ${tapeMeasureMode === 'direct' ? 'selected' : ''}>Direct dotted line</option>
               <option value="offset-3-point" ${tapeMeasureMode === 'offset-3-point' ? 'selected' : ''}>3-point pulled dimension</option>
+              <option value="angle-3-point" ${tapeMeasureMode === 'angle-3-point' ? 'selected' : ''}>3-point angle</option>
             </select>
           </label>
           <label>Drawing interaction

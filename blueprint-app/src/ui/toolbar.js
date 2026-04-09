@@ -3,10 +3,13 @@ import { toolRegistry } from '../tools/toolRegistry.js';
 
 const TOOL_LABELS = {
   select: 'Select',
+  pan: 'Pan',
   pen: 'Pen',
   line: 'Line',
   room: 'Room',
   curve: 'Curve',
+  circle: 'Circle',
+  oval: 'Oval',
   label: 'Label',
   tape: 'Measure',
   fill: 'Fill',
