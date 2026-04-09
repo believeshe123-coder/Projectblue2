@@ -24,8 +24,13 @@ function clampZoom(zoom) {
 }
 
 function shouldPan(event, activeToolId) {
-  if (activeToolId === 'pan' && event.button === 0) return true;
+  if (activeToolId === 'pan') return false;
   return event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
+}
+
+export function resolveWheelMode(event, activeToolId) {
+  if (activeToolId === 'pan' && !event?.ctrlKey) return 'pan';
+  return 'zoom';
 }
 
 function isActiveLayerLocked(store) {
@@ -111,6 +116,15 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
 
   canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
+
+    const activeTool = getTool(store.appState.activeTool);
+    const wheelMode = resolveWheelMode(event, activeTool?.id);
+    if (wheelMode === 'pan') {
+      store.appState.panX -= event.deltaX;
+      store.appState.panY -= event.deltaY;
+      store.notify();
+      return;
+    }
 
     const mouse = eventPointFromCanvas(canvas, event);
     const beforeZoom = screenToWorld(mouse, store.appState);
