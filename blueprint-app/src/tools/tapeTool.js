@@ -6,6 +6,10 @@ function usesOffsetMode(context) {
   return context.store.documentData.settings.tapeMeasureMode === 'offset-3-point';
 }
 
+function usesAngleMode(context) {
+  return context.store.documentData.settings.tapeMeasureMode === 'angle-3-point';
+}
+
 function isClickDrawMode(context) {
   return context.store.documentData.settings.drawMode !== 'drag';
 }
@@ -35,7 +39,28 @@ function beginOffsetPreview(context, point) {
   };
 }
 
+function beginAnglePreview(context, point) {
+  patchState({ isDragging: true, dragStart: point });
+  context.ephemeral.preview = {
+    type: 'tape',
+    mode: 'angle',
+    phase: 'set-end',
+    start: point,
+    end: point,
+    offset: point,
+  };
+}
+
 export function buildTapeShapeArgs(preview, finalPoint) {
+  if (preview.mode === 'angle') {
+    return {
+      start: preview.start,
+      end: preview.end,
+      mode: 'angle',
+      offset: finalPoint ?? preview.offset,
+    };
+  }
+
   if (preview.mode === 'offset') {
     return {
       start: preview.start,
@@ -78,6 +103,23 @@ export const tapeTool = {
 
   onPointerDown(context, point, event) {
     const preview = context.ephemeral.preview;
+    if (usesAngleMode(context)) {
+      if (!preview || preview.type !== 'tape' || preview.mode !== 'angle') {
+        beginAnglePreview(context, point);
+        return;
+      }
+
+      if (preview.phase === 'set-end') {
+        preview.end = point;
+        preview.phase = 'set-offset';
+        context.store.notify();
+        return;
+      }
+
+      finalizeTape(context, point);
+      return;
+    }
+
     if (usesOffsetMode(context)) {
       if (!preview || preview.type !== 'tape' || preview.mode !== 'offset') {
         beginOffsetPreview(context, point);
@@ -114,6 +156,16 @@ export const tapeTool = {
   onPointerMove(context, point, event) {
     const preview = context.ephemeral.preview;
     if (!context.store.appState.isDragging || !preview || preview.type !== 'tape') return;
+
+    if (preview.mode === 'angle') {
+      if (preview.phase === 'set-end') {
+        preview.end = point;
+      } else {
+        preview.offset = point;
+      }
+      context.store.notify();
+      return;
+    }
 
     if (preview.mode === 'offset') {
       if (preview.phase === 'set-end') {

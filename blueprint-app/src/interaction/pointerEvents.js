@@ -6,7 +6,7 @@ import { normalizeLayers, resolveActiveLayerId } from '../document/layerModel.js
 const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.1;
-const LAYER_DRAW_TOOL_IDS = new Set(['pen', 'line', 'room', 'curve', 'label', 'tape', 'place-shape']);
+const LAYER_DRAW_TOOL_IDS = new Set(['pen', 'line', 'room', 'curve', 'circle', 'oval', 'label', 'tape', 'place-shape']);
 
 function eventPointFromCanvas(canvas, event) {
   const rect = canvas.getBoundingClientRect();
@@ -23,7 +23,8 @@ function clampZoom(zoom) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 }
 
-function shouldPan(event) {
+function shouldPan(event, activeToolId) {
+  if (activeToolId === 'pan' && event.button === 0) return true;
   return event.button === 1 || event.button === 2 || (event.button === 0 && event.shiftKey);
 }
 
@@ -39,7 +40,11 @@ export function resolveAnchorPoint(store, ephemeral) {
     return preview.end ?? preview.start ?? null;
   }
 
-  if (preview?.type === 'line' || preview?.type === 'tape' || preview?.type === 'room' || preview?.type === 'curve') {
+  if (preview?.type === 'line'
+    || preview?.type === 'tape'
+    || preview?.type === 'room'
+    || preview?.type === 'curve'
+    || preview?.type === 'ellipse') {
     return preview.start ?? null;
   }
 
@@ -119,9 +124,11 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
   }, { passive: false });
 
   canvas.addEventListener('pointerdown', (event) => {
-    if (shouldPan(event)) {
+    const activeTool = getTool(store.appState.activeTool);
+    if (shouldPan(event, activeTool?.id)) {
       event.preventDefault();
       isPanning = true;
+      canvas.style.cursor = 'grabbing';
       panStart = {
         x: event.clientX,
         y: event.clientY,
@@ -131,7 +138,6 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
       return;
     }
 
-    const activeTool = getTool(store.appState.activeTool);
     if (LAYER_DRAW_TOOL_IDS.has(activeTool?.id) && isActiveLayerLocked(store)) {
       return;
     }
@@ -171,6 +177,8 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
   window.addEventListener('pointerup', (event) => {
     if (isPanning) {
       isPanning = false;
+      const activeTool = getTool(store.appState.activeTool);
+      canvas.style.cursor = activeTool?.id === 'pan' ? 'grab' : 'crosshair';
       panStart = null;
       return;
     }

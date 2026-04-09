@@ -184,6 +184,18 @@ const SETTING_DEFINITIONS = [
       { value: 'always', label: 'At all times' },
     ],
   },
+  {
+    id: 'settings-theme',
+    key: 'theme',
+    type: 'select',
+    section: 'View',
+    label: 'Theme',
+    description: 'Switch between light and dark application themes.',
+    options: [
+      { value: 'light', label: 'Light' },
+      { value: 'dark', label: 'Dark' },
+    ],
+  },
 
   {
     id: 'settings-show-tape-tool',
@@ -377,6 +389,9 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
     }
     if (target.id === 'settings-selection-outline-mode') updateDocumentSettings({
       selectionOutlineMode: ['off', 'selection-tool', 'always'].includes(target.value) ? target.value : 'always',
+    });
+    if (target.id === 'settings-theme') updateDocumentSettings({
+      theme: ['light', 'dark'].includes(target.value) ? target.value : 'light',
     });
     if (target.id === 'settings-grid-size') {
       const parsed = Number.parseInt(target.value, 10);

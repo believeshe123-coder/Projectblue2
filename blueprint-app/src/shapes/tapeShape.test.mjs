@@ -9,6 +9,7 @@ function createMockContext() {
     save() {},
     restore() {},
     beginPath() {},
+    arc() {},
     moveTo() {},
     lineTo() {},
     stroke() {},
@@ -59,4 +60,20 @@ test('tape shape renders measurement labels even when measurement mode is off', 
   tapeShape.draw(ctx, shape, { settings: { measurementMode: 'off' }, isPreview: true });
 
   assert.equal(ctx.fillTextCalls, 2);
+});
+
+test('angle tape renders an angle label', () => {
+  const ctx = createMockContext();
+  const shape = {
+    type: 'tape',
+    mode: 'angle',
+    start: { x: 0, y: 0 },
+    end: { x: 100, y: 0 },
+    offset: { x: 60, y: 60 },
+    style: { stroke: '#111', strokeWidth: 2 },
+  };
+
+  tapeShape.draw(ctx, shape, { settings: { measurementMode: 'always' }, isPreview: false });
+
+  assert.equal(ctx.fillTextCalls, 1);
 });

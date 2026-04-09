@@ -432,6 +432,11 @@ function setPageVisibility({ showingHome }) {
   appShell.dataset.activeRoute = showingHome ? 'home' : 'route';
 }
 
+function applyTheme() {
+  const theme = store.documentData.settings?.theme === 'dark' ? 'dark' : 'light';
+  document.body.dataset.theme = theme;
+}
+
 function draw() {
   const route = getRoute();
   const showingHome = route === 'home';
@@ -442,6 +447,7 @@ function draw() {
     syncCanvasSize();
 
     const activeTool = getTool(store.appState.activeTool);
+    canvas.style.cursor = activeTool?.id === 'pan' ? 'grab' : 'crosshair';
     renderCanvas({
       ctx,
       canvas,
@@ -461,6 +467,7 @@ function draw() {
   layersRefresh();
   navRefresh(route);
   layoutRefresh();
+  applyTheme();
 }
 
 window.addEventListener('hashchange', () => {

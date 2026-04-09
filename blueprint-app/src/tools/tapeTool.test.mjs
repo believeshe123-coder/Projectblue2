@@ -39,3 +39,20 @@ test('direct mode applies final point as end and no offset', () => {
   assert.deepEqual(result.end, finalPoint);
   assert.equal(result.offset, null);
 });
+
+test('angle mode preserves first arm and applies final point as second arm', () => {
+  const preview = {
+    mode: 'angle',
+    start: { x: 10, y: 10 },
+    end: { x: 30, y: 10 },
+    offset: { x: 18, y: 28 },
+  };
+  const finalPoint = { x: 14, y: 30 };
+
+  const result = buildTapeShapeArgs(preview, finalPoint);
+
+  assert.equal(result.mode, 'angle');
+  assert.deepEqual(result.start, preview.start);
+  assert.deepEqual(result.end, preview.end);
+  assert.deepEqual(result.offset, finalPoint);
+});

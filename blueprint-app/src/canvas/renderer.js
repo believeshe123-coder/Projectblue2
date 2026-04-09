@@ -106,6 +106,22 @@ function previewToShape(preview, layerId = 'layer-1') {
     };
   }
 
+  if (preview.type === 'ellipse' && preview.start && preview.end) {
+    const x = Math.min(preview.start.x, preview.end.x);
+    const y = Math.min(preview.start.y, preview.end.y);
+    return {
+      type: 'ellipse',
+      layerId,
+      x,
+      y,
+      width: Math.abs(preview.end.x - preview.start.x),
+      height: Math.abs(preview.end.y - preview.start.y),
+      style: { stroke: '#1f2937', strokeWidth: 2, lineType: 'solid' },
+      visible: true,
+      locked: false,
+    };
+  }
+
   return null;
 }
 

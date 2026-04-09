@@ -38,6 +38,21 @@ export function createCurveShape({ layerId, start, end, control, style = {} }) {
   };
 }
 
+export function createEllipseShape({ layerId, x, y, width, height, style = {} }) {
+  return {
+    id: generateId('shape'),
+    type: 'ellipse',
+    layerId,
+    x,
+    y,
+    width,
+    height,
+    style: { ...defaultStyle, ...style },
+    visible: true,
+    locked: false,
+  };
+}
+
 export function createPenShape({ layerId, points, style = {} }) {
   return {
     id: generateId('shape'),
