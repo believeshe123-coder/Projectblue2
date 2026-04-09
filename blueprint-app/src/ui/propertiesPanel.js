@@ -821,6 +821,15 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
       `;
     }
 
+    if (activeTool === 'pan') {
+      body += `
+        <div class="property-group">
+          <h3>Pan</h3>
+          <p class="muted-hint">Drag on the canvas to move around. Use your touchpad or mouse wheel to zoom in and out.</p>
+        </div>
+      `;
+    }
+
     if (activeTool === 'label') {
       body += `
         <div class="property-group">
