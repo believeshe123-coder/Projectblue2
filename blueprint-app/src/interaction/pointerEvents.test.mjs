@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { resolveAnchorPoint, resolveObjectSnapShapes } from './pointerEvents.js';
+import { resolveAnchorPoint, resolveObjectSnapShapes, resolveWheelMode } from './pointerEvents.js';
 
 test('3-point tape offset phase uses baseline end as snapping anchor', () => {
   const store = { appState: { dragStart: { x: 1, y: 1 } } };
@@ -52,4 +52,19 @@ test('object snap only includes shapes from the active visible layer', () => {
 
   const shapes = resolveObjectSnapShapes(store);
   assert.deepEqual(shapes.map((shape) => shape.id), ['line-b']);
+});
+
+test('wheel input pans when pan tool is active and ctrl is not pressed', () => {
+  const mode = resolveWheelMode({ ctrlKey: false }, 'pan');
+  assert.equal(mode, 'pan');
+});
+
+test('wheel input zooms when ctrl is pressed on pan tool', () => {
+  const mode = resolveWheelMode({ ctrlKey: true }, 'pan');
+  assert.equal(mode, 'zoom');
+});
+
+test('wheel input zooms for non-pan tools', () => {
+  const mode = resolveWheelMode({ ctrlKey: false }, 'line');
+  assert.equal(mode, 'zoom');
 });

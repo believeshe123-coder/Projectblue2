@@ -2,6 +2,7 @@ import {
   flipSelectedHorizontal,
   flipSelectedVertical,
   removeSelectedFill,
+  setActiveTool,
   setSelectedShapeType,
   updateSelectedShapes,
   updateSelectedStyles,
@@ -504,8 +505,17 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         : 'direct';
       updateDocumentSettings({ tapeMeasureMode: nextTapeMeasureMode });
     }
+    if (target.id === 'selection-measure-tool-type') {
+      const nextTapeMeasureMode = ['direct', 'offset-3-point', 'angle-3-point'].includes(target.value)
+        ? target.value
+        : 'direct';
+      updateDocumentSettings({ tapeMeasureMode: nextTapeMeasureMode });
+    }
     if (target.id === 'measure-draw-mode') {
       updateDocumentSettings({ drawMode: target.value === 'drag' ? 'drag' : 'click' });
+    }
+    if (target.id === 'ellipse-tool-shape') {
+      setActiveTool(target.value === 'circle' ? 'circle' : 'oval');
     }
     if (target.id === 'shape-measurement-units-per-grid') {
       const raw = target.value.trim();
@@ -779,6 +789,24 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
         `;
       }
 
+      if (selectedTapes.length) {
+        const selectionTapeMeasureMode = ['direct', 'offset-3-point', 'angle-3-point'].includes(store.documentData.settings.tapeMeasureMode)
+          ? store.documentData.settings.tapeMeasureMode
+          : 'direct';
+        body += `
+          <div class="property-group">
+            <h3>Selected measurements</h3>
+            <label>Measure type
+              <select id="selection-measure-tool-type">
+                <option value="direct" ${selectionTapeMeasureMode === 'direct' ? 'selected' : ''}>Direct dotted line</option>
+                <option value="offset-3-point" ${selectionTapeMeasureMode === 'offset-3-point' ? 'selected' : ''}>3-point pulled dimension</option>
+                <option value="angle-3-point" ${selectionTapeMeasureMode === 'angle-3-point' ? 'selected' : ''}>3-point angle</option>
+              </select>
+            </label>
+          </div>
+        `;
+      }
+
     }
 
     if (activeTool === 'line' || activeTool === 'pen') {
@@ -817,6 +845,23 @@ export function mountPropertiesPanel({ container, store, showActionToast = () =>
           ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
           <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
           ${lineTypeOptions(selected, effectiveStyle.lineType ?? 'solid')}
+        </div>
+      `;
+    }
+
+    if (activeTool === 'circle' || activeTool === 'oval') {
+      body += `
+        <div class="property-group">
+          <h3>Ellipse</h3>
+          <label>Ellipse type
+            <select id="ellipse-tool-shape">
+              <option value="circle" ${activeTool === 'circle' ? 'selected' : ''}>Circle</option>
+              <option value="oval" ${activeTool === 'oval' ? 'selected' : ''}>Oval</option>
+            </select>
+          </label>
+          ${renderColorField({ label: 'Line color', inputId: 'style-stroke', value: strokeValue, disabled: false, historyKind: 'stroke' })}
+          ${renderColorField({ label: 'Fill color', inputId: 'style-fill', value: fillValue, disabled: false, historyKind: 'fill' })}
+          <label>Line thickness <input id="style-stroke-width" type="number" min="1" step="1" value="${effectiveStyle.strokeWidth ?? 2}" /></label>
         </div>
       `;
     }
