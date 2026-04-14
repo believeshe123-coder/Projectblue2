@@ -20,13 +20,11 @@
             <button id="left-sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Toggle tools panel">⟨</button>
           </div>
           <section id="toolbar"></section>
+          <section id="layers-panel"></section>
         </aside>
 
         <section class="canvas-panel">
           <canvas id="blueprint-canvas" width="1100" height="700"></canvas>
-          <section class="cursor-preview-dock" aria-label="Cursor preview">
-            <canvas id="cursor-preview" width="132" height="132"></canvas>
-          </section>
         </section>
 
         <aside class="right-sidebar">
@@ -35,7 +33,9 @@
             <button id="right-sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Toggle properties panel">⟩</button>
           </div>
           <section id="properties-panel"></section>
-          <section id="layers-panel"></section>
+          <section class="cursor-preview-dock" aria-label="Cursor preview">
+            <canvas id="cursor-preview" width="132" height="132"></canvas>
+          </section>
         </aside>
       </main>
     </div>
