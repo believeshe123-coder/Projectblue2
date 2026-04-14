@@ -119,6 +119,7 @@ export function createLabelShape({ layerId, x, y, text = 'Text', style = {} }) {
     x,
     y,
     text,
+    angle: 0,
     style: { ...defaultStyle, fill: '#1f2937', ...style },
     visible: true,
     locked: false,
