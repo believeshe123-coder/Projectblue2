@@ -253,10 +253,6 @@ body[data-theme='dark'] textarea {
 }
 
 .cursor-preview-dock {
-  position: fixed;
-  left: 1rem;
-  bottom: 1rem;
-  z-index: 30;
   display: grid;
   place-items: center;
   border: 1px solid var(--border);
@@ -265,6 +261,9 @@ body[data-theme='dark'] textarea {
   background: color-mix(in srgb, #ffffff 85%, transparent);
   backdrop-filter: blur(3px);
   box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+  width: fit-content;
+  max-width: 100%;
+  justify-self: center;
 }
 
 #cursor-preview {
