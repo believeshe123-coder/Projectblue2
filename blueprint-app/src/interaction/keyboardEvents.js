@@ -8,6 +8,12 @@ import {
 import { getTool } from '../tools/toolRegistry.js';
 import { selectTool } from '../tools/selectTool.js';
 
+
+function isEditableTarget(target) {
+  if (!(target instanceof Element)) return false;
+  return target.closest('input, textarea, [contenteditable="true"]') !== null;
+}
+
 function isLabelEditingKey(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) return false;
   return event.key.length === 1 || event.key === 'Enter' || event.key === 'Escape' || event.key === 'Backspace' || event.key === 'Delete';
@@ -15,7 +21,7 @@ function isLabelEditingKey(event) {
 
 export function bindKeyboardEvents({ store, ephemeral }) {
   window.addEventListener('keydown', (event) => {
-    if (ephemeral?.labelInputActive) return;
+    if (ephemeral?.labelInputActive || isEditableTarget(event.target)) return;
 
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
       event.preventDefault();
