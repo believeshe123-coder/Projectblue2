@@ -293,10 +293,12 @@ function syncLabelEditor() {
   const paddingX = 4;
   const minWidth = 120;
   const width = Math.max(minWidth, (shape.text.length * (textSize * 0.58)) + (paddingX * 2));
+  const canvasOffsetLeft = canvas.offsetLeft;
+  const canvasOffsetTop = canvas.offsetTop;
 
   labelEditor.hidden = false;
-  labelEditor.style.left = `${shape.x * scaleX}px`;
-  labelEditor.style.top = `${(shape.y - textSize) * scaleY}px`;
+  labelEditor.style.left = `${canvasOffsetLeft + (shape.x * scaleX)}px`;
+  labelEditor.style.top = `${canvasOffsetTop + ((shape.y - textSize) * scaleY)}px`;
   labelEditor.style.width = `${Math.max(48, width * scaleX)}px`;
   labelEditor.style.height = `${Math.max(28, (textSize + 10) * scaleY)}px`;
   labelEditor.style.fontSize = `${textSize * scaleY}px`;
