@@ -432,7 +432,7 @@ function renderRoutePage(route) {
 function setPageVisibility({ showingHome }) {
   appMain.hidden = !showingHome;
   routeContainer.hidden = showingHome;
-  appMain.style.display = showingHome ? 'grid' : 'none';
+  appMain.style.display = showingHome ? 'flex' : 'none';
   routeContainer.style.display = showingHome ? 'none' : 'block';
   appShell.dataset.activeRoute = showingHome ? 'home' : 'route';
 }
