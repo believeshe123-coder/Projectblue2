@@ -2,6 +2,7 @@ import { performRedo, performUndo } from './app/actions.js';
 import { store } from './app/store.js';
 import { bindPointerEvents } from './interaction/pointerEvents.js';
 import { bindKeyboardEvents } from './interaction/keyboardEvents.js';
+import { worldToScreen } from './interaction/coordinateUtils.js';
 import { renderCanvas } from './canvas/renderer.js';
 import { mountToolbar } from './ui/toolbar.js';
 import { mountPropertiesPanel } from './ui/propertiesPanel.js';
@@ -293,17 +294,19 @@ function syncLabelEditor() {
   const paddingX = 4;
   const minWidth = 120;
   const width = Math.max(minWidth, (shape.text.length * (textSize * 0.58)) + (paddingX * 2));
-  const canvasOffsetLeft = canvas.offsetLeft;
-  const canvasOffsetTop = canvas.offsetTop;
+  const labelTopLeft = worldToScreen({ x: shape.x, y: shape.y - textSize }, store.appState);
+  const zoom = store.appState.zoom;
+  const editorLeft = canvas.offsetLeft + (labelTopLeft.x * scaleX);
+  const editorTop = canvas.offsetTop + (labelTopLeft.y * scaleY);
 
   labelEditor.hidden = false;
-  labelEditor.style.left = `${canvasOffsetLeft + (shape.x * scaleX)}px`;
-  labelEditor.style.top = `${canvasOffsetTop + ((shape.y - textSize) * scaleY)}px`;
-  labelEditor.style.width = `${Math.max(48, width * scaleX)}px`;
-  labelEditor.style.height = `${Math.max(28, (textSize + 10) * scaleY)}px`;
-  labelEditor.style.fontSize = `${textSize * scaleY}px`;
+  labelEditor.style.left = `${editorLeft}px`;
+  labelEditor.style.top = `${editorTop}px`;
+  labelEditor.style.width = `${Math.max(48, width * zoom * scaleX)}px`;
+  labelEditor.style.height = `${Math.max(28, (textSize + 10) * zoom * scaleY)}px`;
+  labelEditor.style.fontSize = `${textSize * zoom * scaleY}px`;
   labelEditor.style.fontFamily = fontFamily;
-  labelEditor.style.lineHeight = `${textSize * scaleY}px`;
+  labelEditor.style.lineHeight = `${textSize * zoom * scaleY}px`;
   labelEditor.style.color = shape.style.fill || '#111827';
   labelEditor.style.padding = `${Math.max(2, 3 * scaleY)}px ${Math.max(2, paddingX * scaleX)}px`;
 
