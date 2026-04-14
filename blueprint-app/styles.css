@@ -8,6 +8,7 @@
   --border: #d5dbe5;
   --text: #1f2a37;
   --accent: #0f4c81;
+  --canvas-theme-filter: none;
 }
 
 body[data-theme='dark'] {
@@ -20,6 +21,7 @@ body[data-theme='dark'] {
   --text-muted: #94a3b8;
   --border: #334155;
   --accent: #60a5fa;
+  --canvas-theme-filter: invert(1) hue-rotate(180deg);
 }
 
 * {
@@ -31,6 +33,7 @@ body {
   font-family: Inter, Segoe UI, Tahoma, sans-serif;
   color: var(--text);
   background: var(--bg);
+  overflow: hidden;
 }
 
 button,
@@ -48,9 +51,10 @@ body[data-theme='dark'] textarea {
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -209,19 +213,31 @@ body[data-theme='dark'] textarea {
 
 .app-main {
   flex: 1;
-  display: grid;
-  grid-template-columns: clamp(56px, 16vw, 220px) 1fr clamp(56px, 24vw, 300px);
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
   min-height: 0;
+  overflow: hidden;
 }
 
 .left-sidebar,
 .right-sidebar {
-  background: var(--panel);
+  position: relative;
+  z-index: 20;
+  width: clamp(56px, 16vw, 220px);
+  max-width: 320px;
+  height: 100%;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  backdrop-filter: blur(2px);
   border-right: 1px solid var(--border);
   padding: 0.75rem;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .right-sidebar {
+  width: clamp(56px, 24vw, 300px);
   border-right: none;
   border-left: 1px solid var(--border);
   display: grid;
@@ -258,6 +274,7 @@ body[data-theme='dark'] textarea {
   border-radius: 50%;
   background: var(--panel-elevated);
   border: 2px solid #0f4c81;
+  filter: var(--canvas-theme-filter);
 }
 
 .history-controls {
@@ -266,21 +283,21 @@ body[data-theme='dark'] textarea {
 }
 
 .canvas-panel {
+  position: absolute;
+  inset: 0;
   overflow: auto;
-  padding: 0.75rem;
-  position: relative;
-  min-width: 0;
+  padding: 0;
   background: var(--canvas-panel);
 }
 
 #blueprint-canvas {
-  border: 1px solid var(--border);
+  border: none;
   background: var(--panel-elevated);
   width: 100%;
-  height: calc(100vh - 76px);
+  height: 100%;
   display: block;
   cursor: crosshair;
-  box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+  filter: var(--canvas-theme-filter);
 }
 
 .sidebar-header {
@@ -324,18 +341,6 @@ body[data-theme='dark'] textarea {
   cursor: pointer;
 }
 
-.app-shell[data-left-collapsed='true'] .app-main {
-  grid-template-columns: 56px 1fr clamp(56px, 24vw, 300px);
-}
-
-.app-shell[data-right-collapsed='true'] .app-main {
-  grid-template-columns: clamp(56px, 16vw, 220px) 1fr 56px;
-}
-
-.app-shell[data-left-collapsed='true'][data-right-collapsed='true'] .app-main {
-  grid-template-columns: 56px 1fr 56px;
-}
-
 .app-shell[data-left-collapsed='true'] .left-sidebar #toolbar,
 .app-shell[data-left-collapsed='true'] .left-sidebar .sidebar-header strong,
 .app-shell[data-right-collapsed='true'] .right-sidebar > :not(.sidebar-header) {
@@ -350,6 +355,7 @@ body[data-theme='dark'] textarea {
 .app-shell[data-right-collapsed='true'] .right-sidebar {
   align-items: center;
   padding: 0.5rem 0.35rem;
+  width: 56px;
 }
 
 .app-shell[data-left-collapsed='true'] .left-sidebar .sidebar-header,
@@ -366,16 +372,12 @@ body[data-theme='dark'] textarea {
 }
 
 .app-shell[data-full-canvas='true'] .app-main {
-  grid-template-columns: 1fr;
+  display: block;
 }
 
 .app-shell[data-full-canvas='true'] .left-sidebar,
 .app-shell[data-full-canvas='true'] .right-sidebar {
   display: none;
-}
-
-.app-shell[data-full-canvas='true'] #blueprint-canvas {
-  height: calc(100vh - 76px);
 }
 
 .canvas-label-editor {
@@ -593,6 +595,8 @@ body[data-theme='dark'] textarea {
 
 .route-page {
   padding: 1rem;
+  height: calc(100vh - 76px);
+  overflow: auto;
 }
 
 .route-card {

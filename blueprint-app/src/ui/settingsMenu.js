@@ -190,10 +190,10 @@ const SETTING_DEFINITIONS = [
     type: 'select',
     section: 'View',
     label: 'Theme',
-    description: 'Switch between light and dark application themes.',
+    description: 'Switch between light and dark application themes (dark mode inverts canvas colors for visibility).',
     options: [
       { value: 'light', label: 'Light' },
-      { value: 'dark', label: 'Dark' },
+      { value: 'dark', label: 'Dark (Inverted)' },
     ],
   },
 
