@@ -225,7 +225,7 @@ body[data-theme='dark'] textarea {
 .right-sidebar {
   position: relative;
   z-index: 20;
-  width: clamp(56px, 16vw, 220px);
+  width: clamp(56px, 22vw, 320px);
   max-width: 320px;
   height: 100%;
   background: color-mix(in srgb, var(--panel) 92%, transparent);
@@ -505,6 +505,7 @@ body[data-theme='dark'] textarea {
 
 .toolbar-buttons {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
