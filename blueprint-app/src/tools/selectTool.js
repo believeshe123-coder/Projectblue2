@@ -250,6 +250,9 @@ function applyRotation(documentData, snapshot, center, angleDeg) {
       const mapped = rotatePoint({ x: original.x, y: original.y }, center, radians);
       shape.x = mapped.x;
       shape.y = mapped.y;
+      if (shape.type === 'label') {
+        shape.angle = (original.angle ?? 0) + angleDeg;
+      }
     }
   }
 }
