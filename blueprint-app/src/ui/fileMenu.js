@@ -25,7 +25,7 @@ function ensureDocumentShape(candidate) {
   return next;
 }
 
-function ensureAppStateShape(candidate) {
+export function ensureAppStateShape(candidate) {
   if (!candidate || typeof candidate !== 'object') return null;
 
   return {
@@ -82,7 +82,7 @@ function applyDocument(store, nextDocument) {
   seedIdGeneratorFromDocument(store.documentData);
 }
 
-function applyProject(store, project) {
+export function applyProject(store, project) {
   applyDocument(store, project.documentData);
 
   const nextAppState = project.appState ?? {
@@ -286,10 +286,57 @@ function buildPdfFromJpegDataUrl(jpegDataUrl, widthPx, heightPx) {
   return new Blob(chunks, { type: 'application/pdf' });
 }
 
+export function buildNewPageAppState(projectionMode) {
+  return {
+    activeTool: 'select',
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    selectedIds: [],
+    activeLayerId: null,
+    view: { projectionMode },
+    featureFlags: { enableAdvancedProjectionModes: projectionMode !== 'orthographic' },
+  };
+}
+
 export function renderFilePage({ container, store, canvas }) {
   const initialProjectName = sanitizeProjectName(localStorage.getItem(PROJECT_NAME_KEY) ?? 'blueprint-project');
+  const projectionOptions = [
+    { label: 'Regular Grid', value: 'orthographic' },
+    { label: 'Isometric', value: 'isometric' },
+    { label: 'Perspective Points', value: 'perspective2' },
+  ];
+  let isNewPageSetupOpen = false;
+  let selectedProjectionMode = 'orthographic';
 
-  container.innerHTML = `
+  function render() {
+    const setupMarkup = isNewPageSetupOpen
+      ? `
+      <div class="route-card" id="new-page-setup" data-new-page-setup>
+        <h3>New Page Setup</h3>
+        <p>Select a projection mode for your new page.</p>
+        <div class="settings-column">
+          ${projectionOptions.map((option) => `
+            <label class="settings-row">
+              <input
+                type="radio"
+                name="new-page-projection-mode"
+                value="${option.value}"
+                ${selectedProjectionMode === option.value ? 'checked' : ''}
+              />
+              <span>${option.label}</span>
+            </label>
+          `).join('')}
+        </div>
+        <div class="button-row">
+          <button class="menu-item" data-file-action="confirm-new-page" type="button">Create Page</button>
+          <button class="menu-item" data-file-action="cancel-new-page" type="button">Cancel</button>
+        </div>
+      </div>
+      `
+      : '';
+
+    container.innerHTML = `
     <div class="route-card">
       <h2>File</h2>
       <p>Save, load, start a new page, or reset your blueprint from this page.</p>
@@ -310,15 +357,20 @@ export function renderFilePage({ container, store, canvas }) {
       <input id="file-load-input" type="file" accept="application/json,.json" hidden />
       <p id="file-status" class="settings-row-description" aria-live="polite"></p>
     </div>
+    ${setupMarkup}
   `;
+  }
 
-  const fileInput = container.querySelector('#file-load-input');
-  const nameInput = container.querySelector('#file-project-name');
-  const status = container.querySelector('#file-status');
+  render();
+
+  let fileInput = null;
+  let nameInput = null;
+  let status = null;
 
   let saveFileHandle = null;
 
   function setStatus(message) {
+    status = container.querySelector('#file-status');
     if (status) status.textContent = message;
   }
 
@@ -380,11 +432,7 @@ export function renderFilePage({ container, store, canvas }) {
     }
   }
 
-  nameInput?.addEventListener('change', () => {
-    getCurrentProjectName();
-  });
-
-  fileInput?.addEventListener('change', async () => {
+  async function onFileInputChange() {
     const file = fileInput.files?.[0];
     if (!file) return;
 
@@ -408,7 +456,17 @@ export function renderFilePage({ container, store, canvas }) {
     } finally {
       fileInput.value = '';
     }
-  });
+  }
+
+  function bindFileInputs() {
+    fileInput = container.querySelector('#file-load-input');
+    nameInput = container.querySelector('#file-project-name');
+    status = container.querySelector('#file-status');
+    if (nameInput) nameInput.onchange = () => getCurrentProjectName();
+    if (fileInput) fileInput.onchange = onFileInputChange;
+  }
+
+  bindFileInputs();
 
   container.addEventListener('click', async (event) => {
     const actionButton = event.target instanceof Element
@@ -462,41 +520,38 @@ export function renderFilePage({ container, store, canvas }) {
 
 
     if (action === 'new-page') {
-      const projectionChoice = window.prompt(
-        'Choose grid mode for the new page:\n1) Regular Grid\n2) Isometric\n3) Perspective Points',
-        '1',
-      );
-      if (projectionChoice === null) {
-        setStatus('New page canceled.');
-        return;
-      }
+      isNewPageSetupOpen = true;
+      selectedProjectionMode = 'orthographic';
+      render();
+      bindFileInputs();
+      setStatus('Select a projection mode, then create your new page.');
+      return;
+    }
 
-      const normalizedChoice = String(projectionChoice).trim().toLowerCase();
-      const projectionMode =
-        normalizedChoice === '2' || normalizedChoice === 'isometric'
-          ? 'isometric'
-          : normalizedChoice === '3' || normalizedChoice === 'perspective' || normalizedChoice === 'perspective points'
-            ? 'perspective2'
-            : 'orthographic';
-
+    if (action === 'confirm-new-page') {
+      const selectedOption = container.querySelector('input[name="new-page-projection-mode"]:checked');
+      const projectionMode = selectedOption instanceof HTMLInputElement ? selectedOption.value : 'orthographic';
       const nextDoc = createDocumentModel();
       nextDoc.layers = normalizeLayers(nextDoc.layers);
       applyProject(store, {
         documentData: nextDoc,
-        appState: {
-          activeTool: 'select',
-          zoom: 1,
-          panX: 0,
-          panY: 0,
-          selectedIds: [],
-          activeLayerId: null,
-          view: { projectionMode },
-          featureFlags: { enableAdvancedProjectionModes: projectionMode !== 'orthographic' },
-        },
+        appState: buildNewPageAppState(projectionMode),
         ui: null,
       });
+      isNewPageSetupOpen = false;
+      render();
+      bindFileInputs();
       window.location.hash = '#home';
       setStatus('Started a new page.');
+      return;
+    }
+
+    if (action === 'cancel-new-page') {
+      isNewPageSetupOpen = false;
+      render();
+      bindFileInputs();
+      setStatus('New page canceled.');
+      return;
     }
 
     if (action === 'reset-view') {
