@@ -35,6 +35,12 @@ function ensureAppStateShape(candidate) {
     panY: Number.isFinite(candidate.panY) ? candidate.panY : 0,
     selectedIds: Array.isArray(candidate.selectedIds) ? candidate.selectedIds : [],
     activeLayerId: typeof candidate.activeLayerId === 'string' ? candidate.activeLayerId : null,
+    view: {
+      projectionMode: typeof candidate.view?.projectionMode === 'string' ? candidate.view.projectionMode : 'orthographic',
+    },
+    featureFlags: {
+      enableAdvancedProjectionModes: candidate.featureFlags?.enableAdvancedProjectionModes === true,
+    },
     hoveredId: null,
     isDragging: false,
     dragStart: null,
@@ -85,6 +91,8 @@ function applyProject(store, project) {
     panX: 0,
     panY: 0,
     selectedIds: [],
+    view: { projectionMode: 'orthographic' },
+    featureFlags: { enableAdvancedProjectionModes: false },
     hoveredId: null,
     isDragging: false,
     dragStart: null,
@@ -97,6 +105,8 @@ function applyProject(store, project) {
     panY: nextAppState.panY,
     selectedIds: nextAppState.selectedIds,
     activeLayerId: resolveActiveLayerId(store.documentData, nextAppState.activeLayerId),
+    view: nextAppState.view,
+    featureFlags: nextAppState.featureFlags,
     hoveredId: nextAppState.hoveredId,
     isDragging: false,
     dragStart: null,
@@ -452,9 +462,39 @@ export function renderFilePage({ container, store, canvas }) {
 
 
     if (action === 'new-page') {
+      const projectionChoice = window.prompt(
+        'Choose grid mode for the new page:\n1) Regular Grid\n2) Isometric\n3) Perspective Points',
+        '1',
+      );
+      if (projectionChoice === null) {
+        setStatus('New page canceled.');
+        return;
+      }
+
+      const normalizedChoice = String(projectionChoice).trim().toLowerCase();
+      const projectionMode =
+        normalizedChoice === '2' || normalizedChoice === 'isometric'
+          ? 'isometric'
+          : normalizedChoice === '3' || normalizedChoice === 'perspective' || normalizedChoice === 'perspective points'
+            ? 'perspective2'
+            : 'orthographic';
+
       const nextDoc = createDocumentModel();
       nextDoc.layers = normalizeLayers(nextDoc.layers);
-      applyProject(store, { documentData: nextDoc, appState: null, ui: null });
+      applyProject(store, {
+        documentData: nextDoc,
+        appState: {
+          activeTool: 'select',
+          zoom: 1,
+          panX: 0,
+          panY: 0,
+          selectedIds: [],
+          activeLayerId: null,
+          view: { projectionMode },
+          featureFlags: { enableAdvancedProjectionModes: projectionMode !== 'orthographic' },
+        },
+        ui: null,
+      });
       window.location.hash = '#home';
       setStatus('Started a new page.');
     }
