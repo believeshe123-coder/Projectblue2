@@ -37,7 +37,9 @@ test('orthographic strategy regression: draws axis-aligned grid lines', () => {
 test('isometric strategy draws diagonal lattice lines', () => {
   const calls = run('isometric');
   const hasDiagonal = calls.some((c, i) => Array.isArray(c) && c[0] === 'moveTo' && Array.isArray(calls[i + 1]) && calls[i + 1][0] === 'lineTo' && c[1] !== calls[i + 1][1] && c[2] !== calls[i + 1][2]);
+  const hasHorizontal = calls.some((c, i) => Array.isArray(c) && c[0] === 'moveTo' && Array.isArray(calls[i + 1]) && calls[i + 1][0] === 'lineTo' && c[2] === calls[i + 1][2]);
   assert.equal(hasDiagonal, true);
+  assert.equal(hasHorizontal, true);
 });
 
 test('perspective strategies generate distinct guide geometry from orthographic', () => {

@@ -3,8 +3,6 @@ const PROJECTION_MODES = new Set(['orthographic', 'perspective1', 'perspective2'
 
 export function resolveProjectionMode(appState) {
   const candidate = appState?.view?.projectionMode;
-  const advancedEnabled = appState?.featureFlags?.enableAdvancedProjectionModes === true;
-  if (!advancedEnabled && candidate && candidate !== 'orthographic') return 'orthographic';
   return PROJECTION_MODES.has(candidate) ? candidate : 'orthographic';
 }
 
