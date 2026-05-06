@@ -2,6 +2,7 @@ import { createLineShape } from '../document/shapeFactory.js';
 import { resolveActiveLayerId } from '../document/layerModel.js';
 import { normalizeRect } from '../utils/geometry.js';
 import { patchState, pushDocumentHistory, setSelection } from '../app/actions.js';
+import { toCanonicalPoint } from './projectionAdapter.js';
 
 function isClickDrawMode(context) {
   return context.store.documentData.settings.drawMode !== 'drag';
@@ -79,10 +80,11 @@ export const roomTool = {
   id: 'room',
 
   onPointerDown(context, point, event) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
 
     if (!preview || preview.type !== 'room') {
-      beginPreview(context, point);
+      beginPreview(context, canonicalPoint);
 
       if (!isClickDrawMode(context)) {
         startDrawing(context);
@@ -92,17 +94,18 @@ export const roomTool = {
     }
 
     if (isClickDrawMode(context)) {
-      finalizeRoom(context, point, Boolean(event?.shiftKey));
+      finalizeRoom(context, canonicalPoint, Boolean(event?.shiftKey));
       return;
     }
 
     startDrawing(context);
     preview.square = Boolean(event?.shiftKey);
-    preview.end = resolveRoomEnd(preview, point, preview.square);
+    preview.end = resolveRoomEnd(preview, canonicalPoint, preview.square);
     context.store.notify();
   },
 
   onPointerMove(context, point, event) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'room') return;
 
@@ -116,16 +119,17 @@ export const roomTool = {
     }
 
     preview.square = Boolean(event?.shiftKey);
-    preview.end = resolveRoomEnd(preview, point, preview.square);
+    preview.end = resolveRoomEnd(preview, canonicalPoint, preview.square);
     context.store.notify();
   },
 
   onPointerUp(context, point, event) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'room') return;
     if (isClickDrawMode(context)) return;
 
-    finalizeRoom(context, point, Boolean(event?.shiftKey));
+    finalizeRoom(context, canonicalPoint, Boolean(event?.shiftKey));
   },
 
   onKeyDown(context, key, event) {

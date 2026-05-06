@@ -1,4 +1,10 @@
-import { patchState, setActiveTool } from '../app/actions.js';
+import {
+  patchState,
+  PROJECTION_MODES,
+  selectProjectionMode,
+  setActiveTool,
+  setProjectionMode,
+} from '../app/actions.js';
 import { toolRegistry } from '../tools/toolRegistry.js';
 
 const TOOL_LABELS = {
@@ -20,7 +26,39 @@ const TOOL_LABELS = {
 export function mountToolbar({ container, store }) {
   const wrapper = document.createElement('div');
   wrapper.className = 'panel';
-  wrapper.innerHTML = '<h2>Tools</h2>';
+  wrapper.innerHTML = '<h2>View</h2>';
+
+  const projectionTabs = document.createElement('div');
+  projectionTabs.className = 'toolbar-buttons projection-tabs';
+  wrapper.appendChild(projectionTabs);
+
+  const projectionLabels = {
+    orthographic: 'Blueprint',
+    perspective1: 'Perspective 1',
+    perspective2: 'Perspective 2',
+    perspective3: 'Perspective 3',
+    isometric: 'Isometric',
+  };
+
+  const renderProjectionTabs = () => {
+    const advancedEnabled = store.appState.featureFlags?.enableAdvancedProjectionModes === true;
+    projectionTabs.innerHTML = '';
+
+    PROJECTION_MODES
+      .filter((mode) => advancedEnabled || mode === 'orthographic')
+      .forEach((mode) => {
+        const btn = document.createElement('button');
+        btn.className = 'toolbar-button';
+        btn.dataset.projectionMode = mode;
+        btn.textContent = projectionLabels[mode] ?? mode;
+        btn.addEventListener('click', () => setProjectionMode(mode));
+        projectionTabs.appendChild(btn);
+      });
+  };
+
+  const toolsHeader = document.createElement('h2');
+  toolsHeader.textContent = 'Tools';
+  wrapper.appendChild(toolsHeader);
 
   const buttonWrap = document.createElement('div');
   buttonWrap.className = 'toolbar-buttons';
@@ -61,7 +99,12 @@ export function mountToolbar({ container, store }) {
   };
 
   const refresh = () => {
+    renderProjectionTabs();
     renderButtons();
+    const activeProjection = selectProjectionMode();
+    container.querySelectorAll('.toolbar-button[data-projection-mode]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.projectionMode === activeProjection);
+    });
     container.querySelectorAll('.toolbar-button[data-tool-id]').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.toolId === store.appState.activeTool);
     });

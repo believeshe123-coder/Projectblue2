@@ -9,7 +9,19 @@ import { createLayer, resolveActiveLayerId } from '../document/layerModel.js';
 const MIN_ZOOM = 0.01;
 const MAX_ZOOM = 4;
 const CLIPBOARD_OFFSET_GRID_STEPS = 2;
+export const PROJECTION_MODES = Object.freeze([
+  'orthographic',
+  'perspective1',
+  'perspective2',
+  'perspective3',
+  'isometric',
+]);
+export const SET_PROJECTION_MODE = 'SET_PROJECTION_MODE';
 let shapeClipboard = [];
+
+function normalizeProjectionMode(mode) {
+  return PROJECTION_MODES.includes(mode) ? mode : 'orthographic';
+}
 
 function clampZoom(value) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
@@ -446,6 +458,28 @@ export function deleteLayer(layerId) {
 export function patchState(partial) {
   Object.assign(store.appState, partial);
   store.notify();
+}
+
+export function isAdvancedProjectionModesEnabled() {
+  return store.appState.featureFlags?.enableAdvancedProjectionModes === true;
+}
+
+export function selectProjectionMode() {
+  return normalizeProjectionMode(store.appState.view?.projectionMode);
+}
+
+export function setProjectionMode(mode) {
+  const normalized = normalizeProjectionMode(mode);
+  const advancedMode = normalized !== 'orthographic';
+  if (advancedMode && !isAdvancedProjectionModesEnabled()) return false;
+  if (selectProjectionMode() === normalized) return false;
+
+  store.appState.view = {
+    ...(store.appState.view ?? {}),
+    projectionMode: normalized,
+  };
+  store.notify();
+  return true;
 }
 
 export function setZoom(nextZoom) {

@@ -91,31 +91,40 @@ function resolveOffsetGeometry(shape) {
 
 export const tapeShape = {
   draw(ctx, shape, options = {}) {
+    const project = options.projection?.projectPoint
+      ? (point) => options.projection.projectPoint(point)
+      : (point) => point;
+    const projectedShape = {
+      ...shape,
+      start: project(shape.start),
+      end: project(shape.end),
+      offset: shape.offset ? project(shape.offset) : shape.offset,
+    };
     const shouldRenderLabel = true;
 
-    if (shape.mode === 'angle') {
-      if (!shape.offset) return;
+    if (projectedShape.mode === 'angle') {
+      if (!projectedShape.offset) return;
 
       ctx.save();
       ctx.strokeStyle = shape.style.stroke;
       ctx.lineWidth = shape.style.strokeWidth;
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      ctx.moveTo(shape.start.x, shape.start.y);
-      ctx.lineTo(shape.end.x, shape.end.y);
-      ctx.moveTo(shape.start.x, shape.start.y);
-      ctx.lineTo(shape.offset.x, shape.offset.y);
+      ctx.moveTo(projectedShape.start.x, projectedShape.start.y);
+      ctx.lineTo(projectedShape.end.x, projectedShape.end.y);
+      ctx.moveTo(projectedShape.start.x, projectedShape.start.y);
+      ctx.lineTo(projectedShape.offset.x, projectedShape.offset.y);
       ctx.stroke();
       ctx.restore();
 
       if (shouldRenderLabel) {
-        drawTapeAngleMeasurement(ctx, shape, options.settings ?? {});
+        drawTapeAngleMeasurement(ctx, projectedShape, options.settings ?? {});
       }
       return;
     }
 
-    if (shape.mode === 'offset') {
-      const geometry = resolveOffsetGeometry(shape);
+    if (projectedShape.mode === 'offset') {
+      const geometry = resolveOffsetGeometry(projectedShape);
       if (!geometry) return;
 
       ctx.save();
@@ -137,7 +146,7 @@ export const tapeShape = {
       ctx.restore();
 
       if (shouldRenderLabel) {
-        drawTapeMeasurement(ctx, shape, geometry.dimension[0], geometry.dimension[1], options.settings ?? {});
+        drawTapeMeasurement(ctx, projectedShape, geometry.dimension[0], geometry.dimension[1], options.settings ?? {});
       }
       return;
     }
@@ -147,13 +156,13 @@ export const tapeShape = {
     ctx.lineWidth = shape.style.strokeWidth;
     ctx.setLineDash([6, 6]);
     ctx.beginPath();
-    ctx.moveTo(shape.start.x, shape.start.y);
-    ctx.lineTo(shape.end.x, shape.end.y);
+    ctx.moveTo(projectedShape.start.x, projectedShape.start.y);
+    ctx.lineTo(projectedShape.end.x, projectedShape.end.y);
     ctx.stroke();
     ctx.restore();
 
     if (shouldRenderLabel) {
-      drawTapeMeasurement(ctx, shape, shape.start, shape.end, options.settings ?? {});
+      drawTapeMeasurement(ctx, projectedShape, projectedShape.start, projectedShape.end, options.settings ?? {});
     }
   },
 

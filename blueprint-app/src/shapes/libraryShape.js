@@ -13,7 +13,7 @@ function activeCells(shape) {
 }
 
 export const libraryShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
     const cellSize = shape.cellSize ?? 12;
     const cells = activeCells(shape);
     if (!cells.length) return;
@@ -24,10 +24,10 @@ export const libraryShape = {
     ctx.lineWidth = shape.style?.strokeWidth ?? 1;
 
     cells.forEach((cell) => {
-      const x = shape.x + cell.x * cellSize;
-      const y = shape.y + cell.y * cellSize;
-      ctx.fillRect(x, y, cellSize, cellSize);
-      ctx.strokeRect(x, y, cellSize, cellSize);
+      const base = { x: shape.x + cell.x * cellSize, y: shape.y + cell.y * cellSize };
+      const projected = options.projection?.projectPoint ? options.projection.projectPoint(base) : base;
+      ctx.fillRect(projected.x, projected.y, cellSize, cellSize);
+      ctx.strokeRect(projected.x, projected.y, cellSize, cellSize);
     });
 
     ctx.restore();

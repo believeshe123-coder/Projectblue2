@@ -16,7 +16,17 @@ function drawEllipse(ctx, shape, scale = 1) {
 }
 
 export const ellipseShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
+    const projection = options.projection;
+    const projected = projection?.projectPoint
+      ? {
+        ...shape,
+        x: projection.projectPoint({ x: shape.x, y: shape.y }).x,
+        y: projection.projectPoint({ x: shape.x, y: shape.y }).y,
+        width: projection.projectPoint({ x: shape.x + shape.width, y: shape.y }).x - projection.projectPoint({ x: shape.x, y: shape.y }).x,
+        height: projection.projectPoint({ x: shape.x, y: shape.y + shape.height }).y - projection.projectPoint({ x: shape.x, y: shape.y }).y,
+      }
+      : shape;
     ctx.save();
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
@@ -24,14 +34,14 @@ export const ellipseShape = {
     const lineType = shape.style.lineType ?? 'solid';
     if (lineType === 'dotted') {
       ctx.setLineDash([4, 4]);
-      drawEllipse(ctx, shape);
+      drawEllipse(ctx, projected);
     } else if (lineType === 'double') {
-      const minRadius = Math.max(1, Math.min(Math.abs(shape.width), Math.abs(shape.height)) / 2);
+      const minRadius = Math.max(1, Math.min(Math.abs(projected.width), Math.abs(projected.height)) / 2);
       const offset = Math.min(minRadius - 0.5, Math.max(1, shape.style.strokeWidth * 0.8));
-      drawEllipse(ctx, shape, Math.max(0.15, 1 - (offset / Math.max(1, minRadius))));
-      drawEllipse(ctx, shape, 1 + (offset / Math.max(1, minRadius)));
+      drawEllipse(ctx, projected, Math.max(0.15, 1 - (offset / Math.max(1, minRadius))));
+      drawEllipse(ctx, projected, 1 + (offset / Math.max(1, minRadius)));
     } else {
-      drawEllipse(ctx, shape);
+      drawEllipse(ctx, projected);
     }
 
     ctx.restore();

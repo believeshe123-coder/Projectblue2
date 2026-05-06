@@ -1,6 +1,7 @@
 import { createCurveShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
 import { resolveActiveLayerId } from '../document/layerModel.js';
+import { toCanonicalPoint } from './projectionAdapter.js';
 
 function beginPreview(context, point) {
   context.ephemeral.preview = {
@@ -46,30 +47,32 @@ export const curveTool = {
   id: 'curve',
 
   onPointerDown(context, point) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'curve') {
-      beginPreview(context, point);
+      beginPreview(context, canonicalPoint);
       return;
     }
 
     if (preview.phase === 'set-mid') {
-      setControlPoint(context, point);
+      setControlPoint(context, canonicalPoint);
       context.store.notify();
       return;
     }
 
-    finalizeCurve(context, point);
+    finalizeCurve(context, canonicalPoint);
   },
 
   onPointerMove(context, point) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'curve') return;
 
     if (preview.phase === 'set-mid') {
-      preview.control = point;
-      preview.end = point;
+      preview.control = canonicalPoint;
+      preview.end = canonicalPoint;
     } else {
-      preview.end = point;
+      preview.end = canonicalPoint;
     }
 
     context.store.notify();

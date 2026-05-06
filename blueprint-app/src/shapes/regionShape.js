@@ -74,12 +74,13 @@ export const regionShape = {
   draw(ctx, shape, options = {}) {
     if (!shape.points?.length) return;
     if (shape.filled === false) return;
+    const points = options.projection?.projectPoint ? shape.points.map((point) => options.projection.projectPoint(point)) : shape.points;
 
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(shape.points[0].x, shape.points[0].y);
-    for (let index = 1; index < shape.points.length; index += 1) {
-      ctx.lineTo(shape.points[index].x, shape.points[index].y);
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let index = 1; index < points.length; index += 1) {
+      ctx.lineTo(points[index].x, points[index].y);
     }
     ctx.closePath();
     if (shape.style?.fillMode === 'texture' && shape.style?.textureId) {
@@ -95,9 +96,9 @@ export const regionShape = {
     ctx.restore();
 
     if (!shouldRenderMeasurements(options.settings, options.isPreview === true)) return;
-    const area = polygonArea(shape.points);
+    const area = polygonArea(points);
     if (area < 1) return;
-    const centroid = polygonCentroid(shape.points);
+    const centroid = polygonCentroid(points);
     const label = formatShapeAreaMeasurement(area, options.settings ?? {}, shape);
     drawMeasurementLabel(ctx, centroid.x, centroid.y, label, options.settings ?? {});
   },

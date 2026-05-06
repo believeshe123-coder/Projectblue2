@@ -3,6 +3,73 @@ import { drawShapes } from './drawShapes.js';
 import { drawSelection } from './drawSelection.js';
 import { getShapeBehavior } from '../shapes/shapeRegistry.js';
 import { resolveActiveLayerId } from '../document/layerModel.js';
+import { createProjectionContext } from './projection.js';
+
+const GUIDE_COLOR = 'rgba(238, 242, 247, 0.9)';
+const GUIDE_ACCENT_COLOR = 'rgba(15, 76, 129, 0.35)';
+
+function resolveProjectionMode(appState) {
+  const mode = appState?.view?.projectionMode;
+  return ['orthographic', 'perspective1', 'perspective2', 'perspective3', 'isometric'].includes(mode)
+    ? mode
+    : 'orthographic';
+}
+
+function drawProjectionOverlay(ctx, canvas, appState) {
+  const mode = resolveProjectionMode(appState);
+  if (mode === 'orthographic') return;
+
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = GUIDE_COLOR;
+  ctx.fillStyle = GUIDE_ACCENT_COLOR;
+
+  if (mode === 'isometric') {
+    const cx = canvas.width - 88;
+    const cy = 80;
+    const axis = 36;
+    const angle = Math.PI / 6;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx, cy - axis);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * axis, cy + Math.sin(angle) * axis);
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - Math.cos(angle) * axis, cy + Math.sin(angle) * axis);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  const horizonY = canvas.height * 0.35;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY);
+  ctx.lineTo(canvas.width, horizonY);
+  ctx.stroke();
+
+  const vanishingPoints = [];
+  if (mode === 'perspective1') {
+    vanishingPoints.push({ x: canvas.width / 2, y: horizonY });
+  }
+  if (mode === 'perspective2') {
+    vanishingPoints.push({ x: canvas.width * 0.18, y: horizonY });
+    vanishingPoints.push({ x: canvas.width * 0.82, y: horizonY });
+  }
+  if (mode === 'perspective3') {
+    vanishingPoints.push({ x: canvas.width * 0.2, y: horizonY });
+    vanishingPoints.push({ x: canvas.width * 0.8, y: horizonY });
+    vanishingPoints.push({ x: canvas.width / 2, y: canvas.height * 0.85 });
+  }
+
+  vanishingPoints.forEach((point) => {
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
 
 function drawCursorPreview(sourceCanvas, interactionContext) {
   const previewCanvas = interactionContext?.previewCanvas;
@@ -178,12 +245,14 @@ export function renderCanvas({ ctx, canvas, documentData, appState, activeTool, 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   drawGrid(ctx, canvas, documentData, appState);
+  drawProjectionOverlay(ctx, canvas, appState);
 
   ctx.save();
   ctx.translate(appState.panX, appState.panY);
   ctx.scale(appState.zoom, appState.zoom);
 
-  drawShapes(ctx, documentData, { library: interactionContext?.store?.library });
+  const projection = createProjectionContext(appState);
+  drawShapes(ctx, documentData, { library: interactionContext?.store?.library, projection });
   drawPreviewShape(ctx, interactionContext);
   drawSelection(ctx, documentData, appState);
 

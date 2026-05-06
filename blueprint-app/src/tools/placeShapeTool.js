@@ -1,11 +1,13 @@
 import { addShape, patchState, setSelection } from '../app/actions.js';
 import { createLibraryShape } from '../document/shapeFactory.js';
 import { resolveActiveLayerId } from '../document/layerModel.js';
+import { toCanonicalPoint } from './projectionAdapter.js';
 
 export const placeShapeTool = {
   id: 'place-shape',
 
   onPointerDown(context, point) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const templateId = context.store.appState.placeShapeTemplateId;
     if (!templateId) return;
 
@@ -17,8 +19,8 @@ export const placeShapeTool = {
         context.store.documentData,
         context.store.appState.activeLayerId,
       ),
-      x: point.x,
-      y: point.y,
+      x: canonicalPoint.x,
+      y: canonicalPoint.y,
       grid: template.grid,
     });
 

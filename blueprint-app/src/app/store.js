@@ -111,6 +111,12 @@ const appState = {
   fillStyle: { ...FILL_STYLE_DEFAULTS, ...(savedPreferences?.fillStyle ?? {}) },
   toolStyle: { ...TOOL_STYLE_DEFAULTS, ...(savedPreferences?.toolStyle ?? {}) },
   activeLayerId: resolveActiveLayerId(documentData, null),
+  view: {
+    projectionMode: 'orthographic',
+  },
+  featureFlags: {
+    enableAdvancedProjectionModes: false,
+  },
 };
 
 const library = loadLibrary();

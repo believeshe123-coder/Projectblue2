@@ -1,6 +1,7 @@
 import { addShape, patchState, setSelection } from '../app/actions.js';
 import { createPenShape } from '../document/shapeFactory.js';
 import { resolveActiveLayerId } from '../document/layerModel.js';
+import { toCanonicalPoint } from './projectionAdapter.js';
 
 function samePoint(a, b) {
   return Boolean(a && b && a.x === b.x && a.y === b.y);
@@ -52,22 +53,24 @@ export const penTool = {
   id: 'pen',
 
   onPointerDown(context, point) {
-    beginStroke(context, point);
+    beginStroke(context, toCanonicalPoint(context, point));
   },
 
   onPointerMove(context, point, event) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'pen') return;
     if (!(event?.buttons & 1)) return;
 
-    appendPoint(context, point);
+    appendPoint(context, canonicalPoint);
   },
 
   onPointerUp(context, point) {
+    const canonicalPoint = toCanonicalPoint(context, point);
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'pen') return;
 
-    appendPoint(context, point);
+    appendPoint(context, canonicalPoint);
     finalizeStroke(context);
   },
 
