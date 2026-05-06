@@ -1,13 +1,37 @@
-export function snapToGrid(point, documentData) {
+import { resolveProjectionMode } from './coordinateUtils.js';
+import { isoProject, isoUnproject, snapPointToIsoAxis } from '../canvas/isoMath.js';
+
+export function snapToGrid(point, documentData, appState = null) {
   const settings = documentData.settings ?? {};
   const gridSize = Number(settings.gridSize) || 25;
   const useHalfGrid = settings.halfGridSnap === true || settings.snapDebugHalfPoints === true;
   const snapStep = useHalfGrid ? gridSize / 2 : gridSize;
+  const mode = resolveProjectionMode(appState);
+
+  if (mode === 'isometric') {
+    const projected = isoProject(point);
+    const u = projected.x;
+    const v = projected.y;
+    const snappedU = Math.round(u / snapStep) * snapStep;
+    const snappedV = Math.round(v / snapStep) * snapStep;
+    return isoUnproject({ x: snappedU, y: snappedV });
+  }
+
+  if (mode.startsWith('perspective')) {
+    const snappedX = Math.round(point.x / snapStep) * snapStep;
+    const snappedY = Math.round(point.y / snapStep) * snapStep;
+    return { x: snappedX, y: snappedY };
+  }
 
   return {
     x: Math.round(point.x / snapStep) * snapStep,
     y: Math.round(point.y / snapStep) * snapStep,
   };
+}
+
+export function snapToIsometricGuide(point, anchorPoint) {
+  if (!anchorPoint) return point;
+  return snapPointToIsoAxis(point, anchorPoint);
 }
 
 export function snapToAxis(point, anchorPoint) {

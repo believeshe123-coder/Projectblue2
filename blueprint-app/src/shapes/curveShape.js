@@ -24,7 +24,11 @@ function drawCurve(ctx, start, control, end) {
 }
 
 export const curveShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
+    const projection = options.projection;
+    const start = projection?.projectPoint ? projection.projectPoint(shape.start) : shape.start;
+    const control = projection?.projectPoint ? projection.projectPoint(shape.control) : shape.control;
+    const end = projection?.projectPoint ? projection.projectPoint(shape.end) : shape.end;
     ctx.save();
     ctx.strokeStyle = shape.style.stroke;
     ctx.lineWidth = shape.style.strokeWidth;
@@ -32,28 +36,28 @@ export const curveShape = {
     const lineType = shape.style.lineType ?? 'solid';
     if (lineType === 'dotted') {
       ctx.setLineDash([4, 4]);
-      drawCurve(ctx, shape.start, shape.control, shape.end);
+      drawCurve(ctx, start, control, end);
     } else if (lineType === 'double') {
-      const dx = shape.end.x - shape.start.x;
-      const dy = shape.end.y - shape.start.y;
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
       const len = Math.hypot(dx, dy) || 1;
       const offset = Math.max(1.5, shape.style.strokeWidth * 0.8);
       const nx = (-dy / len) * offset;
       const ny = (dx / len) * offset;
       drawCurve(
         ctx,
-        { x: shape.start.x + nx, y: shape.start.y + ny },
-        { x: shape.control.x + nx, y: shape.control.y + ny },
-        { x: shape.end.x + nx, y: shape.end.y + ny },
+        { x: start.x + nx, y: start.y + ny },
+        { x: control.x + nx, y: control.y + ny },
+        { x: end.x + nx, y: end.y + ny },
       );
       drawCurve(
         ctx,
-        { x: shape.start.x - nx, y: shape.start.y - ny },
-        { x: shape.control.x - nx, y: shape.control.y - ny },
-        { x: shape.end.x - nx, y: shape.end.y - ny },
+        { x: start.x - nx, y: start.y - ny },
+        { x: control.x - nx, y: control.y - ny },
+        { x: end.x - nx, y: end.y - ny },
       );
     } else {
-      drawCurve(ctx, shape.start, shape.control, shape.end);
+      drawCurve(ctx, start, control, end);
     }
 
     ctx.restore();

@@ -1,5 +1,5 @@
-import { screenToWorld } from './coordinateUtils.js';
-import { findNearestSnapPoint, snapToAngle, snapToAxis, snapToGrid } from './snapUtils.js';
+import { alignPointToProjectionAxis, unprojectScreenToWorld } from './coordinateUtils.js';
+import { findNearestSnapPoint, snapToAngle, snapToAxis, snapToGrid, snapToIsometricGuide } from './snapUtils.js';
 import { getTool } from '../tools/toolRegistry.js';
 import { normalizeLayers, resolveActiveLayerId } from '../document/layerModel.js';
 
@@ -81,7 +81,7 @@ function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
 
   const shouldGridSnap = activeTool?.id === 'erase' || (settings.snap && activeTool?.id !== 'pen');
   if (shouldGridSnap) {
-    point = snapToGrid(point, store.documentData);
+    point = snapToGrid(point, store.documentData, store.appState);
   }
 
   const shouldObjectSnap = settings.objectSnap !== false && activeTool?.id !== 'erase';
@@ -97,6 +97,10 @@ function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
   const shouldAxisSnap = (settings.axisSnap || event?.shiftKey) && activeTool?.id !== 'pen' && activeTool?.id !== 'erase';
   if (shouldAxisSnap && isDragging && dragStart) {
     point = snapToAxis(point, dragStart);
+    point = alignPointToProjectionAxis(point, dragStart, store.appState);
+    if (store.appState?.view?.projectionMode === 'isometric') {
+      point = snapToIsometricGuide(point, dragStart);
+    }
   }
 
   const shouldAngleSnap = settings.angleSnap === true && activeTool?.id !== 'pen' && activeTool?.id !== 'erase';
@@ -127,7 +131,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
     }
 
     const mouse = eventPointFromCanvas(canvas, event);
-    const beforeZoom = screenToWorld(mouse, store.appState);
+    const beforeZoom = unprojectScreenToWorld(mouse, store.appState);
     const zoomFactor = event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP;
     const nextZoom = clampZoom(store.appState.zoom * zoomFactor);
 
@@ -156,7 +160,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
       return;
     }
     const screen = eventPointFromCanvas(canvas, event);
-    const world = screenToWorld(screen, store.appState);
+    const world = unprojectScreenToWorld(screen, store.appState);
     const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);
 
     activeTool?.onPointerDown?.({ canvas, ctx: canvas.getContext('2d'), store, ephemeral }, point, event);
@@ -172,7 +176,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
 
     const activeTool = getTool(store.appState.activeTool);
     const screen = eventPointFromCanvas(canvas, event);
-    const world = screenToWorld(screen, store.appState);
+    const world = unprojectScreenToWorld(screen, store.appState);
     const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);
 
     ephemeral.cursorScreen = screen;
@@ -199,7 +203,7 @@ export function bindPointerEvents({ canvas, store, ephemeral }) {
 
     const activeTool = getTool(store.appState.activeTool);
     const screen = eventPointFromCanvas(canvas, event);
-    const world = screenToWorld(screen, store.appState);
+    const world = unprojectScreenToWorld(screen, store.appState);
     const point = applyDrawingSnap(world, store, activeTool, event, ephemeral);
 
     activeTool?.onPointerUp?.({ canvas, ctx: canvas.getContext('2d'), store, ephemeral }, point, event);

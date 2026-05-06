@@ -45,17 +45,18 @@ function getLabelBounds(shape) {
 }
 
 export const labelShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
+    const origin = options.projection?.projectPoint ? options.projection.projectPoint({ x: shape.x, y: shape.y }) : { x: shape.x, y: shape.y };
     ctx.save();
     ctx.fillStyle = shape.style.fill || '#111827';
     ctx.font = `${shape.style.textSize || 14}px ${shape.style.fontFamily || 'Inter, Segoe UI, Tahoma, sans-serif'}`;
     const angle = (shape.angle ?? 0) * (Math.PI / 180);
     if (Math.abs(angle) > 0.00001) {
-      ctx.translate(shape.x, shape.y);
+      ctx.translate(origin.x, origin.y);
       ctx.rotate(angle);
       ctx.fillText(shape.text, 0, 0);
     } else {
-      ctx.fillText(shape.text, shape.x, shape.y);
+      ctx.fillText(shape.text, origin.x, origin.y);
     }
     ctx.restore();
   },

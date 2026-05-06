@@ -69,8 +69,10 @@ function polylineBounds(points) {
 }
 
 export const penShape = {
-  draw(ctx, shape) {
+  draw(ctx, shape, options = {}) {
     if (!shape.points || shape.points.length < 2) return;
+    const projection = options.projection;
+    const points = projection?.projectPoint ? shape.points.map((point) => projection.projectPoint(point)) : shape.points;
 
     ctx.save();
     ctx.strokeStyle = shape.style.stroke;
@@ -81,14 +83,14 @@ export const penShape = {
     const lineType = shape.style.lineType ?? 'solid';
     if (lineType === 'dotted') {
       ctx.setLineDash([4, 4]);
-      drawSmoothPath(ctx, shape.points);
+      drawSmoothPath(ctx, points);
     } else if (lineType === 'capped-dotted') {
       ctx.setLineDash([6, 4]);
-      drawSmoothPath(ctx, shape.points);
+      drawSmoothPath(ctx, points);
       ctx.setLineDash([]);
-      drawEndCaps(ctx, shape);
+      drawEndCaps(ctx, { ...shape, points });
     } else {
-      drawSmoothPath(ctx, shape.points);
+      drawSmoothPath(ctx, points);
     }
 
     ctx.restore();
