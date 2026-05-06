@@ -282,7 +282,7 @@ export function renderFilePage({ container, store, canvas }) {
   container.innerHTML = `
     <div class="route-card">
       <h2>File</h2>
-      <p>Save, load, or reset your blueprint from this page.</p>
+      <p>Save, load, start a new page, or reset your blueprint from this page.</p>
       <label class="file-name-field" for="file-project-name">
         <span>Project filename</span>
         <input id="file-project-name" type="text" value="${initialProjectName}" placeholder="blueprint-project" maxlength="80" />
@@ -293,6 +293,7 @@ export function renderFilePage({ container, store, canvas }) {
         <button class="menu-item" data-file-action="save-canvas-jpg" type="button">Save Drawing JPG</button>
         <button class="menu-item" data-file-action="save-canvas-pdf" type="button">Save Drawing PDF</button>
         <button class="menu-item" data-file-action="load" type="button">Load Project</button>
+        <button class="menu-item" data-file-action="new-page" type="button">New Page</button>
         <button class="menu-item" data-file-action="reset-view" type="button">Reset Canvas View</button>
         <button class="menu-item" data-file-action="reset-doc" type="button">Reset Blueprint</button>
       </div>
@@ -447,6 +448,15 @@ export function renderFilePage({ container, store, canvas }) {
 
     if (action === 'load') {
       fileInput?.click();
+    }
+
+
+    if (action === 'new-page') {
+      const nextDoc = createDocumentModel();
+      nextDoc.layers = normalizeLayers(nextDoc.layers);
+      applyProject(store, { documentData: nextDoc, appState: null, ui: null });
+      window.location.hash = '#home';
+      setStatus('Started a new page.');
     }
 
     if (action === 'reset-view') {
