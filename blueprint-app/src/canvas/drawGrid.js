@@ -99,25 +99,49 @@ function drawIsometricGrid(ctx, canvas, documentData, appState) {
   const step = documentData.settings.gridSize;
   if (step < 8) return;
   const { worldLeft, worldTop, worldRight, worldBottom } = getWorldBounds(canvas, appState);
-  const width = worldRight - worldLeft;
-  const height = worldBottom - worldTop;
-  const diagonalSpan = Math.ceil((width + height) / step) + 2;
-  const start = Math.floor((worldLeft - worldBottom) / step) * step;
-  const startAlt = Math.floor((worldLeft + worldTop) / step) * step;
+  const isoSlope = Math.sqrt(3);
+
+  const drawHorizontalLine = (y) => {
+    ctx.beginPath();
+    ctx.moveTo(worldLeft, y);
+    ctx.lineTo(worldRight, y);
+    ctx.stroke();
+  };
+
+  const drawPositiveSlopeLine = (intercept) => {
+    const xAtTop = (worldTop - intercept) / isoSlope;
+    const xAtBottom = (worldBottom - intercept) / isoSlope;
+    ctx.beginPath();
+    ctx.moveTo(xAtTop, worldTop);
+    ctx.lineTo(xAtBottom, worldBottom);
+    ctx.stroke();
+  };
+
+  const drawNegativeSlopeLine = (intercept) => {
+    const xAtTop = (intercept - worldTop) / isoSlope;
+    const xAtBottom = (intercept - worldBottom) / isoSlope;
+    ctx.beginPath();
+    ctx.moveTo(xAtTop, worldTop);
+    ctx.lineTo(xAtBottom, worldBottom);
+    ctx.stroke();
+  };
 
   withWorldTransform(ctx, appState, () => {
-    for (let i = -1; i <= diagonalSpan; i += 1) {
-      const offsetA = start + i * step;
-      ctx.beginPath();
-      ctx.moveTo(offsetA + worldTop, worldTop);
-      ctx.lineTo(offsetA + worldBottom, worldBottom);
-      ctx.stroke();
+    const startHorizontal = Math.floor(worldTop / step) * step;
+    for (let y = startHorizontal; y <= worldBottom; y += step) {
+      drawHorizontalLine(y);
+    }
 
-      const offsetB = startAlt + i * step;
-      ctx.beginPath();
-      ctx.moveTo(offsetB - worldTop, worldTop);
-      ctx.lineTo(offsetB - worldBottom, worldBottom);
-      ctx.stroke();
+    const positiveInterceptStart = Math.floor((worldTop - isoSlope * worldRight) / step) * step;
+    const positiveInterceptEnd = Math.ceil((worldBottom - isoSlope * worldLeft) / step) * step;
+    for (let intercept = positiveInterceptStart; intercept <= positiveInterceptEnd; intercept += step) {
+      drawPositiveSlopeLine(intercept);
+    }
+
+    const negativeInterceptStart = Math.floor((worldTop + isoSlope * worldLeft) / step) * step;
+    const negativeInterceptEnd = Math.ceil((worldBottom + isoSlope * worldRight) / step) * step;
+    for (let intercept = negativeInterceptStart; intercept <= negativeInterceptEnd; intercept += step) {
+      drawNegativeSlopeLine(intercept);
     }
   });
 }

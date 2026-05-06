@@ -3,23 +3,22 @@ import assert from 'node:assert/strict';
 
 import { resolveProjectionMode } from './coordinateUtils.js';
 
-test('orthographic remains unchanged when feature flag is off', () => {
+test('orthographic remains unchanged', () => {
   const mode = resolveProjectionMode({
     view: { projectionMode: 'orthographic' },
-    featureFlags: { enableAdvancedProjectionModes: false },
   });
   assert.equal(mode, 'orthographic');
 });
 
-test('non-orthographic modes are gated to orthographic when feature flag is off', () => {
+test('non-orthographic mode remains selected without requiring feature flag', () => {
   const mode = resolveProjectionMode({
     view: { projectionMode: 'perspective2' },
     featureFlags: { enableAdvancedProjectionModes: false },
   });
-  assert.equal(mode, 'orthographic');
+  assert.equal(mode, 'perspective2');
 });
 
-test('non-orthographic modes resolve when feature flag is on', () => {
+test('non-orthographic modes still resolve when feature flag is on', () => {
   const mode = resolveProjectionMode({
     view: { projectionMode: 'isometric' },
     featureFlags: { enableAdvancedProjectionModes: true },
