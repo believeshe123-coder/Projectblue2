@@ -1,4 +1,4 @@
-import { performRedo, performUndo } from './app/actions.js';
+import { patchState, performRedo, performUndo, setProjectionMode } from './app/actions.js';
 import { store } from './app/store.js';
 import { bindPointerEvents } from './interaction/pointerEvents.js';
 import { bindKeyboardEvents } from './interaction/keyboardEvents.js';
@@ -36,7 +36,8 @@ function writeLayoutState(state) {
 
 function mountTopNavigation({ container }) {
   const routes = [
-    { label: 'Home', route: 'home' },
+    { label: 'Start', route: 'start' },
+    { label: 'Editor', route: 'home' },
     { label: 'Settings', route: 'settings' },
     { label: 'File', route: 'file' },
     { label: 'Layers', route: 'layers' },
@@ -404,13 +405,54 @@ window.addEventListener('keydown', (event) => {
 
 function getRoute() {
   const route = window.location.hash.replace('#', '');
-  if (!route || route === 'home') return 'home';
-  if (route === 'file' || route === 'settings' || route === 'layers') return route;
-  return 'home';
+  if (!route || route === 'start') return 'start';
+  if (route === 'home' || route === 'file' || route === 'settings' || route === 'layers') return route;
+  return 'start';
 }
 
+
+function renderStartPage() {
+  routeContainer.innerHTML = `
+    <div class="route-card start-page-card">
+      <h2>Start a Project</h2>
+      <p>Choose how you want to begin.</p>
+      <div class="button-row">
+        <button class="menu-item" data-start-action="load-project" type="button">Load Project</button>
+        <button class="menu-item" data-start-action="open-isometric" type="button">Open Isometric Page</button>
+        <button class="menu-item" data-start-action="open-regular" type="button">Open Regular Grid Page</button>
+      </div>
+    </div>
+  `;
+
+  routeContainer.querySelector('[data-start-action="load-project"]')?.addEventListener('click', () => {
+    window.location.hash = '#file';
+  });
+
+  routeContainer.querySelector('[data-start-action="open-isometric"]')?.addEventListener('click', () => {
+    patchState({
+      featureFlags: { ...(store.appState.featureFlags ?? {}), enableAdvancedProjectionModes: true },
+      view: { ...(store.appState.view ?? {}), projectionMode: 'isometric' },
+    });
+    setProjectionMode('isometric');
+    window.location.hash = '#home';
+  });
+
+  routeContainer.querySelector('[data-start-action="open-regular"]')?.addEventListener('click', () => {
+    patchState({
+      featureFlags: { ...(store.appState.featureFlags ?? {}), enableAdvancedProjectionModes: false },
+      view: { ...(store.appState.view ?? {}), projectionMode: 'orthographic' },
+    });
+    setProjectionMode('orthographic');
+    window.location.hash = '#home';
+  });
+}
 function renderRoutePage(route) {
   routeContainer.innerHTML = '';
+
+  if (route === 'start') {
+    renderStartPage();
+    return;
+  }
 
   if (route === 'file') {
     renderFilePage({ container: routeContainer, store, canvas });

@@ -950,3 +950,16 @@ body[data-theme='dark'] textarea {
 .texture-picker-name {
   font-size: 0.82rem;
 }
+
+
+.start-page-card {
+  max-width: 760px;
+}
+
+.start-page-card .button-row {
+  gap: 0.5rem;
+}
+
+.start-page-card .menu-item {
+  padding: 0.6rem 0.75rem;
+}
