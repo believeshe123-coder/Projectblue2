@@ -21,7 +21,7 @@ function startDrawing(context) {
   patchState({ isDragging: true, dragStart: preview.start });
 }
 
-function finalizeLine(context, endPoint) {
+function finalizeLine(context) {
   const preview = context.ephemeral.preview;
   const { documentData } = context.store;
   if (!preview || preview.type !== 'line') return;
@@ -29,7 +29,7 @@ function finalizeLine(context, endPoint) {
   const shape = createLineShape({
     layerId: resolveActiveLayerId(documentData, context.store.appState.activeLayerId),
     start: preview.start,
-    end: endPoint,
+    end: preview.end,
     style: context.store.appState.toolStyle,
   });
 
@@ -57,7 +57,8 @@ export const lineTool = {
     }
 
     if (isClickDrawMode(context)) {
-      finalizeLine(context, canonicalPoint);
+      preview.end = canonicalPoint;
+      finalizeLine(context);
       return;
     }
 
@@ -89,7 +90,8 @@ export const lineTool = {
     if (isClickDrawMode(context)) return;
     if (preview.phase !== 'drawing') return;
 
-    finalizeLine(context, canonicalPoint);
+    preview.end = canonicalPoint;
+    finalizeLine(context);
   },
 
   onKeyDown(context, key, event) {

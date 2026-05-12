@@ -1,4 +1,4 @@
-import { snapPointToIsoAxis } from '../canvas/isoMath.js';
+import { resolveIsometricOrientation, snapPointToIsoAxis } from '../canvas/isoMath.js';
 const PROJECTION_MODES = new Set(['orthographic', 'perspective1', 'perspective2', 'perspective3', 'isometric']);
 
 export function resolveProjectionMode(appState) {
@@ -28,14 +28,15 @@ export function unprojectScreenToWorld(point, appState) {
   return screenToWorld(point, appState);
 }
 
-export function alignPointToProjectionAxis(point, anchorPoint, appState) {
+export function alignPointToProjectionAxis(point, anchorPoint, appState, settings = {}) {
   if (!anchorPoint) return point;
   const mode = resolveProjectionMode(appState);
   const dx = point.x - anchorPoint.x;
   const dy = point.y - anchorPoint.y;
 
   if (mode === 'isometric') {
-    return snapPointToIsoAxis(point, anchorPoint);
+    const orientation = resolveIsometricOrientation(settings);
+    return snapPointToIsoAxis(point, anchorPoint, orientation);
   }
 
   if (mode.startsWith('perspective')) {

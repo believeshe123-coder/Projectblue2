@@ -33,6 +33,18 @@ const SETTING_DEFINITIONS = [
     step: 1,
   },
   {
+    id: 'settings-isometric-orientation',
+    key: 'isometricOrientation',
+    type: 'select',
+    section: 'Canvas',
+    label: 'Isometric orientation',
+    description: 'Choose whether isometric guide triangles stack vertically or side-to-side.',
+    options: [
+      { value: 'vertical', label: 'Isometric Vertical' },
+      { value: 'horizontal', label: 'Isometric Horizontal' },
+    ],
+  },
+  {
     id: 'settings-snap',
     key: 'snap',
     type: 'boolean',
@@ -399,6 +411,11 @@ export function renderSettingsPage({ container, store, previewCanvas }) {
         const clamped = Math.min(GRID_MAX, Math.max(GRID_MIN, parsed));
         updateDocumentSettings({ gridSize: clamped });
       }
+    }
+    if (target.id === 'settings-isometric-orientation') {
+      updateDocumentSettings({
+        isometricOrientation: ['vertical', 'horizontal'].includes(target.value) ? target.value : 'vertical',
+      });
     }
 
     if (target.id === 'settings-units-per-grid') {

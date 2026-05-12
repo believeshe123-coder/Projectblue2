@@ -97,6 +97,7 @@ function drawThreePointPerspectiveGrid(ctx, canvas, documentData, appState) {
 
 function drawIsometricGrid(ctx, canvas, documentData, appState) {
   const step = documentData.settings.gridSize;
+  const orientation = documentData.settings?.isometricOrientation === 'horizontal' ? 'horizontal' : 'vertical';
   if (step < 8) return;
   const { worldLeft, worldTop, worldRight, worldBottom } = getWorldBounds(canvas, appState);
   const isoSlope = Math.sqrt(3);
@@ -127,6 +128,35 @@ function drawIsometricGrid(ctx, canvas, documentData, appState) {
   };
 
   withWorldTransform(ctx, appState, () => {
+    if (orientation === 'horizontal') {
+      const startVertical = Math.floor(worldLeft / step) * step;
+      for (let x = startVertical; x <= worldRight; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, worldTop);
+        ctx.lineTo(x, worldBottom);
+        ctx.stroke();
+      }
+
+      const positiveInterceptStart = Math.floor((worldLeft - isoSlope * worldBottom) / step) * step;
+      const positiveInterceptEnd = Math.ceil((worldRight - isoSlope * worldTop) / step) * step;
+      for (let intercept = positiveInterceptStart; intercept <= positiveInterceptEnd; intercept += step) {
+        ctx.beginPath();
+        ctx.moveTo(intercept + isoSlope * worldTop, worldTop);
+        ctx.lineTo(intercept + isoSlope * worldBottom, worldBottom);
+        ctx.stroke();
+      }
+
+      const negativeInterceptStart = Math.floor((worldLeft + isoSlope * worldTop) / step) * step;
+      const negativeInterceptEnd = Math.ceil((worldRight + isoSlope * worldBottom) / step) * step;
+      for (let intercept = negativeInterceptStart; intercept <= negativeInterceptEnd; intercept += step) {
+        ctx.beginPath();
+        ctx.moveTo(intercept - isoSlope * worldTop, worldTop);
+        ctx.lineTo(intercept - isoSlope * worldBottom, worldBottom);
+        ctx.stroke();
+      }
+      return;
+    }
+
     const startHorizontal = Math.floor(worldTop / step) * step;
     for (let y = startHorizontal; y <= worldBottom; y += step) {
       drawHorizontalLine(y);
