@@ -1,7 +1,6 @@
 import { createLineShape } from '../document/shapeFactory.js';
 import { addShape, patchState, setSelection } from '../app/actions.js';
 import { resolveActiveLayerId } from '../document/layerModel.js';
-import { toCanonicalPoint } from './projectionAdapter.js';
 
 function isClickDrawMode(context) {
   return context.store.documentData.settings.drawMode !== 'drag';
@@ -43,11 +42,11 @@ export const lineTool = {
   id: 'line',
 
   onPointerDown(context, point) {
-    const canonicalPoint = toCanonicalPoint(context, point);
+    const drawPoint = point;
     const preview = context.ephemeral.preview;
 
     if (!preview || preview.type !== 'line') {
-      beginPreview(context, canonicalPoint);
+      beginPreview(context, drawPoint);
 
       if (!isClickDrawMode(context)) {
         startDrawing(context);
@@ -57,18 +56,18 @@ export const lineTool = {
     }
 
     if (isClickDrawMode(context)) {
-      preview.end = canonicalPoint;
+      preview.end = drawPoint;
       finalizeLine(context);
       return;
     }
 
     startDrawing(context);
-    context.ephemeral.preview.end = canonicalPoint;
+    context.ephemeral.preview.end = drawPoint;
     context.store.notify();
   },
 
   onPointerMove(context, point, event) {
-    const canonicalPoint = toCanonicalPoint(context, point);
+    const drawPoint = point;
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'line') return;
 
@@ -79,18 +78,18 @@ export const lineTool = {
       }
     }
 
-    preview.end = canonicalPoint;
+    preview.end = drawPoint;
     context.store.notify();
   },
 
   onPointerUp(context, point) {
-    const canonicalPoint = toCanonicalPoint(context, point);
+    const drawPoint = point;
     const preview = context.ephemeral.preview;
     if (!preview || preview.type !== 'line') return;
     if (isClickDrawMode(context)) return;
     if (preview.phase !== 'drawing') return;
 
-    preview.end = canonicalPoint;
+    preview.end = drawPoint;
     finalizeLine(context);
   },
 

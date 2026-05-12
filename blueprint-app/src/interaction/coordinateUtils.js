@@ -1,22 +1,40 @@
 import { resolveIsometricOrientation, snapPointToIsoAxis } from '../canvas/isoMath.js';
 const PROJECTION_MODES = new Set(['orthographic', 'perspective1', 'perspective2', 'perspective3', 'isometric']);
 
+
+function toRadians(degrees = 0) {
+  return (degrees * Math.PI) / 180;
+}
+
+function rotatePoint(point, radians) {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return { x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos };
+}
+
+function resolveCanvasRotationRadians(appState) {
+  return toRadians(appState?.view?.canvasRotationDeg ?? 0);
+}
+
+
 export function resolveProjectionMode(appState) {
   const candidate = appState?.view?.projectionMode;
   return PROJECTION_MODES.has(candidate) ? candidate : 'orthographic';
 }
 
 export function screenToWorld(point, appState) {
-  return {
+  const localPoint = {
     x: (point.x - appState.panX) / appState.zoom,
     y: (point.y - appState.panY) / appState.zoom,
   };
+  return rotatePoint(localPoint, -resolveCanvasRotationRadians(appState));
 }
 
 export function worldToScreen(point, appState) {
+  const rotatedPoint = rotatePoint(point, resolveCanvasRotationRadians(appState));
   return {
-    x: point.x * appState.zoom + appState.panX,
-    y: point.y * appState.zoom + appState.panY,
+    x: rotatedPoint.x * appState.zoom + appState.panX,
+    y: rotatedPoint.y * appState.zoom + appState.panY,
   };
 }
 

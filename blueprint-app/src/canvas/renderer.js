@@ -250,6 +250,7 @@ export function renderCanvas({ ctx, canvas, documentData, appState, activeTool, 
   ctx.save();
   ctx.translate(appState.panX, appState.panY);
   ctx.scale(appState.zoom, appState.zoom);
+  ctx.rotate(((appState.view?.canvasRotationDeg ?? 0) * Math.PI) / 180);
 
   const projection = createProjectionContext(appState);
   drawShapes(ctx, documentData, { library: interactionContext?.store?.library, projection });

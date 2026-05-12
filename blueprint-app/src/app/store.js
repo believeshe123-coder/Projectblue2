@@ -113,6 +113,7 @@ const appState = {
   activeLayerId: resolveActiveLayerId(documentData, null),
   view: {
     projectionMode: 'orthographic',
+    canvasRotationDeg: 90,
   },
   featureFlags: {
     enableAdvancedProjectionModes: false,
