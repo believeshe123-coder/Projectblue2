@@ -71,7 +71,7 @@ export function resolveObjectSnapShapes(store) {
   });
 }
 
-function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
+export function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
   if (activeTool?.id === 'select' || activeTool?.id === 'fill') return world;
 
   const { settings } = store.documentData;
@@ -96,10 +96,11 @@ function applyDrawingSnap(world, store, activeTool, event, ephemeral) {
 
   const shouldAxisSnap = (settings.axisSnap || event?.shiftKey) && activeTool?.id !== 'pen' && activeTool?.id !== 'erase';
   if (shouldAxisSnap && isDragging && dragStart) {
-    point = snapToAxis(point, dragStart);
-    point = alignPointToProjectionAxis(point, dragStart, store.appState);
     if (store.appState?.view?.projectionMode === 'isometric') {
-      point = snapToIsometricGuide(point, dragStart);
+      point = snapToIsometricGuide(point, dragStart, settings);
+    } else {
+      point = snapToAxis(point, dragStart);
+      point = alignPointToProjectionAxis(point, dragStart, store.appState, settings);
     }
   }
 

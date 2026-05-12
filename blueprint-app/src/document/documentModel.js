@@ -9,6 +9,7 @@ export function createDocumentModel() {
     settings: {
       gridSize: 25,
       showGrid: true,
+      isometricOrientation: 'vertical',
       snap: true,
       halfGridSnap: false,
       snapDebugHalfPoints: false,

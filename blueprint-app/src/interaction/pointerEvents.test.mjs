@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { resolveAnchorPoint, resolveObjectSnapShapes, resolveWheelMode } from './pointerEvents.js';
+import { applyDrawingSnap, resolveAnchorPoint, resolveObjectSnapShapes, resolveWheelMode } from './pointerEvents.js';
 
 test('3-point tape offset phase uses baseline end as snapping anchor', () => {
   const store = { appState: { dragStart: { x: 1, y: 1 } } };
@@ -67,4 +67,33 @@ test('wheel input zooms when ctrl is pressed on pan tool', () => {
 test('wheel input zooms for non-pan tools', () => {
   const mode = resolveWheelMode({ ctrlKey: false }, 'line');
   assert.equal(mode, 'zoom');
+});
+
+test('isometric drag uses identical snapped point for preview and commit with pan/zoom state', () => {
+  const store = {
+    appState: {
+      isDragging: true,
+      dragStart: { x: 0, y: 0 },
+      view: { projectionMode: 'isometric' },
+    },
+    documentData: {
+      settings: {
+        gridSize: 25,
+        snap: true,
+        axisSnap: true,
+        objectSnap: false,
+        isometricOrientation: 'horizontal',
+      },
+      layers: [],
+      shapes: [],
+    },
+  };
+  const event = { shiftKey: true };
+  const worldPoint = { x: 117.2, y: 48.9 };
+  const activeTool = { id: 'line' };
+  const ephemeral = { preview: { type: 'line', start: { x: 0, y: 0 } } };
+
+  const previewPoint = applyDrawingSnap(worldPoint, store, activeTool, event, ephemeral);
+  const commitPoint = applyDrawingSnap(worldPoint, store, activeTool, event, ephemeral);
+  assert.deepEqual(previewPoint, commitPoint);
 });
