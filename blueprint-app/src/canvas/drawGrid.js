@@ -18,6 +18,7 @@ function withWorldTransform(ctx, appState, draw) {
   ctx.save();
   ctx.translate(appState.panX, appState.panY);
   ctx.scale(appState.zoom, appState.zoom);
+  ctx.rotate(((appState.view?.canvasRotationDeg ?? 0) * Math.PI) / 180);
   ctx.strokeStyle = '#eef2f7';
   ctx.lineWidth = 1 / appState.zoom;
   draw();
