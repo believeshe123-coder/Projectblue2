@@ -128,10 +128,10 @@ function mountLayoutMenu({ container, layoutState, onApplyState, showActionToast
   });
 
   fullCanvasButton.addEventListener('click', () => {
-    layoutState.fullCanvas = !layoutState.fullCanvas;
     if (layoutState.fullCanvas) {
-      layoutState.preset = 'review';
-      showActionToast?.('Full canvas mode enabled. Press Esc to exit.');
+      layoutState.fullCanvas = false;
+    } else {
+      enableFullCanvasMode({ announce: true });
     }
     onApplyState();
   });
@@ -191,6 +191,24 @@ const layersRefresh = mountLayersPanel({
 const navRefresh = mountTopNavigation({
   container: document.getElementById('header-controls'),
 });
+
+
+function forceRegularGridView() {
+  patchState({
+    featureFlags: { ...(store.appState.featureFlags ?? {}), enableAdvancedProjectionModes: false },
+    view: { ...(store.appState.view ?? {}), projectionMode: 'orthographic' },
+  });
+  setProjectionMode('orthographic');
+}
+
+function enableFullCanvasMode({ announce = true } = {}) {
+  layoutState.fullCanvas = true;
+  layoutState.preset = 'review';
+  layoutState.leftCollapsed = true;
+  layoutState.rightCollapsed = true;
+  forceRegularGridView();
+  if (announce) showActionToast?.('Full canvas mode enabled. Press Esc to exit.');
+}
 
 const layoutState = readLayoutState() ?? {
   leftCollapsed: false,
@@ -381,10 +399,10 @@ window.addEventListener('keydown', (event) => {
 
   if (event.key.toLowerCase() === 'f' && !event.ctrlKey && !event.metaKey && !event.altKey) {
     event.preventDefault();
-    layoutState.fullCanvas = !layoutState.fullCanvas;
     if (layoutState.fullCanvas) {
-      layoutState.preset = 'review';
-      showActionToast('Full canvas mode enabled. Press Esc to exit.');
+      layoutState.fullCanvas = false;
+    } else {
+      enableFullCanvasMode({ announce: true });
     }
     applyLayoutState();
     draw();
