@@ -1,4 +1,5 @@
 import { patchState, performRedo, performUndo, setProjectionMode } from './app/actions.js';
+import { applyFullCanvasLayout, applyFullCanvasTransform, buildDeterministicFullCanvasTransform } from './app/fullCanvas.js';
 import { store } from './app/store.js';
 import { bindPointerEvents } from './interaction/pointerEvents.js';
 import { bindKeyboardEvents } from './interaction/keyboardEvents.js';
@@ -64,7 +65,7 @@ function mountTopNavigation({ container }) {
   };
 }
 
-function mountLayoutMenu({ container, layoutState, onApplyState, showActionToast }) {
+function mountLayoutMenu({ container, layoutState, onApplyState, onEnterFullCanvas }) {
   const menu = document.createElement('div');
   menu.className = 'layout-menu';
 
@@ -130,10 +131,10 @@ function mountLayoutMenu({ container, layoutState, onApplyState, showActionToast
   fullCanvasButton.addEventListener('click', () => {
     if (layoutState.fullCanvas) {
       layoutState.fullCanvas = false;
+      onApplyState();
     } else {
-      enableFullCanvasMode({ announce: true });
+      onEnterFullCanvas({ announce: true });
     }
-    onApplyState();
   });
 
   menu.appendChild(presetSelect);
@@ -201,13 +202,36 @@ function forceRegularGridView() {
   setProjectionMode('orthographic');
 }
 
+function fitViewportToCanvasPanel() {
+  syncCanvasSize();
+  const panelRect = canvasPanel.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  const transform = buildDeterministicFullCanvasTransform({
+    canvasWidth: Math.round(canvasRect.width || panelRect.width),
+    canvasHeight: Math.round(canvasRect.height || panelRect.height),
+    anchor: 'center',
+  });
+  applyFullCanvasTransform(store.appState, transform);
+}
+
+function requestFullCanvasFit() {
+  requestAnimationFrame(() => {
+    fitViewportToCanvasPanel();
+    draw();
+  });
+}
+
 function enableFullCanvasMode({ announce = true } = {}) {
-  layoutState.fullCanvas = true;
-  layoutState.preset = 'review';
-  layoutState.leftCollapsed = true;
-  layoutState.rightCollapsed = true;
+  applyFullCanvasLayout(layoutState);
   forceRegularGridView();
   if (announce) showActionToast?.('Full canvas mode enabled. Press Esc to exit.');
+}
+
+function enterFullCanvasMode({ announce = true } = {}) {
+  if (layoutState.fullCanvas) return;
+  enableFullCanvasMode({ announce });
+  applyLayoutState();
+  requestFullCanvasFit();
 }
 
 const layoutState = readLayoutState() ?? {
@@ -231,7 +255,7 @@ const layoutRefresh = mountLayoutMenu({
     applyLayoutState();
     draw();
   },
-  showActionToast,
+  onEnterFullCanvas: enterFullCanvasMode,
 });
 
 document.getElementById('left-sidebar-toggle')?.addEventListener('click', () => {
@@ -401,11 +425,11 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     if (layoutState.fullCanvas) {
       layoutState.fullCanvas = false;
+      applyLayoutState();
+      draw();
     } else {
-      enableFullCanvasMode({ announce: true });
+      enterFullCanvasMode({ announce: true });
     }
-    applyLayoutState();
-    draw();
     return;
   }
 
