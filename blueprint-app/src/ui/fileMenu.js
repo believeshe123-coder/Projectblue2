@@ -36,10 +36,10 @@ export function ensureAppStateShape(candidate) {
     selectedIds: Array.isArray(candidate.selectedIds) ? candidate.selectedIds : [],
     activeLayerId: typeof candidate.activeLayerId === 'string' ? candidate.activeLayerId : null,
     view: {
-      projectionMode: typeof candidate.view?.projectionMode === 'string' ? candidate.view.projectionMode : 'orthographic',
+      projectionMode: 'orthographic',
     },
     featureFlags: {
-      enableAdvancedProjectionModes: candidate.featureFlags?.enableAdvancedProjectionModes === true,
+      enableAdvancedProjectionModes: false,
     },
     hoveredId: null,
     isDragging: false,
@@ -287,6 +287,7 @@ function buildPdfFromJpegDataUrl(jpegDataUrl, widthPx, heightPx) {
 }
 
 export function buildNewPageAppState(projectionMode) {
+  const normalizedProjection = 'orthographic';
   return {
     activeTool: 'select',
     zoom: 1,
@@ -294,18 +295,14 @@ export function buildNewPageAppState(projectionMode) {
     panY: 0,
     selectedIds: [],
     activeLayerId: null,
-    view: { projectionMode },
-    featureFlags: { enableAdvancedProjectionModes: projectionMode !== 'orthographic' },
+    view: { projectionMode: normalizedProjection },
+    featureFlags: { enableAdvancedProjectionModes: false },
   };
 }
 
 export function renderFilePage({ container, store, canvas }) {
   const initialProjectName = sanitizeProjectName(localStorage.getItem(PROJECT_NAME_KEY) ?? 'blueprint-project');
-  const projectionOptions = [
-    { label: 'Regular Grid', value: 'orthographic' },
-    { label: 'Isometric', value: 'isometric' },
-    { label: 'Perspective Points', value: 'perspective2' },
-  ];
+  const projectionOptions = [{ label: 'Regular Grid', value: 'orthographic' }];
   let isNewPageSetupOpen = false;
   let selectedProjectionMode = 'orthographic';
 

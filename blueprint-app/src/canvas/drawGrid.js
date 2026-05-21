@@ -1,4 +1,4 @@
-const PROJECTION_MODES = new Set(['orthographic', 'perspective1', 'perspective2', 'perspective3', 'isometric']);
+const PROJECTION_MODES = new Set(['orthographic']);
 
 function resolveProjectionMode(appState) {
   const candidate = appState?.view?.projectionMode;
@@ -177,13 +177,7 @@ function drawIsometricGrid(ctx, canvas, documentData, appState) {
   });
 }
 
-const projectionGridStrategies = {
-  orthographic: drawOrthographicGrid,
-  perspective1: drawOnePointPerspectiveGrid,
-  perspective2: drawTwoPointPerspectiveGrid,
-  perspective3: drawThreePointPerspectiveGrid,
-  isometric: drawIsometricGrid,
-};
+const projectionGridStrategies = { orthographic: drawOrthographicGrid };
 
 export function drawGrid(ctx, canvas, documentData, appState) {
   if (!documentData.settings.showGrid) return;

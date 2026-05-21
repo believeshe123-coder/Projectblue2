@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { buildNewPageAppState, ensureAppStateShape, renderFilePage } from './fileMenu.js';
 
-test('buildNewPageAppState toggles advanced projection flag by mode', () => {
+test('buildNewPageAppState always creates a regular grid page state', () => {
   const orthographic = buildNewPageAppState('orthographic');
   const isometric = buildNewPageAppState('isometric');
   const perspective = buildNewPageAppState('perspective2');
@@ -11,14 +11,14 @@ test('buildNewPageAppState toggles advanced projection flag by mode', () => {
   assert.equal(orthographic.view.projectionMode, 'orthographic');
   assert.equal(orthographic.featureFlags.enableAdvancedProjectionModes, false);
 
-  assert.equal(isometric.view.projectionMode, 'isometric');
-  assert.equal(isometric.featureFlags.enableAdvancedProjectionModes, true);
+  assert.equal(isometric.view.projectionMode, 'orthographic');
+  assert.equal(isometric.featureFlags.enableAdvancedProjectionModes, false);
 
-  assert.equal(perspective.view.projectionMode, 'perspective2');
-  assert.equal(perspective.featureFlags.enableAdvancedProjectionModes, true);
+  assert.equal(perspective.view.projectionMode, 'orthographic');
+  assert.equal(perspective.featureFlags.enableAdvancedProjectionModes, false);
 });
 
-test('ensureAppStateShape preserves view + featureFlags on load', () => {
+test('ensureAppStateShape normalizes view + featureFlags on load', () => {
   const normalized = ensureAppStateShape({
     activeTool: 'select',
     zoom: 2,
@@ -28,8 +28,8 @@ test('ensureAppStateShape preserves view + featureFlags on load', () => {
     featureFlags: { enableAdvancedProjectionModes: true },
   });
 
-  assert.equal(normalized.view.projectionMode, 'isometric');
-  assert.equal(normalized.featureFlags.enableAdvancedProjectionModes, true);
+  assert.equal(normalized.view.projectionMode, 'orthographic');
+  assert.equal(normalized.featureFlags.enableAdvancedProjectionModes, false);
 });
 
 test('new-page flow uses setup UI and not browser prompt', () => {
