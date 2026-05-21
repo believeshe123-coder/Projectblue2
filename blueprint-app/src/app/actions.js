@@ -11,10 +11,6 @@ const MAX_ZOOM = 4;
 const CLIPBOARD_OFFSET_GRID_STEPS = 2;
 export const PROJECTION_MODES = Object.freeze([
   'orthographic',
-  'perspective1',
-  'perspective2',
-  'perspective3',
-  'isometric',
 ]);
 export const SET_PROJECTION_MODE = 'SET_PROJECTION_MODE';
 let shapeClipboard = [];

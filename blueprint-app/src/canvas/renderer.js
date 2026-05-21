@@ -10,9 +10,7 @@ const GUIDE_ACCENT_COLOR = 'rgba(15, 76, 129, 0.35)';
 
 function resolveProjectionMode(appState) {
   const mode = appState?.view?.projectionMode;
-  return ['orthographic', 'perspective1', 'perspective2', 'perspective3', 'isometric'].includes(mode)
-    ? mode
-    : 'orthographic';
+  return mode === 'orthographic' ? mode : 'orthographic';
 }
 
 function drawProjectionOverlay(ctx, canvas, appState) {

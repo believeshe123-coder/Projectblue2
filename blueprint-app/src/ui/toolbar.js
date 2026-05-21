@@ -34,19 +34,12 @@ export function mountToolbar({ container, store }) {
 
   const projectionLabels = {
     orthographic: 'Blueprint',
-    perspective1: 'Perspective 1',
-    perspective2: 'Perspective 2',
-    perspective3: 'Perspective 3',
-    isometric: 'Isometric',
   };
 
   const renderProjectionTabs = () => {
-    const advancedEnabled = store.appState.featureFlags?.enableAdvancedProjectionModes === true;
     projectionTabs.innerHTML = '';
 
-    PROJECTION_MODES
-      .filter((mode) => advancedEnabled || mode === 'orthographic')
-      .forEach((mode) => {
+    PROJECTION_MODES.forEach((mode) => {
         const btn = document.createElement('button');
         btn.className = 'toolbar-button';
         btn.dataset.projectionMode = mode;

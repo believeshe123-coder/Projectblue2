@@ -418,7 +418,6 @@ function renderStartPage() {
       <p>Choose how you want to begin.</p>
       <div class="button-row">
         <button class="menu-item" data-start-action="load-project" type="button">Load Project</button>
-        <button class="menu-item" data-start-action="open-isometric" type="button">Open Isometric Page</button>
         <button class="menu-item" data-start-action="open-regular" type="button">Open Regular Grid Page</button>
       </div>
     </div>
@@ -426,15 +425,6 @@ function renderStartPage() {
 
   routeContainer.querySelector('[data-start-action="load-project"]')?.addEventListener('click', () => {
     window.location.hash = '#file';
-  });
-
-  routeContainer.querySelector('[data-start-action="open-isometric"]')?.addEventListener('click', () => {
-    patchState({
-      featureFlags: { ...(store.appState.featureFlags ?? {}), enableAdvancedProjectionModes: true },
-      view: { ...(store.appState.view ?? {}), projectionMode: 'isometric' },
-    });
-    setProjectionMode('isometric');
-    window.location.hash = '#home';
   });
 
   routeContainer.querySelector('[data-start-action="open-regular"]')?.addEventListener('click', () => {
