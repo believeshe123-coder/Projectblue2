@@ -25,6 +25,16 @@
 
         <section class="canvas-panel">
           <canvas id="blueprint-canvas" width="1100" height="700"></canvas>
+          <nav class="tablet-controls" aria-label="Canvas controls">
+            <button type="button" data-tablet-action="tools" aria-label="Toggle tools">Tools</button>
+            <button type="button" data-tablet-action="undo" aria-label="Undo">↶</button>
+            <button type="button" data-tablet-action="redo" aria-label="Redo">↷</button>
+            <button type="button" data-tablet-action="zoom-out" aria-label="Zoom out">−</button>
+            <output id="tablet-zoom" aria-label="Current zoom">100%</output>
+            <button type="button" data-tablet-action="zoom-in" aria-label="Zoom in">+</button>
+            <button type="button" data-tablet-action="center" aria-label="Center canvas">Center</button>
+            <button type="button" data-tablet-action="properties" aria-label="Toggle properties">Properties</button>
+          </nav>
         </section>
 
         <aside class="right-sidebar">

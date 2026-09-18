@@ -214,16 +214,8 @@ function fitViewportToCanvasPanel() {
   applyFullCanvasTransform(store.appState, transform);
 }
 
-function requestFullCanvasFit() {
-  requestAnimationFrame(() => {
-    fitViewportToCanvasPanel();
-    draw();
-  });
-}
-
 function enableFullCanvasMode({ announce = true } = {}) {
   applyFullCanvasLayout(layoutState);
-  forceRegularGridView();
   if (announce) showActionToast?.('Full canvas mode enabled. Press Esc to exit.');
 }
 
@@ -231,12 +223,12 @@ function enterFullCanvasMode({ announce = true } = {}) {
   if (layoutState.fullCanvas) return;
   enableFullCanvasMode({ announce });
   applyLayoutState();
-  requestFullCanvasFit();
+  requestAnimationFrame(draw);
 }
 
 const layoutState = readLayoutState() ?? {
-  leftCollapsed: false,
-  rightCollapsed: false,
+  leftCollapsed: window.matchMedia('(max-width: 1100px), (pointer: coarse)').matches,
+  rightCollapsed: window.matchMedia('(max-width: 1100px), (pointer: coarse)').matches,
   fullCanvas: false,
   preset: 'edit',
 };
@@ -278,6 +270,7 @@ document.getElementById('right-sidebar-toggle')?.addEventListener('click', () =>
 
 const undoButton = document.getElementById('undo-button');
 const redoButton = document.getElementById('redo-button');
+const tabletZoom = document.getElementById('tablet-zoom');
 
 undoButton?.addEventListener('click', () => {
   performUndo();
@@ -285,6 +278,38 @@ undoButton?.addEventListener('click', () => {
 
 redoButton?.addEventListener('click', () => {
   performRedo();
+});
+
+function zoomCanvasFromCenter(factor) {
+  const rect = canvas.getBoundingClientRect();
+  const center = { x: rect.width / 2, y: rect.height / 2 };
+  const before = {
+    x: (center.x - store.appState.panX) / store.appState.zoom,
+    y: (center.y - store.appState.panY) / store.appState.zoom,
+  };
+  const nextZoom = Math.min(4, Math.max(0.01, store.appState.zoom * factor));
+  store.appState.zoom = nextZoom;
+  store.appState.panX = center.x - before.x * nextZoom;
+  store.appState.panY = center.y - before.y * nextZoom;
+  store.notify();
+}
+
+document.querySelector('.tablet-controls')?.addEventListener('click', (event) => {
+  const action = event.target.closest('[data-tablet-action]')?.dataset.tabletAction;
+  if (!action) return;
+  if (action === 'tools') layoutState.leftCollapsed = !layoutState.leftCollapsed;
+  if (action === 'properties') layoutState.rightCollapsed = !layoutState.rightCollapsed;
+  if (action === 'undo') performUndo();
+  if (action === 'redo') performRedo();
+  if (action === 'zoom-out') zoomCanvasFromCenter(1 / 1.2);
+  if (action === 'zoom-in') zoomCanvasFromCenter(1.2);
+  if (action === 'center') fitViewportToCanvasPanel();
+  if (action === 'tools' || action === 'properties') {
+    layoutState.fullCanvas = false;
+    layoutState.preset = 'edit';
+    applyLayoutState();
+  }
+  draw();
 });
 
 const ephemeral = {
@@ -546,6 +571,7 @@ function draw() {
   layersRefresh();
   navRefresh(route);
   layoutRefresh();
+  if (tabletZoom) tabletZoom.value = `${Math.round(store.appState.zoom * 100)}%`;
   applyTheme();
 }
 
@@ -558,6 +584,12 @@ window.addEventListener('resize', () => {
     draw();
   }
 });
+
+if ('ResizeObserver' in window) {
+  new ResizeObserver(() => {
+    if (getRoute() === 'home') draw();
+  }).observe(canvasPanel);
+}
 
 store.subscribe(draw);
 
