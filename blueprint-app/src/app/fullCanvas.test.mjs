@@ -5,6 +5,7 @@ import {
   applyFullCanvasLayout,
   applyFullCanvasTransform,
   buildDeterministicFullCanvasTransform,
+  captureViewportTransform,
 } from './fullCanvas.js';
 
 test('full-canvas layout collapses sidebars and enables orthographic review flow', () => {
@@ -19,6 +20,16 @@ test('full-canvas layout collapses sidebars and enables orthographic review flow
   assert.equal(layoutState.leftCollapsed, true);
   assert.equal(layoutState.rightCollapsed, true);
   assert.equal(appState.view.projectionMode, 'orthographic');
+});
+
+test('full-canvas layout does not mutate the viewport or grid projection', () => {
+  const layoutState = { leftCollapsed: false, rightCollapsed: false, fullCanvas: false, preset: 'edit' };
+  const appState = { zoom: 1.75, panX: 42, panY: -18, view: { projectionMode: 'orthographic', canvasRotationDeg: 0 } };
+  const before = captureViewportTransform(appState);
+
+  applyFullCanvasLayout(layoutState);
+
+  assert.deepEqual(captureViewportTransform(appState), before);
 });
 
 test('viewport transform resets deterministically for full-canvas', () => {
